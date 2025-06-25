@@ -26,6 +26,7 @@ fn smoke_scan_filesystem_text_and_binary() -> anyhow::Result<()> {
             "--confidence=low",
             "--format",
             "json",
+            "--no-update-check", // skip update check to avoid network calls
         ])
         .assert()
         .code(200) // findings present

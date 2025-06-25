@@ -276,7 +276,7 @@ pub fn decompress_file_to_temp(path: &Path) -> Result<(CompressedContent, TempDi
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Write, path::PathBuf};
+    use std::fs::File;
 
     use flate2::{write::GzEncoder, Compression};
     use tar::Builder;
@@ -382,104 +382,104 @@ mod tests {
         Ok(())
     }
 
-    // /// 3) Nested archive:
-    // ///    outer.tar.gz  ──▶  outer.tar  (contains inner.tar.gz)
-    // ///                               └──▶  inner.tar.gz  ──▶  inner.tar  (contains secret.txt)
-    // #[test]
-    // fn smoke_decompress_nested_tar_gz_archives() -> anyhow::Result<()> {
-    //     use std::{
-    //         fs::File,
-    //         io::{Read, Write},
-    //         path::PathBuf,
-    //     };
+    /// 3) Nested archive:
+    ///    outer.tar.gz  ──▶  outer.tar  (contains inner.tar.gz)
+    ///                               └──▶  inner.tar.gz  ──▶  inner.tar  (contains secret.txt)
+    #[test]
+    fn smoke_decompress_nested_tar_gz_archives() -> anyhow::Result<()> {
+        use std::{
+            fs::File,
+            io::Read,
+            path::PathBuf,
+        };
 
-    //     use flate2::{write::GzEncoder, Compression};
-    //     use tar::Builder;
-    //     use tempfile::tempdir;
+        use flate2::{write::GzEncoder, Compression};
+        use tar::Builder;
+        use tempfile::tempdir;
 
-    //     use super::{decompress_once, CompressedContent};
+        use super::{decompress_once, CompressedContent};
 
-    //     let tmp = tempdir()?;
+        let tmp = tempdir()?;
 
-    //     /* ── build INNER tar.gz ──────────────────────────────────────────────── */
-    //     let inner_tgz = tmp.path().join("inner.tar.gz");
-    //     {
-    //         let f = File::create(&inner_tgz)?;
-    //         let gz = GzEncoder::new(f, Compression::default());
-    //         let mut tar = Builder::new(gz);
+        /* ── build INNER tar.gz ──────────────────────────────────────────────── */
+        let inner_tgz = tmp.path().join("inner.tar.gz");
+        {
+            let f = File::create(&inner_tgz)?;
+            let gz = GzEncoder::new(f, Compression::default());
+            let mut tar = Builder::new(gz);
 
-    //         let data = b"nested_secret=shh\n";
-    //         let mut hdr = tar::Header::new_gnu();
-    //         hdr.set_size(data.len() as u64);
-    //         hdr.set_mode(0o644);
-    //         hdr.set_cksum();
-    //         tar.append_data(&mut hdr, "secret.txt", &data[..])?;
+            let data = b"nested_secret=shh\n";
+            let mut hdr = tar::Header::new_gnu();
+            hdr.set_size(data.len() as u64);
+            hdr.set_mode(0o644);
+            hdr.set_cksum();
+            tar.append_data(&mut hdr, "secret.txt", &data[..])?;
 
-    //         tar.into_inner()?.finish()?;
-    //     }
+            tar.into_inner()?.finish()?;
+        }
 
-    //     /* ── read inner archive into memory so we can embed it ──────────────── */
-    //     let mut inner_bytes = Vec::new();
-    //     File::open(&inner_tgz)?.read_to_end(&mut inner_bytes)?;
+        /* ── read inner archive into memory so we can embed it ──────────────── */
+        let mut inner_bytes = Vec::new();
+        File::open(&inner_tgz)?.read_to_end(&mut inner_bytes)?;
 
-    //     /* ── build OUTER tar.gz that contains the inner .tar.gz ─────────────── */
-    //     let outer_tgz = tmp.path().join("outer.tar.gz");
-    //     {
-    //         let f = File::create(&outer_tgz)?;
-    //         let gz = GzEncoder::new(f, Compression::default());
-    //         let mut tar = Builder::new(gz);
+        /* ── build OUTER tar.gz that contains the inner .tar.gz ─────────────── */
+        let outer_tgz = tmp.path().join("outer.tar.gz");
+        {
+            let f = File::create(&outer_tgz)?;
+            let gz = GzEncoder::new(f, Compression::default());
+            let mut tar = Builder::new(gz);
 
-    //         let mut hdr = tar::Header::new_gnu();
-    //         hdr.set_size(inner_bytes.len() as u64);
-    //         hdr.set_mode(0o644);
-    //         hdr.set_cksum();
-    //         tar.append_data(&mut hdr, "inner.tar.gz", inner_bytes.as_slice())?;
+            let mut hdr = tar::Header::new_gnu();
+            hdr.set_size(inner_bytes.len() as u64);
+            hdr.set_mode(0o644);
+            hdr.set_cksum();
+            tar.append_data(&mut hdr, "inner.tar.gz", inner_bytes.as_slice())?;
 
-    //         tar.into_inner()?.finish()?;
-    //     }
+            tar.into_inner()?.finish()?;
+        }
 
-    //     /* ── Layer 1: gunzip outer.tar.gz ───────────────────────────────────── */
-    //     let scratch = tempdir()?; // where intermediate layers land
-    //     let tar_path = match decompress_once(&outer_tgz, Some(scratch.path()))? {
-    //         CompressedContent::RawFile(p) => p,
-    //         other => panic!("expected RawFile after gunzip, got {:?}", other),
-    //     };
+        /* ── Layer 1: gunzip outer.tar.gz ───────────────────────────────────── */
+        let scratch = tempdir()?; // where intermediate layers land
+        let tar_path = match decompress_once(&outer_tgz, Some(scratch.path()))? {
+            CompressedContent::RawFile(p) => p,
+            other => panic!("expected RawFile after gunzip, got {:?}", other),
+        };
 
-    //     /* ── Layer 2: untar outer.tar  -> find inner.tar.gz on disk ─────────── */
-    //     let inner_on_disk: PathBuf = match decompress_once(&tar_path, Some(scratch.path()))? {
-    //         CompressedContent::ArchiveFiles(files) => files
-    //             .into_iter()
-    //             .find(|(logical, _)| logical.ends_with("!inner.tar.gz"))
-    //             .map(|(_, p)| p)
-    //             .expect("inner.tar.gz not found in outer archive"),
-    //         other => panic!("expected ArchiveFiles after untar, got {:?}", other),
-    //     };
+        /* ── Layer 2: untar outer.tar  -> find inner.tar.gz on disk ─────────── */
+        let inner_on_disk: PathBuf = match decompress_once(&tar_path, Some(scratch.path()))? {
+            CompressedContent::ArchiveFiles(files) => files
+                .into_iter()
+                .find(|(logical, _)| logical.ends_with("!inner.tar.gz"))
+                .map(|(_, p)| p)
+                .expect("inner.tar.gz not found in outer archive"),
+            other => panic!("expected ArchiveFiles after untar, got {:?}", other),
+        };
 
-    //     /* ── Layer 3: gunzip inner.tar.gz ───────────────────────────────────── */
-    //     let inner_tar = match decompress_once(&inner_on_disk, Some(scratch.path()))? {
-    //         CompressedContent::RawFile(p) => p,
-    //         other => panic!("expected RawFile after gunzip inner, got {:?}", other),
-    //     };
+        /* ── Layer 3: gunzip inner.tar.gz ───────────────────────────────────── */
+        let inner_tar = match decompress_once(&inner_on_disk, Some(scratch.path()))? {
+            CompressedContent::RawFile(p) => p,
+            other => panic!("expected RawFile after gunzip inner, got {:?}", other),
+        };
 
-    //     /* ── Layer 4: untar inner.tar  -> secret.txt should be present ──────── */
-    //     match decompress_once(&inner_tar, Some(scratch.path()))? {
-    //         CompressedContent::ArchiveFiles(files) => {
-    //             let mut found = false;
-    //             for (logical, path) in files {
-    //                 if logical.ends_with("!secret.txt") {
-    //                     let txt = std::fs::read_to_string(&path)?;
-    //                     assert!(
-    //                         txt.contains("nested_secret=shh"),
-    //                         "secret.txt content corrupted"
-    //                     );
-    //                     found = true;
-    //                 }
-    //             }
-    //             assert!(found, "secret.txt not extracted from nested archive");
-    //         }
-    //         other => panic!("expected ArchiveFiles after untar inner, got {:?}", other),
-    //     }
+        /* ── Layer 4: untar inner.tar  -> secret.txt should be present ──────── */
+        match decompress_once(&inner_tar, Some(scratch.path()))? {
+            CompressedContent::ArchiveFiles(files) => {
+                let mut found = false;
+                for (logical, path) in files {
+                    if logical.ends_with("!secret.txt") {
+                        let txt = std::fs::read_to_string(&path)?;
+                        assert!(
+                            txt.contains("nested_secret=shh"),
+                            "secret.txt content corrupted"
+                        );
+                        found = true;
+                    }
+                }
+                assert!(found, "secret.txt not extracted from nested archive");
+            }
+            other => panic!("expected ArchiveFiles after untar inner, got {:?}", other),
+        }
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 }

@@ -40,7 +40,7 @@ fn smoke_scan_git_history() -> anyhow::Result<()> {
             "--confidence=low", // pick up even low-confidence rules
             "--format",
             "json",
-            // add "--no-validate" if the CLI supports it to avoid network I/O
+            "--no-update-check", // skip update check to avoid network calls
         ])
         .assert()
         .code(200) // ← kingfisher’s “findings present” status

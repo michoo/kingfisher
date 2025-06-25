@@ -11,7 +11,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
 
     // --- build a payload.tar.gz -------------------------------------------------
     {
-        use std::{fs::File, io::Write};
+        use std::fs::File;
 
         use flate2::{write::GzEncoder, Compression};
         use tar::Builder;
@@ -30,7 +30,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
 
     // ── 1) extraction ENABLED -- secret should be found ─────────────────────────
     Command::cargo_bin("kingfisher")?
-        .args(["scan", tar_gz.to_str().unwrap(), "--confidence=low", "--format", "json"])
+        .args(["scan", tar_gz.to_str().unwrap(), "--confidence=low", "--format", "json", "--no-update-check"])
         .assert()
         .code(findings_code)
         .stdout(predicates::str::contains(github_pat));
@@ -44,6 +44,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
             "--format",
             "json",
             "--no-extract-archives",
+            "--no-update-check", // skip update check to avoid network calls
         ])
         .assert()
         .success() // always 0

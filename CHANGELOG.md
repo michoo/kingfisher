@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.12.0]
-- Added automatic update checks using GitHub releases
+## [1.12.0] 
+- Added automatic update checks using GitHub releases.
 - New `--self-update` flag installs updates when available
 - New `--no-update-check` flag disables update checks
 - Updated rules

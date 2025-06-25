@@ -8,7 +8,7 @@ mod test {
     fn cli_lists_rules_pretty() {
         Command::cargo_bin("kingfisher")
             .unwrap()
-            .args(["rules", "list", "--format", "pretty"])
+            .args(["rules", "list", "--format", "pretty", "--no-update-check"])
             .assert()
             .success()
             .stdout(contains("kingfisher.aws.").and(contains("Pattern")));
@@ -17,7 +17,7 @@ mod test {
     fn cli_lists_rules_json() {
         Command::cargo_bin("kingfisher")
             .unwrap()
-            .args(["rules", "list", "--format", "json"])
+            .args(["rules", "list", "--format", "json", "--no-update-check"])
             .assert()
             .success()
             .stdout(contains("kingfisher.aws.").and(contains("pattern")));
