@@ -8,7 +8,7 @@ pub mod rule;
 use std::{fs::File, io::BufReader, path::Path};
 
 use anyhow::Context;
-use rule::{Confidence, RuleSyntax};
+use rule::{Confidence, RuleSyntax, Validation};
 use serde::de::DeserializeOwned;
 
 /// Custom error type for more granular rules loading errors.
@@ -28,6 +28,9 @@ pub enum RulesError {
 
     #[error("Invalid ResponseMatcher variant in file: {0}, at line: {1}, column: {2}")]
     InvalidResponseMatcherVariant(String, usize, usize),
+
+    #[error("HTTP validation for rule `{rule_id}` in file {path} missing response_matcher")]
+    MissingResponseMatcher { path: String, rule_id: String },
 }
 
 /// Represents a collection of rule syntaxes.
@@ -58,6 +61,21 @@ impl Rules {
             match serde_yaml::from_reader::<_, Rules>(contents) {
                 Ok(mut rs) => {
                     rs.rules.retain(|rule| rule.confidence.is_at_least(&confidence));
+                    for rule_syntax in &rs.rules {
+                        if let Some(Validation::Http(http_val)) = &rule_syntax.validation {
+                            if http_val
+                                .request
+                                .response_matcher
+                                .as_ref()
+                                .map_or(true, |m| m.is_empty())
+                            {
+                                bail!(RulesError::MissingResponseMatcher {
+                                    path: path.display().to_string(),
+                                    rule_id: rule_syntax.id.clone(),
+                                });
+                            }
+                        }
+                    }
                     rules.update(rs);
                 }
                 Err(e) => {

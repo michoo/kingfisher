@@ -514,8 +514,14 @@ async fn timed_validate_single_match<'a>(
 
                     m.validation_response_status = status;
                     m.validation_response_body = body.clone();
+                    let matchers = http_validation
+                        .request
+                        .response_matcher
+                        .as_ref()
+                        .expect("missing response_matcher");
+
                     m.validation_success = httpvalidation::validate_response(
-                        &http_validation.request.response_matcher,
+                        matchers,
                         &body,
                         &status,
                         &headers,
@@ -880,6 +886,12 @@ rules:
         request:
           method: POST
           url: https://upload.pypi.org/legacy/
+          response_is_html: true
+          response_matcher:
+            - report_response: true
+            - type: WordMatch
+              words:
+                - "isn't allowed to upload to project"
           headers:
             Authorization: 'Basic {{ "__token__:" | append: TOKEN | b64enc }}'
           multipart:

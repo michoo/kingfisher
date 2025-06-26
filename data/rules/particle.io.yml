@@ -29,13 +29,13 @@ rules:
         request:
           method: GET
           url: https://api.particle.io/v1/user?access_token={{ TOKEN }}
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status: [200]
-          - type: WordMatch
-            match_all_words: true
-            words: ['"username":']
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              match_all_words: true
+              words: ['"username":']
 
   - name: particle.io Access Token
     id: kingfisher.particleio.2
@@ -65,10 +65,10 @@ rules:
         request:
           method: GET
           url: https://api.particle.io/v1/user?access_token={{ TOKEN }}
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status: [200]
-          - type: WordMatch
-            match_all_words: true
-            words: ['"username":']
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              match_all_words: true
+              words: ['"username":']

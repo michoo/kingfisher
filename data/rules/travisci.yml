@@ -28,7 +28,7 @@ rules:
               Authorization: token {{ TOKEN }}
               Accept: application/vnd.travis-ci.3+json
               Travis-API-Version: "3"
-          response_matcher:
-            - report_response: true
-            - type: StatusMatch
-              status: [200]
+            response_matcher:
+              - report_response: true
+              - type: StatusMatch
+                status: [200]

@@ -76,6 +76,12 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
             request:
               method: GET
               url: '{base}/validate?token={{ {{ TOKEN }} }}'
+              response_matcher:
+                  - report_response: true
+                  - type: WordMatch
+                    words:
+                      - '"error_code":"403003"'
+                    negative: true
     "#,
         base = server.uri()
     );

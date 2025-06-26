@@ -382,16 +382,11 @@ mod tests {
         Ok(())
     }
 
-    /// 3) Nested archive:
-    ///    outer.tar.gz  ──▶  outer.tar  (contains inner.tar.gz)
-    ///                               └──▶  inner.tar.gz  ──▶  inner.tar  (contains secret.txt)
+    /// 3) Nested archive: outer.tar.gz  ──▶  outer.tar  (contains inner.tar.gz) └──▶  inner.tar.gz
+    ///    ──▶  inner.tar  (contains secret.txt)
     #[test]
     fn smoke_decompress_nested_tar_gz_archives() -> anyhow::Result<()> {
-        use std::{
-            fs::File,
-            io::Read,
-            path::PathBuf,
-        };
+        use std::{fs::File, io::Read, path::PathBuf};
 
         use flate2::{write::GzEncoder, Compression};
         use tar::Builder;
@@ -468,10 +463,7 @@ mod tests {
                 for (logical, path) in files {
                     if logical.ends_with("!secret.txt") {
                         let txt = std::fs::read_to_string(&path)?;
-                        assert!(
-                            txt.contains("nested_secret=shh"),
-                            "secret.txt content corrupted"
-                        );
+                        assert!(txt.contains("nested_secret=shh"), "secret.txt content corrupted");
                         found = true;
                     }
                 }

@@ -30,9 +30,9 @@ rules:
               "query": "query { issues(first: 1) { nodes { id } } }"
             }
           url: https://api.linear.app/graphql 
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status: [200]
-          - type: WordMatch
-            words: ['"issues":', '"nodes":']
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words: ['"issues":', '"nodes":']

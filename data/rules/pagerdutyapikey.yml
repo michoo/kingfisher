@@ -2,35 +2,46 @@ rules:
   - name: PagerDuty API Key
     id: kingfisher.pagerduty.1
     pattern: |
-      (?xi)
+      (?xi)                                                     
       \b
-      (?:pagerduty|pager[_-]duty|pd[-_\]=\)]|pd\.webhook?)
-      (?:.|[\n\r]){0,16}?
-      (
-        u\+[A-Z0-9_+-]{18}        # new personal tokens
-        |
-        [A-Z0-9_-]{20}            # legacy personal tokens
-        |
-        [A-F0-9]{32}                 # integration keys / routing keys
+      (?:                                                       
+          Token |
+          Authorization |
+          pd[_-]? |
+          pd[_-]? |
+          pagerduty[_-]? |
+          pagerduty
       )
-      \b
-    min_entropy: 3.3
+      \W{0,20}
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
+      (?:.|[\n\r]){0,16}?         
+      \b            
+      (                                                          
+        u\+[A-Z0-9_+-]{18}         |  # personal user token (20 chars)
+        [A-Z0-9_-]{20}             |  # legacy PAT (20 chars, mixed case)
+        [a-f0-9]{32}                     # integration / routing key (32 hex, lower case)
+      )
+      \b                                          
+    min_entropy: 3.5
     confidence: medium
     examples:
-      - pagerduty_key = u+Lyhd2_N2MCy+ZoH-S5
+      - "Authorization: Token token=u+Lyhd2_N2MCy+ZoH-S5"
       - pd_key = u+3xVszZ-b4m+T6d23KA
+      - Token token=ABCDEF1234567890ABCDEF1234567890 
+    references:
+      - https://developer.pagerduty.com/api-reference/4555ca1c983d0-get-the-current-user    
     validation:
       type: Http
       content:
         request:
           method: GET
-          url: https://api.pagerduty.com/abilities 
+          url: https://api.pagerduty.com/users          
           headers:
             Authorization: Token token={{ TOKEN }}
-            Accept: application/vnd.pagerduty+json;version=2
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status: [200]
-          - type: WordMatch
-            words: ['"abilities":'] 
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: JsonValid                              
+            - type: WordMatch                                
+              words: 
+                - '"users":'

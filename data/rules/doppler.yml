@@ -23,11 +23,11 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
             Accept: application/json
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 200
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200
   - name: Doppler Personal Token
     id: kingfisher.doppler.2
     pattern: |
@@ -52,11 +52,11 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
             Accept: application/json
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 200
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200
 
   - name: Doppler Service Token
     id: kingfisher.doppler.3
@@ -82,11 +82,11 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
             Accept: application/json
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 200
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200
 
   - name: Doppler Service Account Token
     id: kingfisher.doppler.4
@@ -112,11 +112,11 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
             Accept: application/json
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 200
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200
 
   - name: Doppler SCIM Token
     id: kingfisher.doppler.5
@@ -142,11 +142,11 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
             Accept: application/json
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 200
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200
 
   - name: Doppler Audit Token
     id: kingfisher.doppler.6
@@ -172,8 +172,8 @@ rules:
           headers:
             Authorization: Bearer {{ TOKEN }}
             Accept: application/json
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 200
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200

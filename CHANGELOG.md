@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0]
+- Fixed several malformed rules
+- Now validating that response_matcher is present in validation section of all rules
+
 ## [1.13.0]
 - Added new rules for Planetscale, Postman, Openweather, opsgenie, pagerduty, pastebin, paypal, netlify, netrc, newrelic, ngrok, npm, nuget, mandrill, mapbox, microsoft teams, stripe, linkedin, mailchimp, mailgun, linear, line, huggingface, ibm cloud, intercom, ipstack, heroku, gradle, grafana
 - Added `--rule-stats` command-line flag that will display rule performance statistics during a scan. Useful when creating or debugging rules

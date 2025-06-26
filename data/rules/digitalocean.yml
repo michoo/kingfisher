@@ -14,9 +14,7 @@ rules:
     examples:
       - dop_v1_1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
       - 'token         = "dop_v1_ef0e04edc13918192246e0c90f0735c7f4db7a5a036a857e48d6cc98f1c9576b"'
-    categories:
-      - api
-      - secret
+
     validation:
       type: Http
       content:
@@ -60,9 +58,9 @@ rules:
               "grant_type": "refresh_token",
               "refresh_token": "{{ TOKEN }}"
             }
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch          
-            status: 
-              - 200
-          - type: JsonValid          
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 200
+            - type: JsonValid

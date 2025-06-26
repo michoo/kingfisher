@@ -30,7 +30,7 @@ fn scan_fails_for_bad_rule_yaml() {
             "--rules-path",
             tmp.path().to_str().unwrap(), // point loader at bad YAML
             "--no-validate",              // keep the test fast
-             "--no-update-check", // skip update check to avoid network calls
+            "--no-update-check",          // skip update check to avoid network calls
         ])
         .assert()
         .failure()
@@ -72,7 +72,7 @@ rules:
             tmp.path().to_str().unwrap(), // only the custom rule
             "--no-dedup",
             "--load-builtins=false", // skip the builtin rules
-            "--no-update-check", // skip update check to avoid network calls
+            "--no-update-check",     // skip update check to avoid network calls
         ])
         .assert()
         .failure() // CLI exits 0

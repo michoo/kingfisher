@@ -23,6 +23,12 @@ rules:
             X-Figma-Token: '{{ TOKEN }}'
           method: GET
           url: https://api.figma.com/v1/me
+          response_matcher:
+            - report_response: true
+            - type: WordMatch
+              words: 
+                - "Invalid token"
+              negative: true
 
   - name: Figma Personal Access Header Token
     id: kingfisher.figma.2

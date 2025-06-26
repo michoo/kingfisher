@@ -42,11 +42,11 @@ rules:
           headers:
             Content-Type: application/json
           body: '{"text":""}'
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status:
-              - 400
-          - type: WordMatch
-            words:
-              - 'Text is required'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status:
+                - 400
+            - type: WordMatch
+              words:
+                - 'Text is required'

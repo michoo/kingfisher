@@ -161,7 +161,7 @@ pub fn print_scan_summary(
             if !stats.is_empty() {
                 // Calculate dynamic column widths
                 let name_w = stats.iter().map(|s| s.rule_name.len()).max().unwrap_or(4);
-                let id_w   = stats.iter().map(|s| s.rule_id.len()).max().unwrap_or(2);
+                let id_w = stats.iter().map(|s| s.rule_id.len()).max().unwrap_or(2);
 
                 // Header
                 safe_println!("\n{:-^1$}", " Rule Performance Stats ", name_w + id_w + 47);
@@ -173,7 +173,7 @@ pub fn print_scan_summary(
                     "Slowest",
                     "Average",
                     name_w = name_w,
-                    id_w   = id_w
+                    id_w = id_w
                 );
                 safe_println!("{:-<width$}", "", width = name_w + id_w + 49);
 
@@ -187,13 +187,12 @@ pub fn print_scan_summary(
                         rs.slowest_match_time,
                         rs.average_match_time,
                         name_w = name_w,
-                        id_w   = id_w
+                        id_w = id_w
                     );
                 }
             }
         }
     }
-
 
     debug!("\nAll Rules with Matches:");
     debug!("=======================");

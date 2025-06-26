@@ -28,10 +28,10 @@ rules:
             Content-Type: application/x-www-form-urlencoded
           body: |
             api_dev_key={{ TOKEN }}&api_user_name=dummy&api_user_password=dummy
-        response_matcher:
-          - report_response: true
-          - type: StatusMatch
-            status: [200]                                   
-          - type: WordMatch                                
-            words: ['invalid api_dev_key']
-            negative: true
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]                                   
+            - type: WordMatch                                
+              words: ['invalid api_dev_key']
+              negative: true

@@ -30,7 +30,14 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
 
     // ── 1) extraction ENABLED -- secret should be found ─────────────────────────
     Command::cargo_bin("kingfisher")?
-        .args(["scan", tar_gz.to_str().unwrap(), "--confidence=low", "--format", "json", "--no-update-check"])
+        .args([
+            "scan",
+            tar_gz.to_str().unwrap(),
+            "--confidence=low",
+            "--format",
+            "json",
+            "--no-update-check",
+        ])
         .assert()
         .code(findings_code)
         .stdout(predicates::str::contains(github_pat));

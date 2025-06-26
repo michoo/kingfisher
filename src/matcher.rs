@@ -25,7 +25,6 @@ use smallvec::SmallVec;
 use tracing::debug;
 use xxhash_rust::xxh3::xxh3_64;
 
-use crate::rule_profiling::RuleTimer;
 use crate::{
     blob::{Blob, BlobId, BlobIdMap},
     entropy::calculate_shannon_entropy,
@@ -33,7 +32,7 @@ use crate::{
     origin::OriginSet,
     parser,
     parser::{Checker, Language},
-    rule_profiling::{ConcurrentRuleProfiler, RuleStats},
+    rule_profiling::{ConcurrentRuleProfiler, RuleStats, RuleTimer},
     rules::rule::Rule,
     rules_database::RulesDatabase,
     safe_list::is_safe_match,
@@ -464,15 +463,8 @@ fn filter_match<'b>(
     filename: &str,
     profiler: Option<&Arc<ConcurrentRuleProfiler>>,
 ) {
-    let mut timer = profiler.map(|p| {
-        RuleTimer::new(
-            p,
-            rule.id(),
-            rule.name(),
-            &rule.syntax.pattern,
-            filename,
-        )
-    });
+    let mut timer =
+        profiler.map(|p| RuleTimer::new(p, rule.id(), rule.name(), &rule.syntax.pattern, filename));
 
     let initial_len = matches.len();
 
@@ -989,7 +981,7 @@ mod test {
                     method: "GET".to_string(),
                     url: "https://example.com".to_string(),
                     headers: BTreeMap::new(),
-                    response_matcher: vec![],
+                    response_matcher: Some(vec![]),
                     multipart: None,
                     response_is_html: false,
                 },
