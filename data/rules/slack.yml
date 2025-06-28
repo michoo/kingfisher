@@ -85,9 +85,9 @@ rules:
       \b
       (
         https://hooks\.slack\.com/services/
-        T[a-z0-9_-]{8,12}/         # Team ID
-        B[a-z0-9_-]{8,12}/         # Bot ID
-        [a-z0-9_-]{20,30}          # Webhook token
+        T[a-z0-9_-]{8,12}/
+        B[a-z0-9_-]{8,12}/
+        [a-z0-9_-]{20,30}
       )
       \b
     min_entropy: 3.3
@@ -105,10 +105,9 @@ rules:
             - report_response: true
               type: WordMatch
               words:
-                - ok
                 - invalid_payload
             - type: WordMatch
-              words: 
+              words:
                 - "invalid_token"
               negative: true
-          url: '{{ TOKEN }}'
+          url: "{{ TOKEN }}"

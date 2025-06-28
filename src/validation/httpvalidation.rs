@@ -270,22 +270,25 @@ pub async fn retry_request(
 
 /// Return `true` when the body is very likely HTML.
 ///
-/// Heuristics (fast):
-///   1. Content-Type header says “text/html” or “application/xhtml+xml”.
-///   2. First 1 kB starts with “<” **and** contains “<html”.
 fn body_looks_like_html(body: &str, headers: &HeaderMap) -> bool {
     // ---- 1. header heuristic ---------------------------------------------
-    if let Some(ct) = headers.get("content-type").and_then(|v| v.to_str().ok()) {
-        let ct = ct.to_ascii_lowercase();
-        if ct.contains("text/html") || ct.contains("application/xhtml") {
-            return true;
-        }
-    }
+    let header_says_html = headers
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .map(|ct| {
+            let ct = ct.to_ascii_lowercase();
+            ct.contains("text/html") || ct.contains("application/xhtml")
+        })
+        .unwrap_or(false);
 
     // ---- 2. early-body scan (<=1024 bytes) --------------------------------
     let probe = body[..body.len().min(1024)].to_ascii_lowercase();
-    probe.starts_with('<') && probe.contains("<html")
+    let body_looks_htmlish = probe.starts_with('<') && probe.contains("<html");
+
+    // ⇒ Only HTML if **both** header and body agree
+    header_says_html && body_looks_htmlish
 }
+
 
 /// Validate the response by checking word and status matchers.
 pub fn validate_response(
@@ -295,8 +298,7 @@ pub fn validate_response(
     headers: &HeaderMap,
     html_allowed: bool,
 ) -> bool {
-    // Since match_all_types is always true here, we simply require all word and status conditions
-    // to hold.
+    // Since match_all_types is always true here, we simply require all word and status conditions to hold.
     let word_ok = matchers
         .iter()
         .filter_map(|m| {
@@ -474,4 +476,38 @@ mod tests {
         // --- assert -----------------------------------------------------------
         assert!(result);
     }
+    #[test]
+    fn test_validate_response_slack_webhook() {
+        // 1️⃣  Build matchers equivalent to rule kingfisher.slack.4
+        let matchers = vec![
+            ResponseMatcher::WordMatch {
+                r#type: "word-match".to_string(),
+                words: vec!["invalid_payload".to_string()],
+                match_all_words: false, // rule omits this → default is false
+                negative: false,
+            },
+            ResponseMatcher::WordMatch {
+                r#type: "word-match".to_string(),
+                words: vec!["invalid_token".to_string()],
+                match_all_words: false,
+                negative: true,         // body must *not* contain “invalid_token”
+            },
+        ];
+
+        // 2️⃣  Simulate the real Slack response you posted
+        let body = "invalid_payload";
+        let status = StatusCode::BAD_REQUEST; // 400
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/plain"),
+        );
+
+        // 3️⃣  Call validate_response with html_allowed = false
+        let ok = validate_response(&matchers, body, &status, &headers, false);
+
+        // 4️⃣  It *should* be valid (true) because all matcher conditions hold
+        assert!(ok, "Slack webhook response should be considered ACTIVE");
+    }
+
 }

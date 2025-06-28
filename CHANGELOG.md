@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0]
+- Fix: HTML detection now requires both HTML content-type and "<html" tag, fixing webhook false negatives
+- Removed cargo-nextest installation during test running
+- Added rules for 1password, droneci
+
 ## [1.15.0]
 - Ensuring temp files are cleaned up
 - Applying visual style to the update check output

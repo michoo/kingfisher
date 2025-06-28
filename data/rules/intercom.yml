@@ -3,7 +3,7 @@ rules:
     id: kingfisher.intercom.1
     pattern: |
       (?xi)  
-      (?:intercom(?:_access)?|ic)       
+      (?:intercom|ic)       
       (?:.|[\n\r]){0,16}?                  
       (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
       (?:.|[\n\r]){0,16}?                          

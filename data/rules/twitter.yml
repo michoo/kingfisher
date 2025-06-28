@@ -1,0 +1,38 @@
+rules:
+  - name: X / Twitter Bearer Token (App-only)
+    id:   kingfisher.twitter.bearer.1
+    pattern: |
+      (?xi)           
+      \b                       
+      (?:twitter|x.com|twtr)?
+      (?:.|[\n\r]){0,16}?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|BEARER)
+      (?:.|[\n\r]){0,16}?
+      \b
+      (                                      
+        A{10,}[A-Za-z0-9_\-]{40,200}         
+      )
+      \b
+    min_entropy: 4.0
+    confidence: medium
+    examples:
+      - "Twitter Secret: Bearer AAAAAAAAAAAAAAAAAAAb342O1ksbnZiwemJv0g9LrF6cRazflLJEDbmmuAr8GQbDkDrYHoqPM1xr8tmP5LGW1Vq_soJIsolxqOXtAPA2hUGXIBYubxWPLVZkUs7jYBizqlDRDSHRGXKP2nuCzdbNlxKcgMQzrm"
+      - TWITTER_BEARER="AAAAAAAAAAAAAAxrrTSuijZNLygaTAEMAc_iY1nOdFRc1OP4fpMZiEkTQ4D-QaCvOhvBvpu5zwH67VvwE9MlmL78ptDdFP_FX6fgcJnQOcvsedOXNP9t3D1fYkJcJT3kXldAIJJ"
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.x.com/1.1/application/rate_limit_status.json
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+            Accept: application/json
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words: ['"rate_limit_context"']
+              match_all_words: true
+    references:
+      - https://developer.x.com/en/docs/x-api/v1/developer-utilities/rate-limit-status/api-reference/get-application-rate_limit_status
