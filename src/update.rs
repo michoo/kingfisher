@@ -69,6 +69,7 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
         .repo_name("kingfisher")
         .bin_name("kingfisher")
         .show_download_progress(false)
+        .no_confirm(true) // Don't prompt for confirmation when self‑updating
         .current_version(cargo_crate_version!());
 
     // Allow tests to point at a mock HTTP server.

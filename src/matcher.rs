@@ -979,6 +979,7 @@ mod test {
                     method: "GET".to_string(),
                     url: "https://example.com".to_string(),
                     headers: BTreeMap::new(),
+                    body: None,
                     response_matcher: Some(vec![]),
                     multipart: None,
                     response_is_html: false,

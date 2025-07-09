@@ -65,6 +65,8 @@ pub struct HttpRequest {
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
     #[serde(default)]
+    pub body: Option<String>,
+    #[serde(default)]
     pub response_matcher: Option<Vec<ResponseMatcher>>,
     #[serde(default)]
     pub multipart: Option<MultipartConfig>,

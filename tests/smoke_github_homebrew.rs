@@ -4,12 +4,7 @@ use predicates::str::contains;
 #[test]
 fn scan_homebrew_github_no_findings() -> anyhow::Result<()> {
     Command::cargo_bin("kingfisher")?
-        .args([
-            "scan",
-            "--git-url",
-            "https://github.com/homebrew/.github",
-            "--no-update-check",
-        ])
+        .args(["scan", "--git-url", "https://github.com/homebrew/.github", "--no-update-check"])
         .assert()
         .success()
         .stdout(contains("|Findings....................: 0"))

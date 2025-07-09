@@ -10,7 +10,6 @@ use crate::cli::commands::{
     github::GitHubArgs, gitlab::GitLabArgs, rules::RulesArgs, scan::ScanArgs,
 };
 
-
 #[deny(missing_docs)]
 #[derive(Parser, Debug)]
 #[command(version = env!("CARGO_PKG_VERSION"))]

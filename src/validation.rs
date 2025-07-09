@@ -353,6 +353,7 @@ async fn timed_validate_single_match<'a>(
                 &http_validation.request.method,
                 &url,
                 &http_validation.request.headers,
+                &http_validation.request.body,
                 parser,
                 &globals,
             ) {

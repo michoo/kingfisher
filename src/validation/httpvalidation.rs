@@ -63,6 +63,7 @@ pub fn build_request_builder(
     method_str: &str,
     url: &Url,
     headers: &BTreeMap<String, String>,
+    body: &Option<String>,
     parser: &liquid::Parser,
     globals: &liquid::Object,
 ) -> Result<RequestBuilder, String> {
@@ -99,6 +100,18 @@ pub fn build_request_builder(
         }
     }
     request_builder = request_builder.headers(combined_headers);
+
+    // If a body template is provided, parse and render it
+    if let Some(body_template) = body {
+        let template = parser
+            .parse(body_template)
+            .map_err(|e| format!("Error parsing body template: {}", e))?;
+        let rendered_body = template
+            .render(globals)
+            .map_err(|e| format!("Error rendering body template: {}", e))?;
+        request_builder = request_builder.body(rendered_body);
+    }
+
     Ok(request_builder)
 }
 
@@ -427,7 +440,8 @@ mod tests {
         let headers =
             BTreeMap::from([("Content-Type".to_string(), "application/json".to_string())]);
         let url = Url::from_str("https://example.com").unwrap();
-        let result = build_request_builder(&client, "GET", &url, &headers, &parser, &globals);
+        let result =
+            build_request_builder(&client, "GET", &url, &headers, &None, &parser, &globals);
         assert!(result.is_ok());
     }
     #[tokio::test]

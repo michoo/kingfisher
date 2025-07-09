@@ -58,6 +58,7 @@ impl Git {
         cmd.env("GIT_CONFIG_GLOBAL", "/dev/null");
         cmd.env("GIT_CONFIG_NOSYSTEM", "1");
         cmd.env("GIT_CONFIG_SYSTEM", "/dev/null");
+        cmd.env("GIT_TERMINAL_PROMPT", "0");
         if self.ignore_certs {
             cmd.env("GIT_SSL_NO_VERIFY", "1");
         }

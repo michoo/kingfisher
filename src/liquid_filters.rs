@@ -8,6 +8,7 @@ use liquid_core::{
 };
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use rand::{distr::Alphanumeric, Rng};
+use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha384};
 use time::{format_description::well_known::Iso8601, OffsetDateTime};
 use uuid::Uuid;
@@ -72,6 +73,40 @@ macro_rules! static_filter {
 };
 }
 
+#[derive(Debug, FilterParameters)]
+struct ReplaceArgs {
+    #[parameter(description = "The substring to search for.", arg_type = "str")]
+    from: Expression,
+    #[parameter(description = "The string to replace it with.", arg_type = "str")]
+    to: Expression,
+}
+
+#[derive(Clone, ParseFilter, FilterReflection, Default)]
+#[filter(
+    name = "replace",
+    description = "Replaces every occurrence of a substring with another.",
+    parameters(ReplaceArgs),
+    parsed(ReplaceFilter)
+)]
+pub struct Replace;
+
+#[derive(Debug, FromFilterParameters, Display_filter)]
+#[name = "replace"]
+struct ReplaceFilter {
+    #[parameters]
+    args: ReplaceArgs,
+}
+
+impl Filter for ReplaceFilter {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        let args = self.args.evaluate(runtime)?;
+        let from = args.from.to_kstr();
+        let to = args.to.to_kstr();
+        let input_str = input.to_kstr();
+        Ok(Value::scalar(input_str.replace(from.as_str(), to.as_str())))
+    }
+}
+
 // ── HMAC args ─────────────────────────────────────
 #[derive(Debug, FilterParameters)]
 struct HmacArgs {
@@ -103,6 +138,44 @@ impl Filter for HmacSha256Filter {
 
         // …then do the cryptography.
         let mut mac = Hmac::<Sha256>::new_from_slice(key.as_bytes()).unwrap();
+        mac.update(input.to_kstr().as_bytes());
+        Ok(Value::scalar(
+            base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes()),
+        ))
+    }
+}
+
+// ── HMAC-SHA1 ─────────────────────────────────────────────
+#[derive(Debug, FilterParameters)]
+struct HmacSha1Args {
+    #[parameter(description = "HMAC key", arg_type = "str")]
+    key: Expression,
+}
+
+#[derive(Clone, ParseFilter, FilterReflection, Default)]
+#[filter(
+    name = "hmac_sha1",
+    description = "HMAC-SHA1 – returns Base64.",
+    parameters(HmacSha1Args),
+    parsed(HmacSha1Filter)
+)]
+pub struct HmacSha1;
+
+#[derive(Debug, FromFilterParameters, Display_filter)]
+#[name = "hmac_sha1"]
+struct HmacSha1Filter {
+    #[parameters]
+    args: HmacSha1Args,
+}
+
+impl Filter for HmacSha1Filter {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        // Evaluate the arguments first…
+        let args = self.args.evaluate(runtime)?;
+        let key = args.key.to_kstr();
+
+        // …then do the cryptography.
+        let mut mac = Hmac::<Sha1>::new_from_slice(key.as_bytes()).unwrap();
         mac.update(input.to_kstr().as_bytes());
         Ok(Value::scalar(
             base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes()),
@@ -260,6 +333,25 @@ static_filter!(
     }
 );
 
+// {{ "" | iso_timestamp_no_frac }}
+static_filter!(
+    /// Current ISO-8601 timestamp (UTC) with no fractional seconds.
+    IsoTimestampNoFracFilter, "iso_timestamp_no_frac",
+    |_input: &dyn ValueView| -> String {
+        let full = OffsetDateTime::now_utc()
+            .format(&Iso8601::DEFAULT)
+            .unwrap_or_else(|_| "1970-01-01T00:00:00Z".into());
+
+        // If there’s a fractional-second part, remove it but keep the trailing ‘Z’.
+        match full.split_once('.') {
+            Some((prefix, _)) => {
+                format!("{prefix}Z")
+            }
+            None => full,
+        }
+    }
+);
+
 // {{ "" | iso_timestamp }}
 static_filter!(
     /// Current ISO-8601 timestamp (UTC).
@@ -285,17 +377,20 @@ static_filter!(
 pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
     builder
         // zero-arg helpers
+        .filter(Replace::default())
         .filter(B64UrlEncFilter::default())
         .filter(Sha256Filter::default())
         .filter(UrlEncodeFilter::default())
         .filter(JsonEscapeFilter::default())
         .filter(UnixTimestampFilter::default())
         .filter(IsoTimestampFilter::default())
+        .filter(IsoTimestampNoFracFilter::default())
         .filter(UuidFilter::default())
         .filter(JwtHeaderFilter::default())
         .filter(B64EncFilter::default())
         .filter(RandomStringFilter::default())
         .filter(HmacSha256::default())
+        .filter(HmacSha1::default())
         .filter(HmacSha384::default())
 }
 
@@ -306,6 +401,7 @@ mod tests {
     use liquid::{object, ParserBuilder};
     use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
     use regex::Regex;
+    use sha1::Sha1;
     use sha2::{Digest, Sha256, Sha384};
     use time::OffsetDateTime;
 
@@ -332,6 +428,17 @@ mod tests {
     fn sha256_filter() {
         let expect = format!("{:x}", Sha256::digest(b"hello"));
         assert_eq!(render(r#"{{ "hello" | sha256 }}"#), expect);
+    }
+
+    #[test]
+    fn hmac_sha1_filter() {
+        let key = b"key1";
+        let data = b"data";
+        let mut mac = Hmac::<Sha1>::new_from_slice(key).unwrap();
+        mac.update(data);
+        let expect = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
+
+        assert_eq!(render(r#"{{ "data" | hmac_sha1: "key1" }}"#), expect);
     }
 
     #[test]
@@ -433,5 +540,23 @@ mod tests {
                 .unwrap();
         let v = render(r#"{{ "" | uuid }}"#);
         assert!(uuid_re.is_match(&v));
+    }
+    // -------------------------------------------------------------------------
+    // Replace filter
+    // -------------------------------------------------------------------------
+    #[test]
+    fn replace_filter() {
+        assert_eq!(render(r#"{{ "hello world" | replace: "world", "mars" }}"#), "hello mars");
+    }
+
+    // -------------------------------------------------------------------------
+    // iso_timestamp_no_frac filter
+    // -------------------------------------------------------------------------
+    #[test]
+    fn iso_timestamp_no_frac_filter() {
+        let ts = render(r#"{{ "" | iso_timestamp_no_frac }}"#);
+        assert!(!ts.contains('.'), "timestamp should not include fractional seconds: {ts}");
+        // Verify it’s still valid ISO-8601
+        assert!(OffsetDateTime::parse(&ts, &Iso8601::DEFAULT).is_ok());
     }
 }

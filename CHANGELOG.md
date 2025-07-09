@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.20.0]
+- Removed confirmation prompt when user provides --self-update flag
+- Added support for HTTP request bodies in rule validation 
+- Added new liquid-rs filters: HmacSha1, IsoTimestampNoFracFilter, Replace
+- Added rules for mistral, perplexity
+- Added validation for Alibaba rule
+- Set GIT_TERMINAL_PROMPT=0 when cloning git repos
+
 ## [1.19.0]
 - JSON output was missing committer name and email
 - Fixed Gitlab rule which was incorrectly identifying certain tokens as valid
