@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - Added baseline feature with `--baseline-file` and `--manage-baseline` flags
 - Introduced `--exclude` option for skipping paths
 - Added tests covering baseline and exclude workflow
+- Added validation for JWT tokens that checks `exp` and `nbf` claims
+- JWT validation performs OpenID Connect discovery using the `iss` claim and verifies signatures via JWKS
 
 
 ## [1.20.0]
