@@ -2,11 +2,13 @@ rules:
   - name: Adafruit IO Key
     id: kingfisher.adafruitio.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         aio_
-        [A-Z0-9]{28}
+        [a-zA-Z]{4}
+        [0-9]{2}
+        [a-zA-Z0-9]{22}
       )
       \b
     min_entropy: 3.5
