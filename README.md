@@ -58,6 +58,26 @@ make darwin-all # builds both x64 and arm64
 make all # builds for every OS and architecture supported
 ```
 
+### Run Kingfisher in Docker
+
+
+Run the dockerized Kingfisher container:
+```bash
+# GitHub Container Registry 
+docker run --rm ghcr.io/mongodb/kingfisher:latest --version
+
+# Scan the current working directory
+# (mounts your code at /src and scans it)
+docker run --rm -v "$PWD":/src ghcr.io/mongodb/kingfisher:latest scan /src
+
+# Scan while providing a GitHub token
+docker run --rm -e KF_GITHUB_TOKEN=ghp_… -v "$PWD":/proj ghcr.io/mongodb/kingfisher:latest scan --git-url https://github.com/org/private_repo.git
+
+# Scan and output as json
+docker run --rm -v "$PWD":/proj ghcr.io/mongodb/kingfisher:latest scan /proj --format json --output findings.json
+```
+
+
 # Write Custom Rules!
 
 Kingfisher ships with hundreds of rules with HTTP and service‑specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
