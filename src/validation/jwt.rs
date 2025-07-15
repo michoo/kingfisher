@@ -3,11 +3,23 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::Utc;
 use ipnet::IpNet;
 use jsonwebtoken::{decode, decode_header, jwk::JwkSet, DecodingKey, Validation as JwtValidation};
+use once_cell::sync::Lazy;
 use reqwest::{redirect::Policy, Client, Url};
 use serde::Deserialize;
 use tokio::net::lookup_host;
 
 use super::utils::check_url_resolvable;
+
+/// One global, redirect-free client.  Building a `Client` is comparatively
+/// expensive; re-using it lets reqwest share its internal connection pool
+/// and TLS sessions across JWT validations.  `Lazy` ensures thread-safe,
+/// one-time initialisation.
+static NO_REDIRECT_CLIENT: Lazy<Client> = Lazy::new(|| {
+    Client::builder()
+        .redirect(Policy::none()) // disable all redirects
+        .build()
+        .expect("failed to build no-redirect Client")
+});
 
 /// RFC 1918 + loopback + link-local nets we refuse to contact
 const BLOCKED_NETS: &[&str] = &[
@@ -66,12 +78,7 @@ pub async fn validate_jwt(token: &str, client: &Client) -> Result<(bool, String)
 
         // build discovery URL and fetch it (redirects disabled)
         let config_url = format!("{}/.well-known/openid-configuration", iss.trim_end_matches('/'));
-        let no_redirect_client = Client::builder()
-            .redirect(Policy::none())
-            .build()
-            .map_err(|e| anyhow!("client build: {e}"))?;
-
-        let cfg_resp = no_redirect_client
+        let cfg_resp = NO_REDIRECT_CLIENT
             .get(&config_url)
             .send()
             .await
@@ -122,7 +129,7 @@ pub async fn validate_jwt(token: &str, client: &Client) -> Result<(bool, String)
         check_url_resolvable(&url).await.map_err(|e| anyhow!("jwks uri unresolvable: {e}"))?;
 
         // fetch JWKS with redirect-free client
-        let jwks_resp = no_redirect_client
+        let jwks_resp = NO_REDIRECT_CLIENT
             .get(url)
             .send()
             .await

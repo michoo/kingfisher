@@ -37,7 +37,6 @@ use crate::{
         util::is_compressed_file,
     },
     scanner_pool::ScannerPool,
-    util::is_test_like_path,
     EnumeratorConfig, EnumeratorFileResult, FileResult, FilesystemEnumerator, FoundInput,
     GitRepoEnumerator, GitRepoResult, GitRepoWithMetadataEnumerator, PathBuf,
 };
