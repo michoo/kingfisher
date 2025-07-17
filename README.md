@@ -398,10 +398,15 @@ Leaked secrets fuel unauthorized access, lateral movement, regulatory fines, and
 
 See ([docs/COMPARISON.md](docs/COMPARISON.md))
 
+
+<p align="center">
+  <img src="docs/runtime-comparison.png" alt="Kingfisher Runtime Comparison" style="vertical-align: center;" />
+</p>
+
+
 # Roadmap
 
 - More rules
-- Auto-updater
 - Packages for Linux (deb, rpm)
 - Please file a [feature request](https://github.com/mongodb/kingfisher/issues) if you have specific features you'd like added
 
