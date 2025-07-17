@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [1.22.0]
-- Added rules for Google Gemini AI, Cohere, Stability.ai
+- Added rules for Google Gemini AI, Cohere, Stability.ai, Replicate
 
 ## [1.21.0]
 - Improved Azure Storage rule
