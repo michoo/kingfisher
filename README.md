@@ -22,9 +22,9 @@ Kingfisher extends Nosey Parker with live secret validation via cloud-provider A
 - **Built-In Validation**: Hundreds of built-in detection rules, many with live-credential validators that call the relevant service APIs (AWS, Azure, GCP, Stripe, etc.) to confirm a secret is active. You can extend or override the library by adding YAML-defined rules on the command line—see [docs/RULES.md](/docs/RULES.md) for details
 - **Git History Scanning**: Scan local repos, remote GitHub/GitLab orgs/users, or arbitrary GitHub/GitLab repos
 
-## Getting Started
+# Getting Started
 
-### Installation
+## Installation
 
 On macOS, you can simply
 
@@ -60,8 +60,7 @@ make all # builds for every OS and architecture supported
 
 # 🔐 Detection Rules at a Glance
 
-Kingfisher ships with hundreds of rules that cover everything from classic cloud keys to the latest LLM-API secrets.  
-Below is an overview; click any category to see the exact rule IDs.
+Kingfisher ships with hundreds of rules that cover everything from classic cloud keys to the latest LLM-API secrets. Below is an overview:
 
 | Category | What we catch |
 |----------|---------------|
@@ -269,7 +268,7 @@ _If no token is provided Kingfisher still works for public repositories._
 
 ---
 
-### Update Checks
+## Update Checks
 
 Kingfisher automatically queries GitHub for a newer release when it starts and tells you whether an update is available.
 
@@ -280,15 +279,37 @@ Kingfisher automatically queries GitHub for a newer release when it starts and t
 
 - **Disable version checks** – Pass `--no-update-check` to skip both the startup and shutdown checks entirely
 
----
+# Advanced Options
 
-### List Builtin Rules
+## Build a Baseline / Detect New Secrets
+
+There are situations where a repository already contains checked‑in secrets, but you want to ensure no **new** secrets are introduced. A baseline file lets you document the known findings so future scans only report anything that is not already in that list.
+
+The easiest way to create a baseline is to run a normal scan with the `--manage-baseline` flag (typically at a low confidence level to capture all potential matches):
+
+```bash
+kingfisher scan /path/to/code \
+  --confidence low \
+  --manage-baseline \
+  --baseline-file ./baseline-file.yml
+```
+
+Use the same YAML file with the `--baseline-file` option on future scans to hide all recorded findings:
+
+```bash
+kingfisher scan /path/to/code \
+  --baseline-file /path/to/baseline-file.yaml
+```
+
+See ([docs/BASELINE.md](docs/BASELINE.md)) for full detail.
+
+## List Builtin Rules
 
 ```bash
 kingfisher rules list
 ```
 
-### To scan using **only** your own `my_rules.yaml` you could run:
+## To scan using **only** your own `my_rules.yaml` you could run:
 
 ```bash
 kingfisher scan \
@@ -297,7 +318,7 @@ kingfisher scan \
   ./src/
 ```
 
-### To add your rules alongside the built‑ins:
+## To add your rules alongside the built‑ins:
 
 ```bash
 kingfisher scan \
@@ -330,28 +351,6 @@ kingfisher github repos list --organization my-org
 - `--exclude <PATTERN>`: Skip any file or directory whose path matches this glob pattern (repeatable, uses gitignore-style syntax, case sensitive)
 - `--baseline-file <FILE>`: Ignore matches listed in a baseline YAML file
 - `--manage-baseline`: Create or update the baseline file with current findings
-
-## Build a Baseline / Detect New Secrets
-
-There are situations where a repository already contains checked‑in secrets, but you want to ensure no **new** secrets are introduced. A baseline file lets you document the known findings so future scans only report anything that is not already in that list.
-
-The easiest way to create a baseline is to run a normal scan with the `--manage-baseline` flag (typically at a low confidence level to capture all potential matches):
-
-```bash
-kingfisher scan /path/to/code \
-  --confidence low \
-  --manage-baseline \
-  --baseline-file ./baseline-file.yml
-```
-
-Use the same YAML file with the `--baseline-file` option on future scans to hide all recorded findings:
-
-```bash
-kingfisher scan /path/to/code \
-  --baseline-file /path/to/baseline-file.yaml
-```
-
-See ([docs/BASELINE.md](docs/BASELINE.md)) for full detail.
 
 
 ## Finding Fingerprint
