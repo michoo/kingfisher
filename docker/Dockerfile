@@ -16,13 +16,25 @@ RUN set -eux; \
         *)     echo "unsupported arch ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
     # download & unpack
-    LATEST_URL=$(curl -s https://api.github.com/repos/mongodb/kingfisher/releases/latest \
+    LATEST_URL=$(curl -fsSL https://api.github.com/repos/mongodb/kingfisher/releases/latest \
         | grep -Eo "https://[^\"]*${SUFFIX}"); \
-    curl -L "$LATEST_URL" -o kingfisher.tgz; \
+    if [ -z "$LATEST_URL" ]; then \
+        echo "Failed to fetch the latest release URL for ${SUFFIX}" >&2; \
+        exit 1; \
+    fi; \
+    curl -fsSL "$LATEST_URL" -o kingfisher.tgz; \
+    CHECKSUM_URL=$(curl -fsSL https://api.github.com/repos/mongodb/kingfisher/releases/latest \
+        | grep -Eo "https://[^\"]*checksums.txt"); \
+    curl -fsSL "$CHECKSUM_URL" -o checksums.txt; \
+    EXPECTED_CHECKSUM=$(grep "${SUFFIX}" checksums.txt | awk '{print $1}'); \
+    echo "$EXPECTED_CHECKSUM  kingfisher.tgz" | sha256sum -c -; \
+    tar -xzf kingfisher.tgz; \
+    rm kingfisher.tgz checksums.txt; \
     tar -xzf kingfisher.tgz; \
     rm kingfisher.tgz; \
     # locate the binary (pattern covers kingfisher-linux-x64 / kingfisher-linux-arm64)
-    KF_PATH=$(find . -type f -name 'kingfisher*' | head -n1); \
+    KF_PATH=$(find . -type f -name 'kingfisher*' -executable -print -quit); \
+    if [ -z "$KF_PATH" ]; then echo "No executable kingfisher binary found" >&2; exit 1; fi; \
     install -m 0755 "$KF_PATH" /usr/local/bin/kingfisher; \
     # optional cleanup to keep the image small
     rm -rf /app/*

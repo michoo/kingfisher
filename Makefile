@@ -368,10 +368,10 @@ all: linux darwin
 
 dockerfile:
 # Build for the host architecture (default)
-	docker build -t kingfisher:latest .
+	docker build -f docker/Dockerfile -t kingfisher:latest .
 
 # Cross‑build for arm64 from an x64 machine
-	docker buildx build --platform linux/arm64 -t kingfisher:arm64 .
+	docker buildx build -f docker/Dockerfile --platform linux/arm64 -t kingfisher:arm64 .
 
 list-archives:
 	@echo -e "\n=== Built archives ==="
