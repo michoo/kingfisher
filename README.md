@@ -71,7 +71,7 @@ Kingfisher ships with hundreds of rules that cover everything from classic cloud
 | **Databases & Data Ops** | MongoDB Atlas, PlanetScale, Postgres DSNs, Grafana Cloud, Datadog, Dynatrace, and more
 | **Payments & Billing** | Stripe, PayPal, Square, GoCardless, and more
 | **Security & DevSecOps** | Snyk, Dependency-Track, CodeClimate, Codacy, OpsGenie, PagerDuty, and more
-| **Misc. SaaS & Tools** | 1Password, Adobe, Atlassian/Jira, Asana, Netlify, Baremetrics, and mmore
+| **Misc. SaaS & Tools** | 1Password, Adobe, Atlassian/Jira, Asana, Netlify, Baremetrics, and more
 
 ## Write Custom Rules!
 

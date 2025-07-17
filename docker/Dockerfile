@@ -30,8 +30,6 @@ RUN set -eux; \
     echo "$EXPECTED_CHECKSUM  kingfisher.tgz" | sha256sum -c -; \
     tar -xzf kingfisher.tgz; \
     rm kingfisher.tgz checksums.txt; \
-    tar -xzf kingfisher.tgz; \
-    rm kingfisher.tgz; \
     # locate the binary (pattern covers kingfisher-linux-x64 / kingfisher-linux-arm64)
     KF_PATH=$(find . -type f -name 'kingfisher*' -executable -print -quit); \
     if [ -z "$KF_PATH" ]; then echo "No executable kingfisher binary found" >&2; exit 1; fi; \
