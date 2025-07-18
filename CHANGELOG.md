@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 - Updating GitHub Action to generate Docker image
 - Added rules for Diffbot, ai21, baseten
 - Fixed supabase rule
+- Added 'alg' to JWT validation output
 
 ## [1.22.0]
 - Added rules for Google Gemini AI, Cohere, Stability.ai, Replicate, Runway, Clarifai
