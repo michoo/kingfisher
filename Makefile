@@ -42,6 +42,8 @@ endif
 
 ARCHIVE_CMD = $(TAR_CMD) $(TAR_OPTS)
 SUDO_CMD := $(shell command -v sudo 2>/dev/null)
+HOST_UID := $(shell id -u)
+HOST_GID := $(shell id -g)
 
 .PHONY: default help create-dockerignore ubuntu-x64 ubuntu-arm64 linux-x64 linux-arm64 darwin-arm64 darwin-x64 windows-x64 windows \
         linux darwin all list-archives check-docker check-rust clean tests
@@ -241,7 +243,8 @@ endif
 linux-x64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/amd64 --rm \
-	  -v "$$(pwd):/src" -w /src rust:1.88-alpine sh -eu -c '\
+		-e HOST_UID=$(HOST_UID) -e HOST_GID=$(HOST_GID) \
+		-v "$$(pwd):/src" -w /src rust:1.88-alpine sh -eu -c '\
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -262,8 +265,9 @@ linux-x64: check-docker create-dockerignore
 		cargo build --release --target x86_64-unknown-linux-musl && \
 		cd target/x86_64-unknown-linux-musl/release && \
 		find "./$(PROJECT_NAME)" -type f -executable \
-		     -not -name "*.d" -not -name "*.rlib" \
-		     -exec sha256sum {} \; > CHECKSUM.txt \
+				-not -name "*.d" -not -name "*.rlib" \
+				-exec sha256sum {} \; > CHECKSUM.txt && \
+		chown -R $$HOST_UID:$$HOST_GID /src/target \
 	'
 	@cd target/release && \
 	  rm -rf $(PROJECT_NAME)-linux-x64.tgz && \
@@ -278,7 +282,8 @@ linux-x64: check-docker create-dockerignore
 linux-arm64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/arm64 --rm \
-	  -v "$$(pwd):/src" -w /src rust:1.88-alpine sh -eu -c '\
+		-e HOST_UID=$(HOST_UID) -e HOST_GID=$(HOST_GID) \
+	  	-v "$$(pwd):/src" -w /src rust:1.88-alpine sh -eu -c '\
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -300,8 +305,9 @@ linux-arm64: check-docker create-dockerignore
 		\
 		cd target/aarch64-unknown-linux-musl/release && \
 		find "./$(PROJECT_NAME)" -type f -executable \
-		     -not -name "*.d" -not -name "*.rlib" \
-		     -exec sha256sum {} \; > CHECKSUM.txt \
+				-not -name "*.d" -not -name "*.rlib" \
+				-exec sha256sum {} \; > CHECKSUM.txt && \
+		chown -R $$HOST_UID:$$HOST_GID /src/target \
 	'
 	@cd target/release && \
 	  rm -rf $(PROJECT_NAME)-linux-arm64.tgz && \
@@ -430,6 +436,3 @@ notices:
 	@echo "Generating third-party notices..."
 	@cargo install cargo-bundle-licenses
 	@cargo bundle-licenses --format yaml --output THIRD_PARTY_NOTICES
-
-evergreen-patch:
-	@evergreen patch --project kingfisher --variants all --tasks build
