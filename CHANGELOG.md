@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.25.0]
+- Fixed GitLab authentication bug
+- Added pre-commit and pre-receive installation hooks
+- MongoDB validator now skips `mongodb+srv://` URIs and returns a message that validation was skipped
+- Fixed noisy Baseten rule
+
 ## [1.24.0]
 - Now generating DEB and RPM packages
 - Now releasing Docker images, and updated README
