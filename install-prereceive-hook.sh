@@ -20,8 +20,13 @@ if ! command -v kingfisher >/dev/null 2>&1; then
 fi
 
 while read -r oldrev newrev refname; do
-  git diff-tree --no-commit-id --name-only -r "$oldrev" "$newrev" -z |
-    xargs -0 --no-run-if-empty kingfisher scan --no-update-check
+  if [ "$oldrev" = "0000000000000000000000000000000000000000" ]; then
+    git diff-tree --name-only -r "$newrev" -z |
+      xargs -0 --no-run-if-empty kingfisher scan --no-update-check
+  else
+    git diff-tree --no-commit-id --name-only -r "$oldrev" "$newrev" -z |
+      xargs -0 --no-run-if-empty kingfisher scan --no-update-check
+  fi
   status=$?
   if [ "$status" -ne 0 ]; then
     echo "Kingfisher detected secrets in push. Push rejected." >&2
