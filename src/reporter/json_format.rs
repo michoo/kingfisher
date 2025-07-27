@@ -103,6 +103,8 @@ impl DetailsReporter {
                     if let Origin::File(e) = origin {
                         if let Some(url) = self.jira_issue_url(&e.path, args) {
                             Some(url)
+                        } else if let Some(mapped) = self.docker_display_path(&e.path) {
+                            Some(mapped)
                         } else {
                             Some(e.path.display().to_string())
                         }
@@ -252,6 +254,8 @@ impl DetailsReporter {
                 if let Origin::File(e) = origin {
                     if let Some(url) = self.jira_issue_url(&e.path, args) {
                         Some(url)
+                    } else if let Some(mapped) = self.docker_display_path(&e.path) {
+                        Some(mapped)
                     } else {
                         Some(e.path.display().to_string())
                     }

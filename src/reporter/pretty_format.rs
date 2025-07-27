@@ -216,6 +216,8 @@ impl<'a> Display for PrettyFinding<'a> {
                 Origin::File(e) => {
                     let display_path = if let Some(url) = reporter.jira_issue_url(&e.path, args) {
                         url
+                    } else if let Some(mapped) = reporter.docker_display_path(&e.path) {
+                        mapped
                     } else {
                         e.path.display().to_string()
                     };

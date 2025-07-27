@@ -140,6 +140,21 @@ impl DetailsReporter {
         }
     }
 
+    fn docker_display_path(&self, path: &std::path::Path) -> Option<String> {
+        let ds = self.datastore.lock().ok()?;
+        for (dir, image) in ds.docker_images().iter() {
+            if path.starts_with(dir) {
+                let rel = path.strip_prefix(dir).ok()?;
+                let mut rel_str = rel.display().to_string();
+                rel_str = rel_str.replace(".decomp.tar!", ".tar.gz => ");
+                rel_str = rel_str.replace(".tar!", ".tar => ");
+                rel_str = rel_str.replace('!', " => ");
+                return Some(format!("{} => {}", image, rel_str));
+            }
+        }
+        None
+    }
+
     fn gather_findings(&self) -> Result<Vec<Finding>> {
         let metadata_list = self.get_finding_data()?;
         let all_matches = self.get_filtered_matches()?;

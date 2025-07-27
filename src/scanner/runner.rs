@@ -80,8 +80,15 @@ pub async fn run_async_scan(
             progress_enabled,
         )
         .await?;
-        input_roots.extend(docker_dirs);
+        for (dir, img) in docker_dirs {
+            {
+                let mut ds = datastore.lock().unwrap();
+                ds.register_docker_image(dir.clone(), img);
+            }
+            input_roots.push(dir);
+        }
     }
+
 
     if input_roots.is_empty() {
         bail!("No inputs to scan");
