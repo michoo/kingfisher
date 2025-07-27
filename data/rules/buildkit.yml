@@ -1,0 +1,28 @@
+rules:
+  - name: Buildkite API Key
+    id: kingfisher.buildkite.1
+    pattern: |
+      (?xi)
+      \b
+      (
+        bkua_[a-z0-9]{40}
+      )
+      \b
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - bkua_3c7019c2e4b6e76fe2e8bdde7c154e3c1a211743
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.buildkite.com/v2/access-token
+          headers:
+            Authorization: "Bearer {{ TOKEN }}"
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words: ['"uuid"', '"user"']
