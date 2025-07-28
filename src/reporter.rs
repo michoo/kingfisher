@@ -146,10 +146,10 @@ impl DetailsReporter {
             if path.starts_with(dir) {
                 let rel = path.strip_prefix(dir).ok()?;
                 let mut rel_str = rel.display().to_string();
-                rel_str = rel_str.replace(".decomp.tar!", ".tar.gz => ");
-                rel_str = rel_str.replace(".tar!", ".tar => ");
-                rel_str = rel_str.replace('!', " => ");
-                return Some(format!("{} => {}", image, rel_str));
+                rel_str = rel_str.replace(".decomp.tar!", ".tar.gz | ");
+                rel_str = rel_str.replace(".tar!", ".tar | ");
+                rel_str = rel_str.replace('!', " | ");
+                return Some(format!("{} | {}", image, rel_str));
             }
         }
         None
