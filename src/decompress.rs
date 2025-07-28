@@ -256,12 +256,28 @@ fn make_output_path(path: &Path, base: Option<&Path>, extension: &str) -> PathBu
     }
 }
 
-/* ───────────────────────────────────────────────────────────── */
 pub fn decompress_file_to_temp(path: &Path) -> Result<(CompressedContent, TempDir)> {
     let temp_dir = tempdir()?;
-    let content = decompress_file(path, Some(temp_dir.path()))?;
+    let mut content = decompress_file(path, Some(temp_dir.path()))?;
 
-    if let CompressedContent::Archive(ref files) = content {
+    // if let CompressedContent::Archive(ref files) = content {
+    let mut prefix_for_replace = None;
+    if let Some(stem) = path.file_stem() {
+        let candidate = temp_dir.path().join(stem).with_extension("decomp.tar");
+        prefix_for_replace = Some(candidate);
+    }
+
+    if let CompressedContent::Archive(ref mut files) = content {
+        if let Some(prefix) = &prefix_for_replace {
+            let prefix_str = prefix.display().to_string();
+            for (name, _) in files.iter_mut() {
+                if let Some(rest) = name.strip_prefix(&prefix_str) {
+                    if let Some((_, suffix)) = rest.split_once('!') {
+                        *name = format!("{}!{}", path.display(), suffix);
+                    }
+                }
+            }
+        }
         for (name, data) in files {
             let rel = name.split_once('!').map(|(_, sub)| sub).unwrap_or(name);
             let p = temp_dir.path().join(rel.replace('\\', "/"));
@@ -269,6 +285,17 @@ pub fn decompress_file_to_temp(path: &Path) -> Result<(CompressedContent, TempDi
                 fs::create_dir_all(parent)?;
             }
             fs::write(p, data)?;
+        }
+    } else if let CompressedContent::ArchiveFiles(ref mut entries) = content {
+        if let Some(prefix) = &prefix_for_replace {
+            let prefix_str = prefix.display().to_string();
+            for (name, _) in entries.iter_mut() {
+                if let Some(rest) = name.strip_prefix(&prefix_str) {
+                    if let Some((_, suffix)) = rest.split_once('!') {
+                        *name = format!("{}!{}", path.display(), suffix);
+                    }
+                }
+            }
         }
     }
     Ok((content, temp_dir))

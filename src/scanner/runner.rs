@@ -89,7 +89,6 @@ pub async fn run_async_scan(
         }
     }
 
-
     if input_roots.is_empty() {
         bail!("No inputs to scan");
     }

@@ -72,6 +72,9 @@ impl Docker {
             let digest = format!("{:x}", Sha256::digest(&data));
             let new_path = out_dir.join(format!("layer_{digest}.tar"));
             std::fs::rename(&p, &new_path)?;
+            // extract layer contents so inner filenames appear in scan results
+            decompress_file(&new_path, Some(out_dir))?;
+            std::fs::remove_file(&new_path)?;
             pb.inc(1);
         }
 
@@ -131,6 +134,8 @@ impl Docker {
             let tmp_path = out_dir.join(file_name);
             let mut tmp = std::fs::File::create(&tmp_path)?;
             tmp.write_all(&layer.data)?;
+            decompress_file(&tmp_path, Some(out_dir))?;
+            std::fs::remove_file(&tmp_path)?;
             pb.inc(1);
         }
         pb.finish_with_message(format!("saved {image}"));
