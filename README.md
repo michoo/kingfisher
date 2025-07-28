@@ -12,12 +12,13 @@ Kingfisher is a blazingly fast secret‑scanning and validation tool built in Ru
 Kingfisher originated as a fork of [Nosey Parker](https://github.com/praetorian-inc/noseyparker) by Praetorian Security, Inc, and is built atop their incredible work and the work contributed by the Nosey Parker community.
 
 Kingfisher extends Nosey Parker by:
-1. Validating secrets in real time via cloud-provider APIs
-2. Enhancing regex-based detection with source-code parsing for improved accuracy
-3. Adding GitLab repository scanning support
-4. Providing Jira scanning capabilities
-5. Introducing a baseline feature that suppresses known secrets and reports only newly introduced ones
-5. Offering native Windows environment support
+1. **Validating secrets** in real time via cloud-provider APIs
+2. Enhancing regex-based detection with **source-code parsing** for improved accuracy
+3. Adding **GitLab** repository scanning support
+4. Adding support for scanning **Docker** images via `--docker-image`
+5. Providing **Jira** scanning capabilities
+6. Introducing a baseline feature that suppresses known secrets and reports only newly introduced ones
+7. Offering native **Windows** support
 
 **MongoDB Blog**: [Introducing Kingfisher: Real-Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
@@ -28,6 +29,7 @@ Kingfisher extends Nosey Parker by:
 - **Built-In Validation**: Hundreds of built-in detection rules, many with live-credential validators that call the relevant service APIs (AWS, Azure, GCP, Stripe, etc.) to confirm a secret is active. You can extend or override the library by adding YAML-defined rules on the command line—see [docs/RULES.md](/docs/RULES.md) for details
 - **Git History Scanning**: Scan local repos, remote GitHub/GitLab orgs/users, or arbitrary GitHub/GitLab repos
 - **Jira Scanning**: Scan issues returned from a JQL search using `--jira-url` and `--jql`
+- **Docker Image Scanning**: Scan public or private docker images via `--docker-image`
 - **Baseline Support:** Generate and manage baseline files to ignore known secrets and report only newly introduced ones. See ([docs/BASELINE.md](docs/BASELINE.md)) for details.
 
 # Getting Started
@@ -195,6 +197,7 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 ```bash
 cat /path/to/file.py | kingfisher scan -
+
 ```
 
 ### Scan using a rule _family_ with one flag
@@ -243,8 +246,35 @@ kingfisher scan ./my-project \
   --exclude tests \
   -v
 ```
+## Scanning Docker Images
 
----
+Kingfisher will first try to use any locally available image, then fall back to pulling via OCI.  
+
+Authentication happens *in this order*:
+
+1. **`KF_DOCKER_TOKEN`** env var  
+   - If it contains `user:pass`, it’s used as Basic auth
+   - Otherwise it’s sent as a Bearer token
+2. **Docker CLI credentials**  
+   - Checks `credHelpers` (per-registry) and `credsStore` in `~/.docker/config.json`.  
+   - Falls back to the legacy `auths` → `auth` (base64) entries.  
+3. **Anonymous** (no credentials)
+
+
+```bash
+# 1) Scan public or already-pulled image
+kingfisher scan --docker-image ghcr.io/owasp/wrongsecrets/wrongsecrets-master:latest-master
+
+# 2) For private registries, explicitly set KF_DOCKER_TOKEN:
+#    - Basic auth:     "user:pass"
+#    - Bearer only:    "TOKEN"
+export KF_DOCKER_TOKEN="AWS:$(aws ecr get-login-password --region us-east-1)"
+kingfisher scan --docker-image some-private-registry.dkr.ecr.us-east-1.amazonaws.com/base/amazonlinux2023:latest
+
+# 3) Or rely on your Docker CLI login/keychain:
+#    (e.g. aws ecr get-login-password … | docker login …)
+kingfisher scan --docker-image private.registry.example.com/my-image:tag
+```
 
 ## Scanning GitHub
 
@@ -320,6 +350,7 @@ KF_JIRA_TOKEN="token" kingfisher scan \
 | `KF_GITHUB_TOKEN` | GitHub Personal Access Token |
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
 | `KF_JIRA_TOKEN`   | Jira API token               |
+| `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 
 Set them temporarily per command:
 
@@ -356,12 +387,19 @@ _If no token is provided Kingfisher still works for public repositories._
 Run the provided helper script to add a hook that scans staged files before each commit:
 
 ```bash
-./install-precommit-hook.sh
+# local (current repo only ─ default)
+./install-kingfisher-hook.sh
 ```
 
 This creates `.git/hooks/pre-commit` that scans the files staged for commit with `kingfisher scan --no-update-check` and blocks the commit if any secrets are found.
 
+```bash
+# global (every repo on this machine)
+./install-kingfisher-hook.sh --global
 ### Install a Pre-Receive Hook
+```
+
+Installs a global pre-commit hook at `$HOME/.git/hooks/pre-commit`; for every Git repository you use, it runs `kingfisher scan --no-update-check` on the staged files and cancels the commit if any secrets are detected.
 
 To check incoming pushes on a server-side repository, install the pre-receive hook:
 

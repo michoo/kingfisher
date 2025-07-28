@@ -52,6 +52,7 @@ pub struct FindingsStore {
     bloom_items: usize,
     blob_meta: FxHashMap<BlobId, Arc<BlobMetadata>>,
     origin_meta: FxHashMap<u64, Arc<OriginSet>>,
+    docker_images: FxHashMap<PathBuf, String>,
 }
 impl FindingsStore {
     pub fn new(clone_dir: PathBuf) -> Self {
@@ -69,6 +70,7 @@ impl FindingsStore {
             clone_dir,
             seen_bloom,
             bloom_items: 0,
+            docker_images: FxHashMap::default(),
         }
     }
 
@@ -286,6 +288,13 @@ impl FindingsStore {
         self.clone_dir.clone()
     }
 
+    pub fn register_docker_image(&mut self, dir: PathBuf, image: String) {
+        self.docker_images.insert(dir, image);
+    }
+
+    pub fn docker_images(&self) -> &FxHashMap<PathBuf, String> {
+        &self.docker_images
+    }
 
     pub fn get_finding_data_iter(
         &self,

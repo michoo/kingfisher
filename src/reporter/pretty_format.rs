@@ -216,6 +216,8 @@ impl<'a> Display for PrettyFinding<'a> {
                 Origin::File(e) => {
                     let display_path = if let Some(url) = reporter.jira_issue_url(&e.path, args) {
                         url
+                    } else if let Some(mapped) = reporter.docker_display_path(&e.path) {
+                        mapped
                     } else {
                         e.path.display().to_string()
                     };
@@ -344,7 +346,9 @@ fn test_pretty_format_with_nan_entropy_panics() {
             // Jira options
             jira_url: None,
             jql: None,
-            max_results: 50,
+            max_results: 100,
+            // Docker image scanning
+            docker_image: Vec::new(),
             // git clone / history options
             git_clone: GitCloneMode::Bare,
             git_history: GitHistoryMode::Full,

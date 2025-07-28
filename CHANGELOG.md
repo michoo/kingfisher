@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.27.0]
+- Added Buildkite rule
+- Added support for scanning Docker images via `--docker-image`
+
 ## [1.26.0]
 - Added rule for ElevenLabs
 - Added support for scanning Jira issues via a given JQL (Jira Query Language)

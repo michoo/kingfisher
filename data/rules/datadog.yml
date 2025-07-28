@@ -43,12 +43,11 @@ rules:
     id: kingfisher.datadog.2
     pattern: |
       (?xi)
-      \b                     
-      (?:
-        dd[_-]?\w{0,8}[_-]?(?:key|secret) |
-        datadog
-      )
-      (?:.|[\n\r]){0,64}?
+      \b
+      datadog
+      (?:.|[\n\r]){0,16}?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
+      (?:.|[\n\r]){0,16}?
       \b
       (
         [a-z0-9]{40}
@@ -57,7 +56,7 @@ rules:
     min_entropy: 3.3
     confidence: medium
     examples:
-      - dd_secret_key-3c0c3965368a6b10f7640dbda46abfdca981c2d3
+      - datadog_secret_key-3c0c3965368a6b10f7640dbda46abfdca981c2d3
       - datadog_token = BzHpkcs7LujMb3Q1vLRRjbpBNxxYV0ousumYoKJS
     references:
       - https://docs.datadoghq.com/account_management/api-app-keys/
