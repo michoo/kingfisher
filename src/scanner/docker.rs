@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{Read, Write};
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
@@ -13,6 +14,19 @@ use tracing::debug;
 use walkdir::WalkDir;
 
 use crate::decompress::decompress_file;
+
+fn registry_auth_from_env() -> RegistryAuth {
+    match env::var("KF_DOCKER_TOKEN") {
+        Ok(token) => {
+            if let Some((user, pass)) = token.split_once(':') {
+                RegistryAuth::Basic(user.to_string(), pass.to_string())
+            } else {
+                RegistryAuth::Basic(String::new(), token)
+            }
+        }
+        Err(_) => RegistryAuth::Anonymous,
+    }
+}
 
 pub struct Docker;
 
@@ -109,7 +123,7 @@ impl Docker {
             ..Default::default()
         });
         let mut client = client;
-        let auth = RegistryAuth::Anonymous;
+        let auth = registry_auth_from_env();
         let accepted = vec![
             oci_distribution::manifest::IMAGE_LAYER_MEDIA_TYPE,
             oci_distribution::manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,

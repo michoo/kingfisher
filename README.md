@@ -15,9 +15,10 @@ Kingfisher extends Nosey Parker by:
 1. Validating secrets in real time via cloud-provider APIs
 2. Enhancing regex-based detection with source-code parsing for improved accuracy
 3. Adding GitLab repository scanning support
-4. Providing Jira scanning capabilities
-5. Introducing a baseline feature that suppresses known secrets and reports only newly introduced ones
-5. Offering native Windows environment support
+4. Adding support for scanning Docker images via `--docker-image`
+5. Providing Jira scanning capabilities
+6. Introducing a baseline feature that suppresses known secrets and reports only newly introduced ones
+7. Offering native Windows support
 
 **MongoDB Blog**: [Introducing Kingfisher: Real-Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
@@ -195,13 +196,19 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 ```bash
 cat /path/to/file.py | kingfisher scan -
-```
 
-### Scan a Docker image (without Docker installed)
+```
+### Scan a Docker image
 
 ```bash
+# pulls from a registry if not available locally
 kingfisher scan --docker-image ubuntu:latest
+# layers are automatically extracted so reported paths include files inside
+# the container image
+
+# set KF_DOCKER_TOKEN for private registries ("user:pass" or just the token)
 ```
+
 
 ### Sc
 
@@ -328,6 +335,7 @@ KF_JIRA_TOKEN="token" kingfisher scan \
 | `KF_GITHUB_TOKEN` | GitHub Personal Access Token |
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
 | `KF_JIRA_TOKEN`   | Jira API token               |
+| `KF_DOCKER_TOKEN` | Docker token                 |
 
 Set them temporarily per command:
 
