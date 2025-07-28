@@ -53,6 +53,20 @@ fn helper_get_creds(helper: &str, registry: &str) -> Option<(String, String)> {
     None
 }
 
+/// Turn `registry.example.com/foo/bar:latest` into something like
+/// `registry.example.com_foo_bar_latest_4d3c9e83`
+fn image_dir_name(reference: &str) -> String {
+    // keep it readable
+    let mut name = reference.replace(['/', ':'], "_");
+
+    // add a truncated SHA-256 to guarantee uniqueness
+    let hash = Sha256::digest(reference.as_bytes());
+    let short = &hex::encode(hash)[..8];       // 8-char prefix is plenty
+    name.push('_');
+    name.push_str(short);
+    name
+}
+
 fn creds_from_docker_config(registry: &str) -> Option<(String, String)> {
     let config_dir = env::var("DOCKER_CONFIG")
         .map(PathBuf::from)
@@ -244,8 +258,9 @@ pub async fn save_docker_images(
 ) -> Result<Vec<(PathBuf, String)>> {
     let docker = Docker::new();
     let mut dirs = Vec::new();
+    
     for image in images {
-        let dir_name = image.replace(['/', ':'], "_");
+        let dir_name = image_dir_name(image);
         let out_dir = clone_root.join(format!("docker_{dir_name}"));
         docker
             .save_image_to_dir(image, &out_dir, use_progress)
@@ -253,6 +268,7 @@ pub async fn save_docker_images(
             .with_context(|| format!("saving image {image}"))?;
         dirs.push((out_dir, image.clone()));
     }
+
     Ok(dirs)
 }
 
