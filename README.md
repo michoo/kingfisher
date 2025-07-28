@@ -12,13 +12,13 @@ Kingfisher is a blazingly fast secret‑scanning and validation tool built in Ru
 Kingfisher originated as a fork of [Nosey Parker](https://github.com/praetorian-inc/noseyparker) by Praetorian Security, Inc, and is built atop their incredible work and the work contributed by the Nosey Parker community.
 
 Kingfisher extends Nosey Parker by:
-1. Validating secrets in real time via cloud-provider APIs
-2. Enhancing regex-based detection with source-code parsing for improved accuracy
-3. Adding GitLab repository scanning support
-4. Adding support for scanning Docker images via `--docker-image`
-5. Providing Jira scanning capabilities
+1. **Validating secrets** in real time via cloud-provider APIs
+2. Enhancing regex-based detection with **source-code parsing** for improved accuracy
+3. Adding **GitLab** repository scanning support
+4. Adding support for scanning **Docker** images via `--docker-image`
+5. Providing **Jira** scanning capabilities
 6. Introducing a baseline feature that suppresses known secrets and reports only newly introduced ones
-7. Offering native Windows support
+7. Offering native **Windows** support
 
 **MongoDB Blog**: [Introducing Kingfisher: Real-Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
@@ -387,12 +387,19 @@ _If no token is provided Kingfisher still works for public repositories._
 Run the provided helper script to add a hook that scans staged files before each commit:
 
 ```bash
-./install-precommit-hook.sh
+# local (current repo only ─ default)
+./install-kingfisher-hook.sh
 ```
 
 This creates `.git/hooks/pre-commit` that scans the files staged for commit with `kingfisher scan --no-update-check` and blocks the commit if any secrets are found.
 
+```bash
+# global (every repo on this machine)
+./install-kingfisher-hook.sh --global
 ### Install a Pre-Receive Hook
+```
+
+Installs a global pre-commit hook at `$HOME/.git/hooks/pre-commit`; for every Git repository you use, it runs `kingfisher scan --no-update-check` on the staged files and cancels the commit if any secrets are detected.
 
 To check incoming pushes on a server-side repository, install the pre-receive hook:
 

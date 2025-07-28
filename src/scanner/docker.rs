@@ -140,7 +140,7 @@ impl Docker {
         std::fs::create_dir_all(out_dir)?;
         let tar_path = out_dir.join("local_image.tar");
         let status = Command::new("docker")
-            .args(["image", "save", image, "-o", tar_path.to_str().unwrap()])
+            .args(["image", "save", image, "-o", &tar_path.to_string_lossy()])
             .status()
             .with_context(|| "running docker save")?;
         if !status.success() {
@@ -202,7 +202,7 @@ impl Docker {
             platform_resolver: Some(Box::new(linux_amd64_resolver)),
             ..Default::default()
         });
-        let mut client = client;
+        let client = client;
         let auth = registry_auth(&reference);
         let accepted = vec![
             oci_client::manifest::IMAGE_LAYER_MEDIA_TYPE,
