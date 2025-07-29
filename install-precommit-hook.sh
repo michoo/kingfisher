@@ -57,7 +57,7 @@ if ! command -v kingfisher >/dev/null 2>&1; then
 fi
 
 git diff --cached --name-only -z | \
-  xargs -0 --no-run-if-empty kingfisher scan --no-update-check
+  xargs -0 --no-run-if-empty kingfisher scan --only-valid --no-update-check
 status=$?
 if [[ $status -ne 0 ]]; then
   echo "Kingfisher detected secrets in staged files. Commit aborted." >&2
