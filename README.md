@@ -30,6 +30,14 @@ Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.co
 
 **Learn more:** [Introducing Kingfisher: Real‑Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
+# Benchmark Results
+
+See ([docs/COMPARISON.md](docs/COMPARISON.md))
+
+<p align="center">
+  <img src="docs/runtime-comparison.png" alt="Kingfisher Runtime Comparison" style="vertical-align: center;" />
+</p>
+
 # Getting Started
 ## Installation
 
@@ -424,15 +432,6 @@ This creates `.git/hooks/pre-commit` that scans the files staged for commit with
 
 Installs a global pre-commit hook at `$HOME/.git/hooks/pre-commit`; for every Git repository you use, it runs `kingfisher scan --no-update-check` on the staged files and cancels the commit if any secrets are detected.
 
-To check incoming pushes on a server-side repository, install the pre-receive hook:
-
-```bash
-./install-prereceive-hook.sh
-```
-
-The resulting `.git/hooks/pre-receive` script scans the files in each pushed commit and rejects the push if any secrets are detected.
-
-
 ## Update Checks
 
 Kingfisher automatically queries GitHub for a newer release when it starts and tells you whether an update is available.
@@ -558,20 +557,10 @@ Real breaches show how one exposed key can snowball into a full-scale incident:
 
 Leaked secrets fuel unauthorized access, lateral movement, regulatory fines, and brand-damaging incident-response costs.
 
-# Benchmark Results
-
-See ([docs/COMPARISON.md](docs/COMPARISON.md))
-
-
-<p align="center">
-  <img src="docs/runtime-comparison.png" alt="Kingfisher Runtime Comparison" style="vertical-align: center;" />
-</p>
-
-
 # Roadmap
 
 - More rules
-- Packages for Linux (deb, rpm)
+- More targets
 - Please file a [feature request](https://github.com/mongodb/kingfisher/issues) if you have specific features you'd like added
 
 # License
