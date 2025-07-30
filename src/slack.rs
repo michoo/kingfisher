@@ -4,33 +4,32 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use url::Url;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SlackMessage {
     pub permalink: String,
     pub text: Option<String>,
     pub ts: String,
     pub channel: SlackChannel,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SlackChannel {
     pub id: String,
     pub name: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SlackPagination {
     page: Option<u32>,
     page_count: Option<u32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SlackMessages {
     matches: Vec<SlackMessage>,
     pagination: Option<SlackPagination>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct SlackSearchResponse {
     ok: bool,
     error: Option<String>,
@@ -87,12 +86,13 @@ pub async fn search_messages(
                 return Ok(messages);
             }
         }
-        let next_page = msgs.pagination.as_ref().and_then(|p| p.page).unwrap_or(page);
+        let next_page =
+            msgs.pagination.as_ref().and_then(|p| p.page).map(|p| p + 1).unwrap_or(page + 1);
         let page_count = msgs.pagination.as_ref().and_then(|p| p.page_count).unwrap_or(next_page);
-        if next_page >= page_count {
+        if next_page > page_count {
             break;
         }
-        page += 1;
+        page = next_page;
     }
 
     Ok(messages)
