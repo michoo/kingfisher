@@ -12,10 +12,10 @@ Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.co
 
 ## What Kingfisher Adds
 - **Live validation** via cloud-provider APIs
-- **Language-aware detection** (AST parsing) for ~20 languages
+- **Language-aware detection** (source-code parsing) for ~20 languages
 - **Extra targets**: GitLab repos, Docker images, Jira issues, and Slack messages
 - **Baseline mode**: ignore known secrets, flag only new ones
-- **Native Windows** binaries
+- **Native Windows** binary
 
 
 ## Key Features
