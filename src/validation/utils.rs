@@ -9,21 +9,19 @@ use crate::validation::SerializableCaptures;
 /// * If it’s unnamed, fall back to `"TOKEN"`  
 /// * Skip the unnamed “whole-match” capture **only when** there are
 ///   additional captures to return.
-pub fn process_captures(
-    captures: &SerializableCaptures,
-) -> Vec<(String, String, usize, usize)> {
+pub fn process_captures(captures: &SerializableCaptures) -> Vec<(String, String, usize, usize)> {
     let multiple = captures.captures.len() > 1;
 
     captures
         .captures
         .iter()
-        .filter(|cap| !multiple || cap.name.is_some())
+        // Skip the whole-match capture (match_number == 0) only when there
+        // are additional captures. All other captures – named or unnamed –
+        // should be preserved.
+        .filter(|cap| !multiple || cap.match_number != 0)
         .map(|cap| {
-            let name = cap
-                .name
-                .as_ref()
-                .map(|n| n.to_uppercase())
-                .unwrap_or_else(|| "TOKEN".to_string());
+            let name =
+                cap.name.as_ref().map(|n| n.to_uppercase()).unwrap_or_else(|| "TOKEN".to_string());
             (name, cap.value.clone().into_owned(), cap.start, cap.end)
         })
         .collect()
@@ -67,4 +65,91 @@ pub async fn check_url_resolvable(url: &Url) -> Result<(), Box<dyn std::error::E
     let port = url.port().unwrap_or(if url.scheme() == "https" { 443 } else { 80 });
     let addr = format!("{}:{}", host, port);
     lookup_host(addr).await?.next().ok_or_else(|| "Failed to resolve URL".into()).map(|_| ())
+}
+
+// -----------------------------------------------------------------------------
+// tests
+// -----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::matcher::{SerializableCapture, SerializableCaptures};
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn single_unnamed_capture_is_returned() {
+        let captures = SerializableCaptures {
+            captures: vec![SerializableCapture {
+                name: None,
+                match_number: 0,
+                start: 1,
+                end: 4,
+                value: "abc".into(),
+            }],
+        };
+        let result = process_captures(&captures);
+        assert_eq!(result, vec![("TOKEN".to_string(), "abc".to_string(), 1usize, 4usize)]);
+    }
+
+    #[test]
+    fn skips_whole_match_when_multiple() {
+        let captures = SerializableCaptures {
+            captures: vec![
+                SerializableCapture {
+                    name: None,
+                    match_number: 0,
+                    start: 0,
+                    end: 5,
+                    value: "abcde".into(),
+                },
+                SerializableCapture {
+                    name: Some("foo".to_string()),
+                    match_number: -1,
+                    start: 1,
+                    end: 4,
+                    value: "bcd".into(),
+                },
+            ],
+        };
+        let result = process_captures(&captures);
+        assert_eq!(result, vec![("FOO".to_string(), "bcd".to_string(), 1usize, 4usize)]);
+    }
+
+    #[test]
+    fn includes_unnamed_groups_but_skips_whole_match() {
+        let captures = SerializableCaptures {
+            captures: vec![
+                SerializableCapture {
+                    name: None,
+                    match_number: 0,
+                    start: 0,
+                    end: 6,
+                    value: "aabbcc".into(),
+                },
+                SerializableCapture {
+                    name: Some("foo".to_string()),
+                    match_number: -1,
+                    start: 0,
+                    end: 2,
+                    value: "aa".into(),
+                },
+                SerializableCapture {
+                    name: None,
+                    match_number: 1,
+                    start: 4,
+                    end: 6,
+                    value: "cc".into(),
+                },
+            ],
+        };
+        let result = process_captures(&captures);
+        assert_eq!(
+            result,
+            vec![
+                ("FOO".to_string(), "aa".to_string(), 0usize, 2usize),
+                ("TOKEN".to_string(), "cc".to_string(), 4usize, 6usize),
+            ]
+        );
+    }
 }

@@ -7,9 +7,6 @@ use liquid_core::{
     FromFilterParameters, ParseFilter, Result, Runtime, Value, ValueView,
 };
 
-use p256::ecdsa::{signature::Signer, SigningKey};
-use p256::pkcs8::DecodePrivateKey;
-use sec1::DecodeEcPrivateKey;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use rand::{distr::Alphanumeric, Rng};
 use sha1::Sha1;
@@ -294,7 +291,6 @@ impl Filter for B64DecFilter {
         }
     }
 }
-
 
 // -----------------------------------------------------------------------------
 // Authentication & Security

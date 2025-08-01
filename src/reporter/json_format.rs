@@ -441,7 +441,7 @@ mod tests {
                 // Slack options
                 slack_query: None,
                 slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
-                
+
                 docker_image: Vec::new(),
                 // clone / history options
                 git_clone: GitCloneMode::Bare,

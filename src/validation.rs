@@ -1,7 +1,7 @@
 use std::{
+    collections::BTreeMap,
     fs,
     hash::{Hash, Hasher},
-    collections::BTreeMap,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -1043,5 +1043,4 @@ rules:
         println!("Body: {:?}", owned_blob_match.validation_response_body);
         Ok(())
     }
-
 }

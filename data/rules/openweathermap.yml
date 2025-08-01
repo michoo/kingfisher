@@ -1,0 +1,42 @@
+rules:
+  # ---------------------------------------------------------------------
+  # 1. OpenWeather Map API Key (detector unchanged, new validation)
+  # ---------------------------------------------------------------------
+  - name: OpenWeather Map API Key
+    id: kingfisher.openweather.1
+    pattern: |
+      (?xi)
+      \b
+      (?:pyowm|openweather|owm\b)
+      (?:.|[\n\r]){0,64}?
+      \b
+      (
+        [a-z0-9]{32}
+        |
+        APPID=
+        [a-z0-9]{32}
+      )
+      \b
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - pyowm = '3k144a5af729351d0fc58bdrj9a21mkr'
+      - owm = '3k144a5af729351d0fc58bdrj9a21mkr'
+      - openweatherapikey=cd2b1d12d01ae2deffecfebafcc3c31d
+      - apikey=openweather:cd2b1d12d01ae2deffecfebafcc3c31d
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://api.openweathermap.org/data/2.5/forecast?q=London&appid={{ TOKEN }}
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+              words: ['"cod":"200"']
+    references:
+      - https://openweathermap.org/forecast5
+      - https://openweathermap.org/appid
+      - https://publicapi.dev/open-weather-map-api
+

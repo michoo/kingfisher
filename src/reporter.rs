@@ -113,7 +113,6 @@ impl DetailsReporter {
         }
     }
 
-
     /// If the given file path corresponds to a Jira issue downloaded to disk,
     /// return the online Jira URL for that issue.
     fn jira_issue_url(
@@ -123,7 +122,7 @@ impl DetailsReporter {
     ) -> Option<String> {
         // drop any trailing slash so we don’t end up with “//browse/…”
         let jira_url = args.input_specifier_args.jira_url.as_ref()?.as_str().trim_end_matches('/');
-        
+
         let ds = self.datastore.lock().ok()?;
         let root = ds.clone_root();
         let jira_dir = root.join("jira_issues");

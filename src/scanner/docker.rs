@@ -61,7 +61,7 @@ fn image_dir_name(reference: &str) -> String {
 
     // add a truncated SHA-256 to guarantee uniqueness
     let hash = Sha256::digest(reference.as_bytes());
-    let short = &hex::encode(hash)[..8];       // 8-char prefix is plenty
+    let short = &hex::encode(hash)[..8]; // 8-char prefix is plenty
     name.push('_');
     name.push_str(short);
     name
@@ -258,7 +258,7 @@ pub async fn save_docker_images(
 ) -> Result<Vec<(PathBuf, String)>> {
     let docker = Docker::new();
     let mut dirs = Vec::new();
-    
+
     for image in images {
         let dir_name = image_dir_name(image);
         let out_dir = clone_root.join(format!("docker_{dir_name}"));

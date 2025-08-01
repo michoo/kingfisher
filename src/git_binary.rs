@@ -36,13 +36,11 @@ impl Git {
     /// Create a new `Git` instance.
     ///
     /// * `ignore_certs`: If `true`, disables SSL certificate verification for `git` operations.
-pub fn new(ignore_certs: bool) -> Self {
+    pub fn new(ignore_certs: bool) -> Self {
         let mut credentials = Vec::new();
 
         // If either GitHub or GitLab token is set, first clear existing credential.helpers
-        if std::env::var("KF_GITHUB_TOKEN").is_ok() 
-            || std::env::var("KF_GITLAB_TOKEN").is_ok() 
-        {
+        if std::env::var("KF_GITHUB_TOKEN").is_ok() || std::env::var("KF_GITLAB_TOKEN").is_ok() {
             credentials.push("-c".into());
             credentials.push(r#"credential.helper="#.into());
         }
