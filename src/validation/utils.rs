@@ -3,20 +3,6 @@ use tokio::net::lookup_host;
 
 use crate::validation::SerializableCaptures;
 
-// pub fn process_captures(captures: &SerializableCaptures) -> Vec<(String, String, usize, usize)> {
-//     let has_multiple_captures = captures.captures.len() > 1;
-//     captures
-//         .captures
-//         .iter()
-//         .enumerate()
-//         .filter(|(idx, _)| !has_multiple_captures || *idx > 0)
-//         .map(|(_, capture)| {
-//             let name = capture.name.as_ref().map_or("TOKEN".to_string(), |n| n.to_uppercase());
-//             (name, capture.value.clone().into_owned(), capture.start, capture.end)
-//         })
-//         .collect()
-// }
-
 /// Return (NAME, value, start, end) for every capture we care about.
 ///
 /// * If a capture has a name, use that (upper-cased)  
@@ -31,7 +17,7 @@ pub fn process_captures(
     captures
         .captures
         .iter()
-        .filter(|cap| multiple.then(|| cap.name.is_some()).unwrap_or(true))
+        .filter(|cap| !multiple || cap.name.is_some())
         .map(|cap| {
             let name = cap
                 .name

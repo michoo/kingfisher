@@ -295,44 +295,6 @@ impl Filter for B64DecFilter {
     }
 }
 
-#[derive(Debug, FilterParameters)]
-struct Es256Args {
-    #[parameter(description = "PEM EC private key", arg_type = "str")]
-    key: Expression,
-}
-
-#[derive(Clone, ParseFilter, FilterReflection, Default)]
-#[filter(
-    name = "es256_sign",
-    description = "ECDSA P-256 SHA-256 signature (Base64URL)",
-    parameters(Es256Args),
-    parsed(Es256SignFilter)
-)]
-pub struct Es256Sign;
-
-#[derive(Debug, FromFilterParameters, Display_filter)]
-#[name = "es256_sign"]
-struct Es256SignFilter {
-    #[parameters]
-    args: Es256Args,
-}
-
-impl Filter for Es256SignFilter {
-    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value, LiquidError> {
-        let args = self.args.evaluate(runtime)?;
-        let key_pem = args.key.to_kstr();
-        let signing_key = SigningKey::from_sec1_pem(&key_pem)
-            .or_else(|_| SigningKey::from_pkcs8_pem(&key_pem))
-            .map_err(|e| LiquidError::with_msg(e.to_string()))?;
-        let sig: p256::ecdsa::Signature = signing_key.sign(input.to_kstr().as_bytes());
-        // turn the signature into raw bytes…
-        let raw = sig.to_bytes();
-        // …then Base64-URL encode
-        let b64 = general_purpose::URL_SAFE_NO_PAD.encode(raw);
-        Ok(Value::scalar(b64))
-    }
-}
-
 
 // -----------------------------------------------------------------------------
 // Authentication & Security
@@ -456,7 +418,6 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(JwtHeaderFilter::default())
         .filter(B64EncFilter::default())
         .filter(B64DecFilter::default())
-        .filter(Es256Sign::default())
         .filter(RandomStringFilter::default())
         .filter(HmacSha256::default())
         .filter(HmacSha1::default())
@@ -514,18 +475,6 @@ mod tests {
 
         assert_eq!(render(r#"{{ "data" | hmac_sha1: "key1" }}"#), expect);
     }
-
-    #[test]
-    fn es256_sign_filter() {
-        let key = "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDs+vr9F40Mer+qYksK3QhkSMfUXOZsbRVSrelWGnMh3oAoGCCqGSM49\nAwEHoUQDQgAEOXj2qKzLYx21D3plbOa81ilURS/4K1jzLXBvgwfUe4hWDgBdKQvq\nIiet5qqZEwVlR/LqKQEUlP8YLrjLFU8Unw==\n-----END EC PRIVATE KEY-----";
-        use p256::ecdsa::{signature::Signer, SigningKey};
-        let sk = SigningKey::from_sec1_pem(key).unwrap();
-        let sig: p256::ecdsa::Signature = sk.sign(b"hello");
-        let expect = general_purpose::URL_SAFE_NO_PAD.encode(sig.to_bytes());
-        let tmpl = format!(r#"{{ "hello" | es256_sign: "{}" }}"#, key.replace('\n', "\\n"));
-        assert_eq!(render(&tmpl), expect);
-    }
-
 
     #[test]
     fn b64url_enc_filter() {
