@@ -225,7 +225,6 @@ pub async fn enumerate_gitlab_repos(
     Ok(repo_urls)
 }
 
-
 pub async fn fetch_jira_issues(
     args: &scan::ScanArgs,
     global_args: &global::GlobalArgs,

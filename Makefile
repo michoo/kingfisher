@@ -24,6 +24,7 @@ endif
 ifeq ($(OS),darwin)
   export HOMEBREW_NO_INSTALL_CLEANUP=1
   export HOMEBREW_NO_ENV_HINTS=1
+  export HOMEBREW_NO_AUTO_UPDATE=1
 endif
 
   # detect host architecture and map to our target suffixes

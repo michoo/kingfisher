@@ -139,7 +139,7 @@ impl RepositoryIndex {
         let mut num_trees = 0;
         let mut num_blobs = 0;
         let mut num_commits = 0;
-        
+
         for oid in odb
             .iter()
             .context("Failed to iterate object database")?

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.31.0]
+- New rules: Telegram bot token, OpenWeatherMap, Apify, Groq
+- New OpenAI detectors added (@joshlarsen)
+- Fixed bug that broke validation when using unnamed group captures
+
 ## [1.30.0]
 - Fixed validation caching for HTTP validators to include rendered headers so inactive secrets no longer appear active.
 - Removed pre-commit installation hook, due to bugs

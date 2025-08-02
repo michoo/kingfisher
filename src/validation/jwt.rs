@@ -162,7 +162,11 @@ pub async fn validate_jwt(token: &str) -> Result<(bool, String)> {
 
         return Ok((
             true,
-            format!("JWT valid (alg: {:?}, iss: {issuer}, aud: {:?})", alg, extract_aud_strings(&claims)),
+            format!(
+                "JWT valid (alg: {:?}, iss: {issuer}, aud: {:?})",
+                alg,
+                extract_aud_strings(&claims)
+            ),
         ));
     }
 

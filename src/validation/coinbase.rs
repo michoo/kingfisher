@@ -4,16 +4,16 @@ use std::time::Duration;
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::Utc;
+use ed25519_dalek::SigningKey as Ed25519Key;
 use p256::{
     ecdsa::{signature::Signer as _, SigningKey},
     pkcs8::DecodePrivateKey,
     SecretKey,
 };
-use ed25519_dalek::{SigningKey as Ed25519Key, Signer as _};
 use rand::rngs::OsRng;
+use rand::TryRngCore;
 use reqwest::{Client, StatusCode, Url};
 use sha1::{Digest, Sha1};
-use rand::TryRngCore;
 
 use crate::validation::{httpvalidation, Cache, CachedResponse, VALIDATION_CACHE_SECONDS};
 
@@ -68,7 +68,6 @@ pub async fn validate_cdp_api_key(
     Ok((ok, msg))
 }
 
-
 // fn build_jwt(
 //     method: &str,
 //     host: &str,
@@ -85,7 +84,7 @@ pub async fn validate_cdp_api_key(
 
 //     let mut rng = OsRng;
 //     let mut nonce = [0u8; 16];
-    
+
 //     let _ = rng.try_fill_bytes(&mut nonce);
 
 //     let header = serde_json::json!({
@@ -125,12 +124,12 @@ fn build_jwt(
 
     let mut rng = OsRng;
     let mut nonce = [0u8; 16];
-    
+
     let _ = rng.try_fill_bytes(&mut nonce);
 
     // Try ECDSA (PEM encoded EC key). Fallback to raw Ed25519 base64 key.
-    if let Ok(secret_key) = SecretKey::from_sec1_pem(&pem)
-        .or_else(|_| SecretKey::from_pkcs8_pem(&pem))
+    if let Ok(secret_key) =
+        SecretKey::from_sec1_pem(&pem).or_else(|_| SecretKey::from_pkcs8_pem(&pem))
     {
         let signing_key = SigningKey::from(secret_key);
         let header = serde_json::json!({
@@ -168,7 +167,8 @@ fn build_jwt(
             }
             64 => {
                 let arr: [u8; 64] = key_bytes[..64].try_into().unwrap();
-                Ed25519Key::from_keypair_bytes(&arr).map_err(|e| anyhow!("invalid Ed25519 key: {e}"))?
+                Ed25519Key::from_keypair_bytes(&arr)
+                    .map_err(|e| anyhow!("invalid Ed25519 key: {e}"))?
             }
             _ => return Err(anyhow!("invalid Ed25519 key length")),
         };

@@ -208,7 +208,6 @@ impl DetailsReporter {
             let p = first_match.origin.first();
             match p {
                 Origin::File(e) => {
-                    
                     let uri = if let Some(url) = self.jira_issue_url(&e.path, args) {
                         url
                     } else if let Some(url) = self.slack_message_url(&e.path) {
@@ -351,7 +350,7 @@ impl DetailsReporter {
                     .build()?,
             )
             .build()?;
-        
+
         let sarif_results: Vec<sarif::Result> = findings
             .par_iter()
             .filter_map(|f| self.make_sarif_result(f, no_dedup, args).ok())

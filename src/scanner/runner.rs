@@ -67,7 +67,7 @@ pub async fn run_async_scan(
     // Fetch Jira issues if requested
     let jira_dirs = fetch_jira_issues(args, global_args, &datastore).await?;
     input_roots.extend(jira_dirs);
-    
+
     // Fetch Slack messages if requested
     let slack_dirs = fetch_slack_messages(args, global_args, &datastore).await?;
     input_roots.extend(slack_dirs);
