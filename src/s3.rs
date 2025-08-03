@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use aws_config::{defaults, meta::region::RegionProviderChain, BehaviorVersion, ConfigLoader};
+use aws_config::{defaults, meta::region::RegionProviderChain, BehaviorVersion};
 use aws_credential_types::Credentials;
 use aws_sdk_s3::{
     Client,
     operation::list_objects_v2::ListObjectsV2Error,            // modeled service error
-    error::ProvideErrorMetadata,                               // for .code() :contentReference[oaicite:8]{index=8}
+    error::ProvideErrorMetadata,                               // for .code()
 };
 use aws_types::region::Region;
 use reqwest;                                                 // HTTP client for HEAD fallback
@@ -66,7 +66,7 @@ where
 
             // On error, extract the modeled service error
             Err(err) => {
-                let svc_err: ListObjectsV2Error = err.into_service_error();  // from SdkError :contentReference[oaicite:9]{index=9}
+                let svc_err: ListObjectsV2Error = err.into_service_error();  // from SdkError
 
                 // If the bucket must be addressed at another region...
                 if svc_err.code() == Some("PermanentRedirect") {
