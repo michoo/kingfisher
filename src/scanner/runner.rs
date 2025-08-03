@@ -96,9 +96,6 @@ pub async fn run_async_scan(
         }
     }
 
-    // if input_roots.is_empty() {
-    //     bail!("No inputs to scan");
-    // }
     let shared_profiler = Arc::new(ConcurrentRuleProfiler::new());
     let enable_profiling = args.rule_stats;
     let matcher_stats = Mutex::new(MatcherStats::default());
