@@ -363,8 +363,8 @@ impl DetailsReporter {
 
         FindingReporterRecord {
             rule: RuleMetadata {
-                name: rm.m.rule_name.to_string().clone(),
-                id: rm.m.rule_text_id.to_string().clone(),
+                name: rm.m.rule_name.to_string(),
+                id: rm.m.rule_text_id.to_string(),
             },
             finding: FindingRecordData {
                 snippet,
