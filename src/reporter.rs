@@ -23,7 +23,7 @@ mod json_format;
 mod pretty_format;
 mod sarif_format;
 pub mod styles;
-use std::{hash::Hash, io::IsTerminal};
+use std::io::IsTerminal;
 
 use styles::{StyledObject, Styles};
 
@@ -165,19 +165,6 @@ impl DetailsReporter {
             }
         }
         None
-    }
-
-    fn gather_findings(&self) -> Result<Vec<Finding>> {
-        let metadata_list = self.get_finding_data()?;
-        let all_matches = self.get_filtered_matches()?;
-        let mut findings = Vec::new();
-        for md in metadata_list {
-            // Filter matches that belong to this metadata if needed
-            let matches_for_md =
-                all_matches.iter().filter(|m| m.m.rule_name == md.rule_name).cloned().collect();
-            findings.push(Finding::new(md.clone(), matches_for_md));
-        }
-        Ok(findings)
     }
 
     fn process_matches(&self, only_valid: bool, filter_visible: bool) -> Result<Vec<ReportMatch>> {
@@ -394,26 +381,6 @@ impl DetailsReporter {
         Ok(matches.iter().map(|rm| self.build_finding_record(rm, args)).collect())
     }
 
-    fn get_finding_data(&self) -> Result<Vec<finding_data::FindingMetadata>> {
-        let datastore = self.datastore.lock().unwrap();
-        Ok(datastore
-            .get_finding_data_iter()
-            .filter(|metadata| {
-                if self.only_valid {
-                    datastore.get_matches().iter().any(|msg| {
-                        let (_, _, match_item) = &**msg;
-                        match_item.rule_name == metadata.rule_name
-                            && match_item.validation_success
-                            && match_item.validation_response_status
-                                != StatusCode::CONTINUE.as_u16()
-                    })
-                } else {
-                    true
-                }
-            })
-            .collect())
-    }
-
     fn style_finding_heading<D>(&self, val: D) -> StyledObject<D> {
         self.styles.style_finding_heading.apply_to(val)
     }
@@ -475,13 +442,7 @@ impl Reportable for DetailsReporter {
         }
     }
 }
-/// A group of matches that all have the same rule and capture group content
-#[derive(Serialize, JsonSchema)]
-pub(crate) struct Finding {
-    #[serde(flatten)]
-    metadata: finding_data::FindingMetadata,
-    matches: Vec<ReportMatch>,
-}
+
 /// A match produced by one of kingfisher's rules.
 /// This corresponds to a single location.
 #[derive(Serialize, JsonSchema, Clone)]
@@ -494,18 +455,14 @@ pub struct ReportMatch {
     #[serde(flatten)]
     pub m: Match,
 
-    /// An optional score assigned to the match
-    // #[validate(range(min = 0.0, max = 1.0))]
-    // score: Option<f64>,
-
     /// An optional comment assigned to the match
     pub comment: Option<String>,
 
+    /// The confidence level of the match
     pub match_confidence: Confidence,
 
+    /// Whether the match is visible in the output
     pub visible: bool,
-    /// An optional status assigned to the match
-    // status: Option<finding_data::Status>,
 
     /// Validation Body
     pub validation_response_body: String,
@@ -566,8 +523,4 @@ impl From<finding_data::FindingDataEntry> for ReportMatch {
         }
     }
 }
-impl Finding {
-    fn new(metadata: finding_data::FindingMetadata, matches: Vec<ReportMatch>) -> Self {
-        Self { metadata, matches }
-    }
-}
+

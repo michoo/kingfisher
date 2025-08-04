@@ -1,5 +1,4 @@
 use super::*;
-use serde_json::Value;
 
 impl DetailsReporter {
     pub fn json_format<W: std::io::Write>(
