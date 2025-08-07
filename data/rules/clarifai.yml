@@ -34,5 +34,5 @@ rules:
             - type: WordMatch
               match_all_words: true
               words:
-                - '"models"'
-                - '"status"'
+                - '"code":10000'
+                - '"description":"Ok"'

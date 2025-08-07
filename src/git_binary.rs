@@ -105,8 +105,13 @@ impl Git {
         let _span = debug_span!("git_update", "{repo_url} {}", output_dir.display()).entered();
         debug!("Attempting to update clone of {repo_url} at {}", output_dir.display());
         let mut cmd = self.git();
-        cmd.arg("--git-dir");
-        cmd.arg(output_dir);
+        if output_dir.join(".git").is_dir() {
+            cmd.arg("-C");
+            cmd.arg(output_dir);
+        } else {
+            cmd.arg("--git-dir");
+            cmd.arg(output_dir);
+        }
         cmd.arg("remote");
         cmd.arg("update");
         cmd.arg("--prune");
@@ -129,7 +134,9 @@ impl Git {
         debug!("Attempting to create fresh clone of {} at {}", repo_url, output_dir.display());
         let mut cmd = self.git();
         cmd.arg("clone");
-        cmd.arg(clone_mode.arg());
+        if let Some(arg) = clone_mode.arg() {
+            cmd.arg(arg);
+        }
         cmd.arg(repo_url.as_str());
         cmd.arg(output_dir);
         debug!("{cmd:#?}");
@@ -151,14 +158,17 @@ pub enum CloneMode {
     Bare,
     /// Equivalent to `git clone --mirror`
     Mirror,
+    /// Standard clone with a working tree
+    Checkout,
 }
 
 impl CloneMode {
     /// Return the CLI argument for this clone mode.
-    pub fn arg(&self) -> &str {
+    pub fn arg(&self) -> Option<&str> {
         match self {
-            Self::Bare => "--bare",
-            Self::Mirror => "--mirror",
+            Self::Bare => Some("--bare"),
+            Self::Mirror => Some("--mirror"),
+            Self::Checkout => None,
         }
     }
 }
@@ -183,8 +193,9 @@ mod tests {
 
     #[test]
     fn test_clone_mode_arg() {
-        assert_eq!(CloneMode::Bare.arg(), "--bare");
-        assert_eq!(CloneMode::Mirror.arg(), "--mirror");
+        assert_eq!(CloneMode::Bare.arg(), Some("--bare"));
+        assert_eq!(CloneMode::Mirror.arg(), Some("--mirror"));
+        assert_eq!(CloneMode::Checkout.arg(), None);
     }
 
     #[test]

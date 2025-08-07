@@ -5,16 +5,17 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Kingfisher is a blazingly fast secret‑scanning and validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware parsing via Tree‑Sitter, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
+Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware parsing via Tree‑Sitter, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
 </p>
 
 Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.com/praetorian-inc/noseyparker), and is built atop their incredible work and the work contributed by the Nosey Parker community.
 
 ## What Kingfisher Adds
 - **Live validation** via cloud-provider APIs
-- **Language-aware detection** (source-code parsing) for ~20 languages
 - **Extra targets**: GitLab repos, S3 buckets, Docker images, Jira issues, and Slack messages
+- **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline mode**: ignore known secrets, flag only new ones
+- **Language-aware detection** (source-code parsing) for ~20 languages
 - **Native Windows** binary
 
 
@@ -27,6 +28,7 @@ Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.co
   - **Jira issues**: JQL‑driven scans with `--jira-url` and `--jql`  
   - **Slack messages**: query‑based scans with `--slack-query`  
   - **AWS S3**: bucket scans via `--s3-bucket`/`--s3-prefix` with credentials from `KF_AWS_KEY`/`KF_AWS_SECRET`, `--role-arn`, `--aws-local-profile`, or anonymous
+- **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))  
 
 **Learn more:** [Introducing Kingfisher: Real‑Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)

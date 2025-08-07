@@ -12,10 +12,7 @@ use crate::blob::BlobIdMap;
 use crate::{
     blob::BlobMetadata,
     cli::{
-        commands::{
-            github::{GitCloneMode, GitHistoryMode},
-            scan,
-        },
+        commands::{github::GitCloneMode, github::GitHistoryMode, scan},
         global,
     },
     findings_store,
@@ -42,16 +39,20 @@ pub fn clone_or_update_git_repos(
     datastore: &Arc<Mutex<findings_store::FindingsStore>>,
 ) -> Result<Vec<PathBuf>> {
     let mut input_roots = args.input_specifier_args.path_inputs.clone();
-    if repo_urls.is_empty() || args.input_specifier_args.git_history == GitHistoryMode::None {
+    if repo_urls.is_empty() {
         return Ok(input_roots);
     }
     info!("{} Git URLs to fetch", repo_urls.len());
     for repo_url in repo_urls {
         debug!("Need to fetch {repo_url}")
     }
-    let clone_mode = match args.input_specifier_args.git_clone {
-        GitCloneMode::Mirror => CloneMode::Mirror,
-        GitCloneMode::Bare => CloneMode::Bare,
+    let clone_mode = if args.input_specifier_args.git_history == GitHistoryMode::None {
+        CloneMode::Checkout
+    } else {
+        match args.input_specifier_args.git_clone {
+            GitCloneMode::Mirror => CloneMode::Mirror,
+            GitCloneMode::Bare => CloneMode::Bare,
+        }
     };
     let git = Git::new(global_args.ignore_certs);
 
@@ -68,6 +69,7 @@ pub fn clone_or_update_git_repos(
     } else {
         ProgressBar::hidden()
     };
+
     for repo_url in repo_urls {
         let output_dir = {
             let datastore = datastore.lock().unwrap();
@@ -347,7 +349,7 @@ pub async fn fetch_s3_objects(
         let blob = crate::blob::Blob::from_bytes(bytes);
 
         if let Some((origin, blob_md, scored_matches)) =
-            processor.run(origin, blob, args.no_dedup)?
+            processor.run(origin, blob, args.no_dedup, args.redact)?
         {
             // Wrap origin & metadata once:
             let origin_arc = Arc::new(origin);
