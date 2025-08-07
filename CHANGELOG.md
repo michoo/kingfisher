@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [1.35.0]
 - Remote scans with `--git-history=none` now clone repositories with a working tree and scan the current files instead of erroring with "No inputs to scan".
 - Fixed issue where `--redact` did not function properly
+- Fixed validation logic for clarifai rule
 
 ## [1.34.0]
 - Use system TLS root certificates to support self-hosted GitLab instances with internal CAs
