@@ -71,7 +71,11 @@ pub async fn validate_jwt(token: &str) -> Result<(bool, String)> {
 
     // ---------------------------------------------------------------------------
     let issuer = claims.iss.clone().unwrap_or_default();
+    let aud_strings = extract_aud_strings(&claims);
 
+    if issuer.trim().is_empty() && aud_strings.iter().all(|s| s.trim().is_empty()) {
+        return Ok((false, "JWT missing issuer and audience".to_string()));
+    }
     if let Some(iss) = claims.iss.clone() {
         // parse header now (kid, alg)
         let header = decode_header(token).map_err(|e| anyhow!("decode header: {e}"))?;

@@ -335,12 +335,6 @@ pub async fn run_secret_validation(
         ds.replace_matches(updated_arcs);
     }
 
-    // ── 5. Done ─────────────────────────────────────────────────────────────
-    println!(
-        "Validation complete – {} succeeded, {} failed",
-        success_count.load(Ordering::Relaxed),
-        fail_count.load(Ordering::Relaxed)
-    );
     Ok(())
 }
 
