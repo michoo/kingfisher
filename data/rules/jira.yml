@@ -11,7 +11,7 @@ rules:
     visible: false
     confidence: medium
     examples:
-      - example-jira.atlassian.net
+      - examplefoo-jira.atlassian.net
       - jira.sprintUri= https://example.atlassian.net/rest
 
   - name: Jira Token
