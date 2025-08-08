@@ -75,8 +75,6 @@ impl GitHubRepoSpecifiers {
 #[derive(Copy, Clone, Debug, Display, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 #[strum(serialize_all = "kebab-case")]
 pub enum GitHubRepoType {
-    /// Both source and fork repositories
-    All,
     /// Only source repositories (not forks)
     Source,
     /// Only fork repositories
@@ -87,7 +85,6 @@ pub enum GitHubRepoType {
 impl From<GitHubRepoType> for crate::github::RepoType {
     fn from(val: GitHubRepoType) -> Self {
         match val {
-            GitHubRepoType::Source => crate::github::RepoType::All,
             GitHubRepoType::Source => crate::github::RepoType::Source,
             GitHubRepoType::Fork => crate::github::RepoType::Fork,
         }

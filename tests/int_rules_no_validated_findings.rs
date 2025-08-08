@@ -5,12 +5,7 @@ use serde_json::Value;
 #[test]
 fn scan_rules_has_no_validated_findings() -> Result<()> {
     let output = Command::cargo_bin("kingfisher")?
-        .args([
-            "scan", "data/rules",
-            "--format", "json",
-            "--no-update-check",
-            "--only-valid",
-        ])
+        .args(["scan", "data/rules", "--format", "json", "--no-update-check", "--only-valid"])
         .output()?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -52,10 +47,8 @@ fn scan_rules_has_no_validated_findings() -> Result<()> {
         let rule_id = finding["rule"]["id"].as_str().unwrap_or("unknown");
         let rule_prevalidated = finding["rule"]["prevalidated"].as_bool().unwrap_or(false);
 
-        let status = finding["finding"]["validation"]["status"]
-            .as_str()
-            .unwrap_or("")
-            .to_ascii_lowercase();
+        let status =
+            finding["finding"]["validation"]["status"].as_str().unwrap_or("").to_ascii_lowercase();
 
         let response = finding["finding"]["validation"]["response"]
             .as_str()

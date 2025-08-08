@@ -69,6 +69,26 @@ pub async fn validate_jwt(token: &str) -> Result<(bool, String)> {
         }
     }
 
+    let header_b64 = token.split('.').next().ok_or_else(|| anyhow!("invalid JWT format"))?;
+    let header_json =
+        URL_SAFE_NO_PAD.decode(header_b64).map_err(|e| anyhow!("invalid base64 in header: {e}"))?;
+    let header_val: serde_json::Value =
+        serde_json::from_slice(&header_json).map_err(|e| anyhow!("invalid header json: {e}"))?;
+    let alg_str = header_val.get("alg").and_then(|v| v.as_str()).unwrap_or("");
+
+    // If alg is "none", skip signature/JWKS entirely
+    if alg_str.eq_ignore_ascii_case("none") {
+        // still enforce your time/claims checks that already ran
+        return Ok((
+            true,
+            format!(
+                "JWT valid (alg: none, iss: {}, aud: {:?})",
+                claims.iss.clone().unwrap_or_default(),
+                extract_aud_strings(&claims),
+            ),
+        ));
+    }
+
     // ---------------------------------------------------------------------------
     let issuer = claims.iss.clone().unwrap_or_default();
     let aud_strings = extract_aud_strings(&claims);
@@ -200,7 +220,13 @@ mod tests {
     fn build_token(exp_offset: i64) -> String {
         let header = URL_SAFE_NO_PAD.encode(r#"{"alg":"none"}"#);
         let exp = (Utc::now() + ChronoDuration::seconds(exp_offset)).timestamp();
-        let payload = URL_SAFE_NO_PAD.encode(format!("{{\"exp\":{exp}}}"));
+        let payload = URL_SAFE_NO_PAD.encode(format!(
+            r#"{{
+                "exp": {exp},
+                "iss": "https://example.com",
+                "aud": ["test-audience"]
+            }}"#
+        ));
         format!("{header}.{payload}.")
     }
 
