@@ -51,6 +51,7 @@ rules:
       )
       \b
     min_entropy: 3.5
+    visible: false
     examples:
       - "TWITTER_KEY=4RTBCyG2TbvL407A1lWxQFKCC"
   - name: X / Twitter Consumer Secret
