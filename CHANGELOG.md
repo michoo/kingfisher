@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.38.0]
+- Added X Consumer key detection and validation
+
 ## [1.37.0]
 - GitLab: Matched GitLab group repository listings to glab by only enumerating projects that belong directly to each group, without automatically traversing subgroups
 
