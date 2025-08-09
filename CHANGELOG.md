@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [1.37.0]
-- GitLab: include nested subgroup projects when enumerating group repositories
+- GitLab: Matched GitLab group repository listings to glab by only enumerating projects that belong directly to each group, without automatically traversing subgroups
 
 ## [1.36.0]
 - Fixed GitHub organization and GitLab group scans when using `--git-history=none`
