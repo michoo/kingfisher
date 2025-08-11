@@ -445,13 +445,10 @@ Use the base URL of your Confluence site for `--confluence-url`. Kingfisher
 automatically adds `/rest/api` to the end, so `https://example.com/wiki` and
 `https://example.com` both work depending on your server configuration.
 
-Generate a [personal access token](https://confluence.atlassian.com/doc/personal-access-tokens-938022290.html) and
-set it in the `KF_CONFLUENCE_TOKEN` environment variable. By default, Kingfisher
-sends the token as a bearer token in the `Authorization` header. To use basic
-authentication instead, also set `KF_CONFLUENCE_USER` to your Confluence email
-address; Kingfisher will then send the username and `KF_CONFLUENCE_TOKEN` as a
-Basic auth header. If the server responds with a redirect to a login page, the
-credentials are invalid or lack the required permissions.
+Generate a personal access token and set it in the `KF_CONFLUENCE_TOKEN` environment variable. By default, Kingfisher sends the token as a bearer token in the `Authorization` header.
+
+To use basic authentication instead, also set `KF_CONFLUENCE_USER` to your Confluence email address; Kingfisher will then send the username and `KF_CONFLUENCE_TOKEN` as a Basic auth header. If the server responds with a redirect to a login page, the credentials are invalid or lack the required permissions.
+
 ## Scanning Slack
 
 ### Scan Slack messages matching a search query
