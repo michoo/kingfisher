@@ -437,7 +437,7 @@ KF_CONFLUENCE_TOKEN="token" kingfisher scan \
 # Basic auth with username and token
 KF_CONFLUENCE_USER="user@example.com" KF_CONFLUENCE_TOKEN="token" kingfisher scan \
     --confluence-url https://confluence.company.com \
-    --cql "label = secret" \
+    --cql "text ~ 'password'" \
     --max-results 500
 ```
 
