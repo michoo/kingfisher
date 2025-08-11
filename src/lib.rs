@@ -4,6 +4,7 @@ pub mod blob;
 pub mod bstring_escape;
 pub mod bstring_table;
 pub mod cli;
+pub mod confluence;
 pub mod content_type;
 pub mod decompress;
 pub mod defaults;

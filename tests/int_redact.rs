@@ -51,6 +51,8 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
             gitlab_repo_type: GitLabRepoType::Owner,
             jira_url: None,
             jql: None,
+            confluence_url: None,
+            cql: None,
             max_results: 100,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),

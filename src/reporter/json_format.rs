@@ -87,6 +87,9 @@ mod tests {
                 // Jira options
                 jira_url: None,
                 jql: None,
+                // Confluence options
+                confluence_url: None,
+                cql: None,
                 max_results: 100,
                 // Slack options
                 slack_query: None,

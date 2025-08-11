@@ -124,6 +124,8 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
 
             jira_url: None,
             jql: None,
+            confluence_url: None,
+            cql: None,
             max_results: 100,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),

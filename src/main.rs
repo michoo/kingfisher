@@ -285,6 +285,8 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
 
             jira_url: None,
             jql: None,
+            confluence_url: None,
+            cql: None,
             max_results: 100,
 
             s3_bucket: None,

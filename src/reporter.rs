@@ -134,6 +134,13 @@ impl DetailsReporter {
         }
     }
 
+    /// If the given file path corresponds to a Confluence page downloaded to disk,
+    /// return the URL for that page.
+    fn confluence_page_url(&self, path: &std::path::Path) -> Option<String> {
+        let ds = self.datastore.lock().ok()?;
+        ds.confluence_links().get(path).cloned()
+    }
+
     /// If the given file path corresponds to a Slack message downloaded to disk,
     /// return the permalink for that message.
     fn slack_message_url(&self, path: &std::path::Path) -> Option<String> {
@@ -332,6 +339,8 @@ impl DetailsReporter {
             .find_map(|origin| match origin {
                 Origin::File(e) => {
                     if let Some(url) = self.jira_issue_url(&e.path, args) {
+                        Some(url)
+                    } else if let Some(url) = self.confluence_page_url(&e.path) {
                         Some(url)
                     } else if let Some(url) = self.slack_message_url(&e.path) {
                         Some(url)
