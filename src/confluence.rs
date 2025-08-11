@@ -81,7 +81,7 @@ pub async fn search_pages(
             ("expand", "body.storage"),
         ]);
         let req = if let Some(user) = &user {
-            req.basic_auth(user, Some(token.clone()))
+            req.basic_auth(user, Some(&token))
         } else {
             req.bearer_auth(&token)
         };
@@ -95,7 +95,7 @@ pub async fn search_pages(
                 .and_then(|v| v.to_str().ok())
                 .map(|s| s.to_string());
             let body = resp.text().await.unwrap_or_else(|e| format!("Failed to read response: {}", e));
-            
+
             if let Some(loc) = location {
                 bail!(
                     "Confluence API request returned {} redirect to {}. Check KF_CONFLUENCE_TOKEN and KF_CONFLUENCE_USER",
