@@ -67,11 +67,13 @@ pub async fn search_pages(
     let base = confluence_url.as_str().trim_end_matches('/');
     let api_base = format!("{}/rest/api/content/search", base);
 
+    let api_url = Url::parse(&api_base)?;
     let mut pages = Vec::new();
     let mut start = 0usize;
+    
     while pages.len() < max_results {
         let limit = std::cmp::min(100, max_results - pages.len());
-        let url = Url::parse(&api_base)?;
+        let url = api_url.clone();
         let req = client.get(url).query(&[
             ("cql", cql),
             ("limit", &limit.to_string()),
