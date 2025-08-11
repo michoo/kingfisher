@@ -19,7 +19,8 @@ use crate::{
     scanner::{
         clone_or_update_git_repos, enumerate_filesystem_inputs, enumerate_github_repos,
         repos::{
-            enumerate_gitlab_repos, fetch_jira_issues, fetch_s3_objects, fetch_slack_messages,
+            enumerate_gitlab_repos, fetch_confluence_pages, fetch_jira_issues, fetch_s3_objects,
+            fetch_slack_messages,
         },
         run_secret_validation, save_docker_images,
         summary::print_scan_summary,
@@ -69,6 +70,10 @@ pub async fn run_async_scan(
     // Fetch Jira issues if requested
     let jira_dirs = fetch_jira_issues(args, global_args, &datastore).await?;
     input_roots.extend(jira_dirs);
+
+    // Fetch Confluence pages if requested
+    let confluence_dirs = fetch_confluence_pages(args, global_args, &datastore).await?;
+    input_roots.extend(confluence_dirs);
 
     // Fetch Slack messages if requested
     let slack_dirs = fetch_slack_messages(args, global_args, &datastore).await?;

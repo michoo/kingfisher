@@ -51,6 +51,8 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
             gitlab_repo_type: GitLabRepoType::Owner,
             jira_url: None,
             jql: None,
+            confluence_url: None,
+            cql: None,
             max_results: 100,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
@@ -80,7 +82,6 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
         git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup: true,
-        snippet_length: 256,
         baseline_file: None,
         manage_baseline: false,
     };

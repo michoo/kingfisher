@@ -54,6 +54,7 @@ pub struct FindingsStore {
     origin_meta: FxHashMap<u64, Arc<OriginSet>>,
     docker_images: FxHashMap<PathBuf, String>,
     slack_links: FxHashMap<PathBuf, String>,
+    confluence_links: FxHashMap<PathBuf, String>,
     s3_buckets: FxHashMap<PathBuf, String>,
 }
 impl FindingsStore {
@@ -74,6 +75,7 @@ impl FindingsStore {
             bloom_items: 0,
             docker_images: FxHashMap::default(),
             slack_links: FxHashMap::default(),
+            confluence_links: FxHashMap::default(),
             s3_buckets: FxHashMap::default(),
         }
     }
@@ -306,6 +308,14 @@ impl FindingsStore {
 
     pub fn slack_links(&self) -> &FxHashMap<PathBuf, String> {
         &self.slack_links
+    }
+
+    pub fn register_confluence_page(&mut self, path: PathBuf, link: String) {
+        self.confluence_links.insert(path, link);
+    }
+
+    pub fn confluence_links(&self) -> &FxHashMap<PathBuf, String> {
+        &self.confluence_links
     }
 
     pub fn register_s3_bucket(&mut self, dir: PathBuf, bucket: String) {

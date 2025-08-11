@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.39.0]
+- Added support for scanning Confluence pages via `--confluence-url` and `--cql`
+
 ## [1.38.0]
 - `--quiet` now suppresses scan summaries and rule statistics unless `--rule-stats` is explicitly provided
 - Added X Consumer key detection and validation

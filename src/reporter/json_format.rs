@@ -87,6 +87,9 @@ mod tests {
                 // Jira options
                 jira_url: None,
                 jql: None,
+                // Confluence options
+                confluence_url: None,
+                cql: None,
                 max_results: 100,
                 // Slack options
                 slack_query: None,
@@ -119,7 +122,6 @@ mod tests {
             redact: false,
             git_repo_timeout: 1800, // 30 minutes
             output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
-            snippet_length: 256,
             baseline_file: None,
             manage_baseline: false,
         }

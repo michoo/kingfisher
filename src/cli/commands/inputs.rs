@@ -27,6 +27,7 @@ pub struct InputSpecifierArgs {
             "all_github_organizations",
             "all_gitlab_groups",
             "jira_url",
+            "confluence_url",
             "docker_image",
             "slack_query",
             "s3_bucket"
@@ -96,6 +97,14 @@ pub struct InputSpecifierArgs {
     #[arg(long, requires = "jira_url")]
     pub jql: Option<String>,
 
+    /// Confluence base URL (e.g. https://confluence.example.com)
+    #[arg(long, value_hint = ValueHint::Url, requires = "cql")]
+    pub confluence_url: Option<Url>,
+
+    /// CQL query to select Confluence pages
+    #[arg(long, requires = "confluence_url")]
+    pub cql: Option<String>,
+
     /// Slack search query
     #[arg(long)]
     pub slack_query: Option<String>,
@@ -104,7 +113,7 @@ pub struct InputSpecifierArgs {
     #[arg(long, default_value = "https://slack.com/api/", value_hint = ValueHint::Url)]
     pub slack_api_url: Url,
 
-    /// Maximum number of Slack or Jira results to fetch
+    /// Maximum number of Slack, Jira, or Confluence results to fetch
     #[arg(long, default_value_t = 100)]
     pub max_results: usize,
 

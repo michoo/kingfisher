@@ -12,7 +12,7 @@ Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.co
 
 ## What Kingfisher Adds
 - **Live validation** via cloud-provider APIs
-- **Extra targets**: GitLab repos, S3 buckets, Docker images, Jira issues, and Slack messages
+- **Extra targets**: GitLab repos, S3 buckets, Docker images, Jira issues, Confluence pages, and Slack messages
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline mode**: ignore known secrets, flag only new ones
 - **Language-aware detection** (source-code parsing) for ~20 languages
@@ -24,9 +24,10 @@ Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.co
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
 - **Multiple targets**:
   - **Git history**: local repos or GitHub/GitLab orgs/users  
-  - **Docker images**: public or private via `--docker-image`  
-  - **Jira issues**: JQL‑driven scans with `--jira-url` and `--jql`  
-  - **Slack messages**: query‑based scans with `--slack-query`  
+  - **Docker images**: public or private via `--docker-image`
+  - **Jira issues**: JQL‑driven scans with `--jira-url` and `--jql`
+  - **Confluence pages**: CQL‑driven scans with `--confluence-url` and `--cql`
+  - **Slack messages**: query‑based scans with `--slack-query`
   - **AWS S3**: bucket scans via `--s3-bucket`/`--s3-prefix` with credentials from `KF_AWS_KEY`/`KF_AWS_SECRET`, `--role-arn`, `--aws-local-profile`, or anonymous
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))  
@@ -421,7 +422,33 @@ KF_JIRA_TOKEN="token" kingfisher scan \
   --jql 'ORDER BY created DESC' \
   --max-results 1000
 ```
----
+
+## Scanning Confluence
+
+### Scan Confluence pages matching a CQL query
+
+```bash
+# Bearer token
+KF_CONFLUENCE_TOKEN="token" kingfisher scan \
+    --confluence-url https://confluence.company.com \
+    --cql "label = secret" \
+    --max-results 500
+
+# Basic auth with username and token
+KF_CONFLUENCE_USER="user@example.com" KF_CONFLUENCE_TOKEN="token" kingfisher scan \
+    --confluence-url https://confluence.company.com \
+    --cql "text ~ 'password'" \
+    --max-results 500
+```
+
+Use the base URL of your Confluence site for `--confluence-url`. Kingfisher
+automatically adds `/rest/api` to the end, so `https://example.com/wiki` and
+`https://example.com` both work depending on your server configuration.
+
+Generate a personal access token and set it in the `KF_CONFLUENCE_TOKEN` environment variable. By default, Kingfisher sends the token as a bearer token in the `Authorization` header.
+
+To use basic authentication instead, also set `KF_CONFLUENCE_USER` to your Confluence email address; Kingfisher will then send the username and `KF_CONFLUENCE_TOKEN` as a Basic auth header. If the server responds with a redirect to a login page, the credentials are invalid or lack the required permissions.
+
 ## Scanning Slack
 
 ### Scan Slack messages matching a search query
@@ -444,6 +471,7 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan \
 | `KF_GITHUB_TOKEN` | GitHub Personal Access Token |
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
 | `KF_JIRA_TOKEN`   | Jira API token               |
+| `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
 | `KF_DOCKER_TOKEN` | Docker registry token (`user:pass` or bearer token). If unset, credentials from the Docker keychain are used |
 | `KF_AWS_KEY` and `KF_AWS_SECRET` | AWS Credentials to use with S3 bucket scanning |
@@ -463,6 +491,11 @@ export KF_GITLAB_TOKEN="glpat-…"
 To authenticate Jira requests:
 ```bash
 export KF_JIRA_TOKEN="token"
+```
+
+To authenticate Confluence requests:
+```bash
+export KF_CONFLUENCE_TOKEN="token"
 ```
 
 _If no token is provided Kingfisher still works for public repositories._

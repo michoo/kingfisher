@@ -81,6 +81,8 @@ rules:
 
             jira_url: None,
             jql: None,
+            confluence_url: None,
+            cql: None,
             max_results: 100,
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
@@ -113,7 +115,6 @@ rules:
         git_repo_timeout: 1800, // 30 minutes
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup,
-        snippet_length: 64,
         baseline_file: None,
         manage_baseline: false,
     };

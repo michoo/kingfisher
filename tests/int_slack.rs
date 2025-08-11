@@ -57,6 +57,8 @@ impl TestContext {
                 gitlab_repo_type: GitLabRepoType::Owner,
                 jira_url: None,
                 jql: None,
+                confluence_url: None,
+                cql: None,
                 slack_query: None,
                 slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
                 s3_bucket: None,
@@ -86,7 +88,6 @@ impl TestContext {
             git_repo_timeout: 1800,
             output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
             no_dedup: true,
-            snippet_length: 128,
             baseline_file: None,
             manage_baseline: false,
         };
@@ -148,6 +149,8 @@ async fn test_scan_slack_messages() -> Result<()> {
             gitlab_repo_type: GitLabRepoType::Owner,
             jira_url: None,
             jql: None,
+            confluence_url: None,
+            cql: None,
             slack_query: Some("test".into()),
             slack_api_url: Url::parse(&format!("{}/", server.uri()))?,
             max_results: 10,
@@ -178,7 +181,6 @@ async fn test_scan_slack_messages() -> Result<()> {
         git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup: true,
-        snippet_length: 128,
         baseline_file: None,
         manage_baseline: false,
     };

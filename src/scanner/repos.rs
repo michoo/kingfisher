@@ -15,7 +15,7 @@ use crate::{
         commands::{github::GitCloneMode, github::GitHistoryMode, scan},
         global,
     },
-    findings_store,
+    confluence, findings_store,
     git_binary::{CloneMode, Git},
     git_url::GitUrl,
     github, gitlab,
@@ -260,6 +260,40 @@ pub async fn fetch_jira_issues(
         &output_dir,
     )
     .await?;
+    Ok(vec![output_dir])
+}
+
+pub async fn fetch_confluence_pages(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+    datastore: &Arc<Mutex<findings_store::FindingsStore>>,
+) -> Result<Vec<PathBuf>> {
+    let Some(confluence_url) = args.input_specifier_args.confluence_url.clone() else {
+        return Ok(Vec::new());
+    };
+    let Some(cql) = args.input_specifier_args.cql.as_deref() else {
+        return Ok(Vec::new());
+    };
+    let max_results = args.input_specifier_args.max_results;
+    let output_root = {
+        let ds = datastore.lock().unwrap();
+        ds.clone_root()
+    };
+    let output_dir = output_root.join("confluence_pages");
+    let paths = confluence::download_pages_to_dir(
+        confluence_url,
+        cql,
+        max_results,
+        global_args.ignore_certs,
+        &output_dir,
+    )
+    .await?;
+    {
+        let mut ds = datastore.lock().unwrap();
+        for (path, link) in &paths {
+            ds.register_confluence_page(path.clone(), link.clone());
+        }
+    }
     Ok(vec![output_dir])
 }
 
