@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     path::{Path, PathBuf},
 };
 
@@ -31,8 +31,9 @@ pub enum RuleLoaderError {
 pub struct RuleLoader {
     load_builtins: bool,
     additional_load_paths: Vec<PathBuf>,
-    enabled_rule_ids: Option<HashSet<String>>,
+    enabled_rule_ids: Option<Vec<String>>,
 }
+
 impl RuleLoader {
     pub fn new() -> Self {
         Self {
@@ -57,31 +58,36 @@ impl RuleLoader {
 
     pub fn enable_rule_ids<S: AsRef<str>, I: IntoIterator<Item = S>>(mut self, ids: I) -> Self {
         let ids: Vec<String> = ids.into_iter().map(|s| s.as_ref().to_string()).collect();
-        if ids.contains(&"all".to_string()) {
+        if ids.iter().any(|id| id == "all") {
             self.enabled_rule_ids = None; // Reset to "all rules enabled"
         } else {
-            self.enabled_rule_ids = Some(ids.into_iter().collect());
+            self.enabled_rule_ids = Some(ids);
         }
         self
     }
 
     pub fn load(&self, args: &cli::commands::scan::ScanArgs) -> Result<LoadedRules> {
         let confidence = Confidence::from(args.confidence);
-        let mut rules = Rules::new();
+        let mut id_to_rule: BTreeMap<String, Rule> = BTreeMap::new();
+
         if self.load_builtins {
             let builtin_rules =
                 get_builtin_rules(Some(confidence)).context(RuleLoaderError::BuiltinLoadError)?;
-            rules.update(builtin_rules);
+            for rule_syntax in builtin_rules {
+                let id = rule_syntax.id.clone();
+                id_to_rule.insert(id, Rule::new(rule_syntax));
+            }
         }
+
         if !self.additional_load_paths.is_empty() {
-            let custom = Rules::from_paths(&self.additional_load_paths, confidence)
+            let custom_rules = Rules::from_paths(&self.additional_load_paths, confidence)
                 .context(RuleLoaderError::AdditionalPathLoadError)?;
-            rules.update(custom);
+            for rule_syntax in custom_rules {
+                let id = rule_syntax.id.clone();
+                id_to_rule.insert(id, Rule::new(rule_syntax));
+            }
         }
-        let mut rules = rules.rules;
-        rules.sort_by(|r1, r2| r1.id.cmp(&r2.id));
-        let id_to_rule: HashMap<String, Rule> =
-            rules.into_iter().map(|r| (r.id.clone(), Rule::new(r))).collect();
+        
         Ok(LoadedRules { id_to_rule, enabled_rule_ids: self.enabled_rule_ids.clone() })
     }
 
@@ -92,10 +98,12 @@ impl RuleLoader {
             .enable_rule_ids(specs.rule.iter())
     }
 }
+
 pub struct LoadedRules {
-    id_to_rule: HashMap<String, Rule>,
-    enabled_rule_ids: Option<HashSet<String>>,
+    id_to_rule: BTreeMap<String, Rule>,
+    enabled_rule_ids: Option<Vec<String>>,
 }
+
 impl LoadedRules {
     #[inline]
     pub fn num_rules(&self) -> usize {
@@ -118,6 +126,7 @@ impl LoadedRules {
             // At least one selector was given
             Some(selectors) => {
                 let mut resolved = Vec::new();
+                let mut seen = HashSet::new();
 
                 // For each selector, collect rules that match it
                 for selector in selectors {
@@ -129,8 +138,10 @@ impl LoadedRules {
                             || (id.starts_with(selector)
                                 && id.as_bytes().get(selector.len()) == Some(&b'.'))
                         {
-                            resolved.push(rule);
                             matched_any = true;
+                            if seen.insert(id.clone()) {
+                                resolved.push(rule);
+                            }
                         }
                     }
 
@@ -145,18 +156,10 @@ impl LoadedRules {
             }
         };
 
-        // Deduplicate & sort for deterministic order
-        let mut resolved_rules = resolved_rules;
-        sort_and_deduplicate_rules(&mut resolved_rules);
-
-        info!("Loaded {}", Counted::regular(resolved_rules.len(), "rule"),);
+        info!("Loaded {}", Counted::regular(resolved_rules.len(), "rule"));
         for rule in &resolved_rules {
             trace!("Using rule `{}`: {}", rule.id(), rule.name());
         }
         Ok(resolved_rules)
     }
-}
-fn sort_and_deduplicate_rules(rules: &mut Vec<&Rule>) {
-    rules.sort_by(|r1, r2| r1.id().cmp(r2.id()));
-    rules.dedup_by(|r1, r2| r1.id() == r2.id());
 }

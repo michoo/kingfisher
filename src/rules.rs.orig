@@ -224,6 +224,12 @@ impl Rules {
     }
 }
 
+impl Default for Rules {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IntoIterator for Rules {
     type Item = RuleSyntax;
     type IntoIter = std::collections::btree_map::IntoValues<String, RuleSyntax>;

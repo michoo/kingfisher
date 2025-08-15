@@ -990,8 +990,7 @@ rules:
         let rules = Rules::from_paths_and_contents(data, Confidence::Low)?;
         // Find the PyPI rule we just loaded
         let pypi_rule_syntax = rules
-            .rules
-            .iter()
+            .iter_rules()
             .find(|r| r.id == "kingfisher.pypi.1")
             .expect("Failed to find PyPI rule in test YAML")
             .clone(); // Clone so we can create a `Rule` from it

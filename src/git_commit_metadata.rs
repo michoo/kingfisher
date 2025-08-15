@@ -141,14 +141,4 @@ pub struct CommitMetadata {
 
     #[serde(with = "TextTime")]
     pub committer_timestamp: Time,
-    // #[serde(with = "BStringLossyUtf8")]
-    // pub author_name: BString,
-
-    // #[serde(with = "BStringLossyUtf8")]
-    // pub author_email: BString,
-
-    // #[serde(with = "TextTime")]
-    // pub author_timestamp: Time,
-    // #[serde(with = "BStringLossyUtf8")]
-    // pub message: BString,
 }
