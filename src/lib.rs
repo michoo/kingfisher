@@ -54,34 +54,6 @@ use ignore::{DirEntry, WalkBuilder, WalkState};
 use tokio::time::Duration;
 use tracing::debug;
 
-macro_rules! unwrap_some_or_continue {
-    ($arg:expr, $on_error:expr $(,)?) => {
-        match $arg {
-            Some(v) => v,
-            None => {
-                #[allow(clippy::redundant_closure_call)]
-                $on_error();
-                continue;
-            }
-        }
-    };
-}
-pub(crate) use unwrap_some_or_continue;
-
-macro_rules! unwrap_ok_or_continue {
-    ($arg:expr, $on_error:expr $(,)?) => {
-        match $arg {
-            Ok(v) => v,
-            Err(e) => {
-                #[allow(clippy::redundant_closure_call)]
-                $on_error(e);
-                continue;
-            }
-        }
-    };
-}
-pub(crate) use unwrap_ok_or_continue;
-
 struct EnumeratorConfig {
     enumerate_git_history: bool,
     collect_git_metadata: bool,

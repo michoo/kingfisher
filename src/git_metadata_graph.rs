@@ -19,7 +19,7 @@ use roaring::RoaringBitmap;
 use smallvec::SmallVec;
 use tracing::{debug, error_span, warn};
 
-use crate::{bstring_table::BStringTable, unwrap_ok_or_continue, unwrap_some_or_continue};
+use crate::bstring_table::BStringTable;
 
 type Symbol = crate::bstring_table::Symbol<u32>;
 
@@ -140,15 +140,25 @@ impl RepositoryIndex {
         let mut num_blobs = 0;
         let mut num_commits = 0;
 
-        for oid in odb
+        for oid_result in odb
             .iter()
             .context("Failed to iterate object database")?
             .with_ordering(Ordering::PackLexicographicalThenLooseLexicographical)
         {
-            let oid = unwrap_ok_or_continue!(oid, |e| debug!("Failed to read object id: {e}"));
-            let hdr = unwrap_ok_or_continue!(odb.header(oid), |e| {
-                debug!("Failed to read object header for {oid}: {e}")
-            });
+            let oid = match oid_result {
+                Ok(oid) => oid,
+                Err(e) => {
+                    debug!("Failed to read object id: {e}");
+                    continue;
+                }
+            };
+            let hdr = match odb.header(oid) {
+                Ok(hdr) => hdr,
+                Err(e) => {
+                    debug!("Failed to read object header for {oid}: {e}");
+                    continue;
+                }
+            };
             match hdr.kind() {
                 Kind::Tree => num_trees += 1,
                 Kind::Blob => num_blobs += 1,
@@ -161,15 +171,25 @@ impl RepositoryIndex {
         let mut commits = ObjectIdBimap::with_capacity(num_commits);
         let mut blobs = ObjectIdBimap::with_capacity(num_blobs);
         let mut tags = ObjectIdBimap::with_capacity(num_tags);
-        for oid in odb
+        for oid_result in odb
             .iter()
             .context("Failed to iterate object database")?
             .with_ordering(Ordering::PackAscendingOffsetThenLooseLexicographical)
         {
-            let oid = unwrap_ok_or_continue!(oid, |e| debug!("Failed to read object id: {e}"));
-            let hdr = unwrap_ok_or_continue!(odb.header(oid), |e| {
-                debug!("Failed to read object header for {oid}: {e}")
-            });
+            let oid = match oid_result {
+                Ok(oid) => oid,
+                Err(e) => {
+                    debug!("Failed to read object id: {e}");
+                    continue;
+                }
+            };
+            let hdr = match odb.header(oid) {
+                Ok(hdr) => hdr,
+                Err(e) => {
+                    debug!("Failed to read object header for {oid}: {e}");
+                    continue;
+                }
+            };
             match hdr.kind() {
                 Kind::Tree => trees.insert(oid),
                 Kind::Blob => blobs.insert(oid),
@@ -400,22 +420,29 @@ fn visit_tree(
 ) -> Result<()> {
     blobs_encountered.clear();
     while let Some((name_path, tree_oid)) = tree_worklist.pop() {
-        let tree_iter = unwrap_ok_or_continue!(
-            repo.objects.find_tree_iter(&tree_oid, tree_buf),
-            |e| debug!("Failed to find tree {tree_oid}: {e}")
-        );
+        let tree_iter = match repo.objects.find_tree_iter(&tree_oid, tree_buf) {
+            Ok(iter) => iter,
+            Err(e) => {
+                debug!("Failed to find tree {tree_oid}: {e}");
+                continue;
+            }
+        };
         *num_trees_introduced += 1;
         for child_res in tree_iter {
-            let child = unwrap_ok_or_continue!(child_res, |e| {
-                debug!("Failed reading entry from {tree_oid}: {e}")
-            });
+            let child = match child_res {
+                Ok(child) => child,
+                Err(e) => {
+                    debug!("Failed reading entry from {tree_oid}: {e}");
+                    continue;
+                }
+            };
             match child.mode.kind() {
                 EntryKind::Link | EntryKind::Commit => {}
                 EntryKind::Tree => {
-                    let child_idx =
-                        unwrap_some_or_continue!(repo_index.get_tree_index(child.oid), || {
-                            debug!("No index for {} in tree {tree_oid}", child.oid)
-                        });
+                    let Some(child_idx) = repo_index.get_tree_index(child.oid) else {
+                        debug!("No index for {} in tree {tree_oid}", child.oid);
+                        continue;
+                    };
                     if seen.insert_tree(child_idx)? {
                         let mut new_path = name_path.clone();
                         new_path.push(symbols.get_or_intern(child.filename.into()));
@@ -423,10 +450,10 @@ fn visit_tree(
                     }
                 }
                 EntryKind::Blob | EntryKind::BlobExecutable => {
-                    let child_idx =
-                        unwrap_some_or_continue!(repo_index.get_blob_index(child.oid), || {
-                            debug!("No blob index for {} in tree {tree_oid}", child.oid)
-                        });
+                    let Some(child_idx) = repo_index.get_blob_index(child.oid) else {
+                        debug!("No blob index for {} in tree {tree_oid}", child.oid);
+                        continue;
+                    };
                     if !seen.contains_blob(child_idx)? {
                         blobs_encountered.push(child_idx);
                         *num_blobs_introduced += 1;

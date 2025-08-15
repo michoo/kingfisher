@@ -21,36 +21,8 @@ use crate::{
     git_metadata_graph::{GitMetadataGraph, RepositoryIndex},
 };
 
-// Macros unchanged:
-macro_rules! unwrap_some_or_continue {
-    ($arg:expr, $on_error:expr $(,)?) => {
-        match $arg {
-            Some(v) => v,
-            None => {
-                #[allow(clippy::redundant_closure_call)]
-                $on_error();
-                continue;
-            }
-        }
-    };
-}
-pub(crate) use unwrap_some_or_continue;
-
-macro_rules! unwrap_ok_or_continue {
-    ($arg:expr, $on_error:expr $(,)?) => {
-        match $arg {
-            Ok(v) => v,
-            Err(e) => {
-                #[allow(clippy::redundant_closure_call)]
-                $on_error(e);
-                continue;
-            }
-        }
-    };
-}
-pub(crate) use unwrap_ok_or_continue;
-
 // Convert "<seconds> <offset>" -- Time; fallback to the Unix-epoch on parse error
+#[inline]
 fn parse_sig_time<T: AsRef<[u8]>>(raw: T) -> Time {
     match std::str::from_utf8(raw.as_ref()) {
         Ok(s) => parse_time(s, None).unwrap_or_else(|_| Time::new(0, 0)),
@@ -106,13 +78,21 @@ impl<'a> GitRepoWithMetadataEnumerator<'a> {
 
         // Collect commit metadata and build commit graph
         for commit_oid in object_index.commits() {
-            let commit = unwrap_ok_or_continue!(odb.find_commit(commit_oid, &mut scratch), |e| {
-                debug!("Failed to find commit {commit_oid}: {e}");
-            });
+            let commit = match odb.find_commit(commit_oid, &mut scratch) {
+                Ok(commit) => commit,
+                Err(e) => {
+                    debug!("Failed to find commit {commit_oid}: {e}");
+                    continue;
+                }
+            };
             let tree_oid = commit.tree();
-            let tree_idx = unwrap_some_or_continue!(object_index.get_tree_index(&tree_oid), || {
-                debug!("Failed to find tree {tree_oid} for commit {commit_oid}");
-            });
+            let tree_idx = match object_index.get_tree_index(&tree_oid) {
+                Some(idx) => idx,
+                None => {
+                    debug!("Failed to find tree {tree_oid} for commit {commit_oid}");
+                    continue;
+                }
+            };
             let commit_idx = metadata_graph.get_commit_idx(*commit_oid, Some(tree_idx));
 
             for parent_oid in commit.parents() {
@@ -158,9 +138,13 @@ impl<'a> GitRepoWithMetadataEnumerator<'a> {
                     all_blobs.into_iter().map(|b| (b, SmallVec::new())).collect();
 
                 for e in metadata {
-                    let cm = unwrap_some_or_continue!(commit_metadata.get(&e.commit_oid), || {
-                        debug!("Missing commit metadata for {}", e.commit_oid);
-                    });
+                    let cm = match commit_metadata.get(&e.commit_oid) {
+                        Some(cm) => cm,
+                        None => {
+                            debug!("Missing commit metadata for {}", e.commit_oid);
+                            continue;
+                        }
+                    };
                     for (blob_oid, path) in e.introduced_blobs {
                         blob_map
                             .entry(blob_oid)
@@ -228,11 +212,20 @@ impl<'a> GitRepoEnumerator<'a> {
             .context("Failed to iterate object database")?
             .with_ordering(Ordering::PackAscendingOffsetThenLooseLexicographical)
         {
-            let oid =
-                unwrap_ok_or_continue!(oid_result, |e| debug!("Failed to read object id: {e}"));
-            let hdr = unwrap_ok_or_continue!(odb.header(oid), |e| {
-                debug!("Failed to read object header for {oid}: {e}")
-            });
+            let oid = match oid_result {
+                Ok(oid) => oid,
+                Err(e) => {
+                    debug!("Failed to read object id: {e}");
+                    continue;
+                }
+            };
+            let hdr = match odb.header(oid) {
+                Ok(hdr) => hdr,
+                Err(e) => {
+                    debug!("Failed to read object header for {oid}: {e}");
+                    continue;
+                }
+            };
 
             if hdr.kind() == Kind::Blob {
                 blobs.push(oid);

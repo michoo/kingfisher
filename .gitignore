@@ -10,6 +10,7 @@
 .prettierrc
 custom.py
 logs/*
+*.patch
 
 ### macOS ###
 # General

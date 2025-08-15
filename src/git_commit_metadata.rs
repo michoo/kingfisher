@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::serde_utils::BStringLossyUtf8;
 
-#[derive(Serialize, Deserialize)]
+#[repr(transparent)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 #[serde(remote = "Time")]
 struct TextTime(
     #[serde(
@@ -27,10 +28,13 @@ impl From<Time> for TextTime {
 }
 mod text_time {
     use super::*;
+
+    #[inline]
     pub fn getter(v: &Time) -> &Time {
         v
     }
 
+    #[inline]
     pub fn serialize<S: serde::Serializer>(v: &Time, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.collect_str(v)
     }
@@ -59,7 +63,8 @@ impl JsonSchema for TextTime {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[repr(transparent)]
+#[derive(Serialize, Deserialize, Copy, Clone)]
 #[serde(remote = "ObjectId")]
 struct HexObjectId(
     #[serde(
@@ -82,11 +87,13 @@ impl From<HexObjectId> for ObjectId {
 mod hex_object_id {
     use super::*;
 
+    #[inline]
     pub fn getter(v: &ObjectId) -> &ObjectId {
         v
     }
 
     // Use `collect_str` to avoid intermediate string allocations:
+    #[inline]
     pub fn serialize<S: serde::Serializer>(v: &ObjectId, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.collect_str(&v.to_hex())
     }
