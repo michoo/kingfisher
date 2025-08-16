@@ -81,8 +81,8 @@ impl DetailsReporter {
                     "url": format!("{}/commit/{}", repo_url, cmd.commit_id),
                     "date": atime,
                     "committer": {
-                        "name": String::from_utf8_lossy(&cmd.committer_name),
-                        "email": String::from_utf8_lossy(&cmd.committer_email),
+                        "name": &cmd.committer_name,
+                        "email": &cmd.committer_email,
                     },
                     // "author": {
                     //     "name": String::from_utf8_lossy(&cmd.author_name),
@@ -91,19 +91,19 @@ impl DetailsReporter {
                     // "message": msg,
                 },
                 "file": {
-                    "path": String::from_utf8_lossy(&cs.blob_path),
+                    "path": &cs.blob_path,
                     "url": format!(
                         "{}/blob/{}/{}#L{}",
                         repo_url,
                         cmd.commit_id,
-                        String::from_utf8_lossy(&cs.blob_path),
+                        &cs.blob_path,
                         source_span.start.line
                     ),
                     "git_command": format!(
                         "git -C {} show {}:{}",
                         prov.repo_path.display(),
                         cmd.commit_id,
-                        String::from_utf8_lossy(&cs.blob_path)
+                        &cs.blob_path
                     )
                 }
             });

@@ -107,12 +107,9 @@ impl<'a> GitRepoWithMetadataEnumerator<'a> {
                 *commit_oid,
                 Arc::new(CommitMetadata {
                     commit_id: *commit_oid,
-                    committer_name: committer.name.to_owned(),
-                    committer_email: committer.email.to_owned(),
+                    committer_name: String::from_utf8_lossy(&committer.name).into_owned(),
+                    committer_email: String::from_utf8_lossy(&committer.email).into_owned(),
                     committer_timestamp: parse_sig_time(committer.time),
-                    // author_name: author.name.to_owned(),
-                    // author_email: author.email.to_owned(),
-                    // author_timestamp: parse_sig_time(author.time),
                 }),
             );
         }

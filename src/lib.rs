@@ -33,7 +33,6 @@ pub mod s3;
 pub mod safe_list;
 pub mod scanner;
 pub mod scanner_pool;
-pub mod serde_utils;
 pub mod slack;
 pub mod snippet;
 pub mod update;

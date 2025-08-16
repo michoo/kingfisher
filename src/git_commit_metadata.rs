@@ -1,9 +1,6 @@
-use bstr::BString;
 use gix::{date::Time, ObjectId};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::serde_utils::BStringLossyUtf8;
 
 #[repr(transparent)]
 #[derive(Serialize, Deserialize, Copy, Clone)]
@@ -133,11 +130,9 @@ pub struct CommitMetadata {
     #[serde(with = "HexObjectId")]
     pub commit_id: ObjectId,
 
-    #[serde(with = "BStringLossyUtf8")]
-    pub committer_name: BString,
+    pub committer_name: String,
 
-    #[serde(with = "BStringLossyUtf8")]
-    pub committer_email: BString,
+    pub committer_email: String,
 
     #[serde(with = "TextTime")]
     pub committer_timestamp: Time,

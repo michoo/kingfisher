@@ -456,7 +456,7 @@ impl<'a> rayon::iter::ParallelIterator for GitRepoResultIter<'a> {
                         Origin::from_git_repo_with_first_commit(
                             Arc::clone(&repo_path),
                             Arc::clone(&e.commit_metadata), // ← clone Arc
-                            String::from_utf8_lossy(&e.path).into_owned(),
+                            e.path.clone(),                 // ← clone path
                         )
                     }))
                     .unwrap_or_else(|| Origin::from_git_repo(Arc::clone(&repo_path)).into());
