@@ -27,4 +27,4 @@ rules:
       - https://authress.io/knowledge-base/docs/authorization/service-clients/access-keys/
       - https://authress.io/knowledge-base/docs/usage-guides/api-keys-as-a-service-setup/
     examples:
-      - "sc_V2.access-key-id.acc_my-account-id.secret-key-material-that-is-long"
+      - "sc_a6DTktFwMEvh87xstYV1BXl.ihwj.acc-0xd1a47h1rr0f.MC4CAQAwBQYDKAVwBCIEIB1wYB62EK24FKxEPHbW0ishcstwp2qs30uLXdWgu4V0"
