@@ -41,7 +41,7 @@ rules:
       \b
       clickhouse
       (?:.|[\n\r]){0,16}?
-      (?:\bID|\bUSER)
+      (?:ID|USER)
       (?:.|[\n\r]){0,16}?
       \b
       (
