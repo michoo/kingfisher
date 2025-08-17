@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [1.42.0]
-- Added rules for authress, clickhouse, codecov, contentful, curl, dropbox, fly.io
+- Added rules for authress, clickhouse, codecov, contentful, curl, dropbox, fly.io, hubspot, firecrawl
 - Internal refactoring of rule loader, git enumerator, and filetype guesser
 - Improved language detection
 
