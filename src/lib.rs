@@ -18,7 +18,6 @@ mod git_repo_enumerator;
 pub mod git_url;
 pub mod github;
 pub mod gitlab;
-pub mod guesser;
 pub mod jira;
 pub mod liquid_filters;
 pub mod location;
@@ -34,7 +33,6 @@ pub mod s3;
 pub mod safe_list;
 pub mod scanner;
 pub mod scanner_pool;
-pub mod serde_utils;
 pub mod slack;
 pub mod snippet;
 pub mod update;
@@ -53,34 +51,6 @@ pub use ignore::gitignore::{Gitignore, GitignoreBuilder};
 use ignore::{DirEntry, WalkBuilder, WalkState};
 use tokio::time::Duration;
 use tracing::debug;
-
-macro_rules! unwrap_some_or_continue {
-    ($arg:expr, $on_error:expr $(,)?) => {
-        match $arg {
-            Some(v) => v,
-            None => {
-                #[allow(clippy::redundant_closure_call)]
-                $on_error();
-                continue;
-            }
-        }
-    };
-}
-pub(crate) use unwrap_some_or_continue;
-
-macro_rules! unwrap_ok_or_continue {
-    ($arg:expr, $on_error:expr $(,)?) => {
-        match $arg {
-            Ok(v) => v,
-            Err(e) => {
-                #[allow(clippy::redundant_closure_call)]
-                $on_error(e);
-                continue;
-            }
-        }
-    };
-}
-pub(crate) use unwrap_ok_or_continue;
 
 struct EnumeratorConfig {
     enumerate_git_history: bool,
@@ -301,7 +271,18 @@ impl FilesystemEnumerator {
         }
         let mut builder = GlobSetBuilder::new();
         for pat in patterns {
+            // Add the pattern itself
             builder.add(Glob::new(pat)?);
+
+            // If the pattern doesn't contain any glob characters, also exclude
+            // directories with this name anywhere in the tree. This lets
+            // `--exclude=.git` skip the entire `.git` directory subtree no
+            // matter where it appears in the path.
+            if !pat.contains('*') && !pat.contains('?') && !pat.contains('[') {
+                let base = pat.trim_end_matches('/');
+                builder.add(Glob::new(&format!("**/{}", base))?);
+                builder.add(Glob::new(&format!("**/{}/**", base))?);
+            }
         }
         let globset = std::sync::Arc::new(builder.build()?);
         self.exclude_globset = Some(globset.clone());

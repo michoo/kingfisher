@@ -8,7 +8,7 @@
 Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware parsing via Tree‑Sitter, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
 </p>
 
-Kingfisher originated as a fork of Praetorian's [Nosey Parker](https://github.com/praetorian-inc/noseyparker), and is built atop their incredible work and the work contributed by the Nosey Parker community.
+Kingfisher originated as a fork of Praetorian's Nosey Parker, and is built atop their incredible work and the work contributed by the Nosey Parker community.
 
 ## What Kingfisher Adds
 - **Live validation** via cloud-provider APIs
@@ -547,7 +547,7 @@ kingfisher scan /path/to/code \
   --baseline-file /path/to/baseline-file.yaml
 ```
 
-See ([docs/BASELINE.md](docs/BASELINE.md)) for full detail.
+Running the scan again with `--manage-baseline` refreshes the baseline by adding new findings and pruning entries for secrets that no longer appear. See [docs/BASELINE.md](docs/BASELINE.md) for full detail.
 
 ## List Builtin Rules
 

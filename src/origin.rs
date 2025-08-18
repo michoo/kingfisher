@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use bstr::{BString, ByteSlice};
+use bstr::ByteSlice;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rustc_hash::FxHashSet;
@@ -12,7 +12,7 @@ use schemars::JsonSchema;
 use serde::{ser::SerializeSeq, Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::{git_commit_metadata::CommitMetadata, serde_utils::BStringLossyUtf8};
+use crate::git_commit_metadata::CommitMetadata;
 static URL_CACHE: Lazy<DashMap<PathBuf, Arc<str>>> = Lazy::new(DashMap::default);
 
 fn compute_url(repo_path: &Path) -> Result<String> {
@@ -93,7 +93,7 @@ impl Origin {
     pub fn from_git_repo_with_first_commit(
         repo_path: Arc<PathBuf>,
         commit_metadata: Arc<CommitMetadata>,
-        blob_path: BString,
+        blob_path: String,
     ) -> Self {
         let first_commit = Some(CommitOrigin { commit_metadata, blob_path });
         Origin::GitRepo(GitRepoOrigin { repo_path, first_commit })
@@ -106,10 +106,9 @@ impl Origin {
 
     /// Get the path for the blob from this `Origin` entry, if one is specified.
     pub fn blob_path(&self) -> Option<&Path> {
-        use bstr::ByteSlice;
         match self {
             Self::File(e) => Some(&e.path),
-            Self::GitRepo(e) => e.first_commit.as_ref().and_then(|c| c.blob_path.to_path().ok()),
+            Self::GitRepo(e) => e.first_commit.as_ref().map(|c| Path::new(&c.blob_path)),
             Self::Extended(e) => e.path(),
         }
     }
@@ -117,11 +116,7 @@ impl Origin {
     pub fn full_path(&self) -> Option<PathBuf> {
         match self {
             Self::File(e) => Some((*e.path).clone()),
-            Self::GitRepo(e) => e
-                .first_commit
-                .as_ref()
-                .and_then(|c| c.blob_path.to_path().ok())
-                .map(|p| e.repo_path.join(p)),
+            Self::GitRepo(e) => e.first_commit.as_ref().map(|c| e.repo_path.join(&c.blob_path)),
             Self::Extended(e) => e.path().map(PathBuf::from),
         }
     }
@@ -136,7 +131,7 @@ impl std::fmt::Display for Origin {
                     "git repo {}: first seen in commit {} as {}",
                     e.repo_path.display(),
                     md.commit_metadata.commit_id,
-                    md.blob_path,
+                    &md.blob_path,
                 ),
                 None => write!(f, "git repo {}", e.repo_path.display()),
             },
@@ -170,8 +165,7 @@ pub struct GitRepoOrigin {
 pub struct CommitOrigin {
     pub commit_metadata: Arc<CommitMetadata>,
 
-    #[serde(with = "BStringLossyUtf8")]
-    pub blob_path: BString,
+    pub blob_path: String,
 }
 // -------------------------------------------------------------------------------------------------
 // ExtendedOrigin

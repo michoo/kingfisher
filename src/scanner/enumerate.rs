@@ -25,7 +25,6 @@ use crate::{
     cli::commands::{github::GitHistoryMode, scan},
     decompress::{decompress_file_to_temp, CompressedContent},
     findings_store,
-    guesser::Guesser,
     matcher::{Matcher, MatcherStats},
     open_git_repo,
     origin::{Origin, OriginSet},
@@ -130,12 +129,11 @@ pub fn enumerate_filesystem_inputs(
     let make_blob_processor = || -> BlobProcessor {
         let t1 = Instant::now();
         *num_blob_processors.lock().unwrap() += 1;
-        let guesser = Guesser::new().expect("should be able to create filetype guesser");
         {
             let mut init_time = blob_processor_init_time.lock().unwrap();
             *init_time += t1.elapsed();
         }
-        BlobProcessor { matcher, guesser }
+        BlobProcessor { matcher }
     };
     let scan_res: Result<()> = input_recv
         .into_iter()
@@ -457,8 +455,8 @@ impl<'a> rayon::iter::ParallelIterator for GitRepoResultIter<'a> {
                     let origin = OriginSet::try_from_iter(md.first_seen.iter().map(|e| {
                         Origin::from_git_repo_with_first_commit(
                             Arc::clone(&repo_path),
-                            Arc::clone(&e.commit_metadata), // ← clone Arc
-                            e.path.clone(),                 // ← clone path
+                            Arc::clone(&e.commit_metadata),
+                            String::from_utf8_lossy(&e.path).to_string(),
                         )
                     }))
                     .unwrap_or_else(|| Origin::from_git_repo(Arc::clone(&repo_path)).into());

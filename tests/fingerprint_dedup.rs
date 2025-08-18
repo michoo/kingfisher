@@ -5,7 +5,6 @@ use std::{
 };
 
 use anyhow::Result;
-use bstr::BString;
 use gix::{date, ObjectId};
 use kingfisher::{
     blob::{BlobId, BlobMetadata},
@@ -62,8 +61,8 @@ fn dummy_commit(commit_id: &str) -> CommitMetadata {
 
     CommitMetadata {
         commit_id: oid,
-        committer_name: BString::from("tester"),
-        committer_email: BString::from("tester@example.com"),
+        committer_name: "tester".into(),
+        committer_email: "tester@example.com".into(),
         committer_timestamp: ts,
     }
 }
@@ -76,7 +75,7 @@ fn git_origin(commit_id: &str) -> OriginSet {
     OriginSet::single(Origin::from_git_repo_with_first_commit(
         Arc::new(PathBuf::from("/tmp/repo")),
         Arc::new(md),
-        BString::from("dummy.txt"),
+        String::from("dummy.txt"),
     ))
 }
 

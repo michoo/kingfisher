@@ -1,17 +1,15 @@
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use ignore::{types::TypesBuilder, WalkBuilder};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use thiserror::Error;
 use tracing::{debug, debug_span, error};
 
 pub mod rule;
-use std::{fs::File, io::BufReader, path::Path};
+use std::{collections::BTreeMap, fs::File, io::BufReader, path::Path};
 
-use anyhow::Context;
 use rule::{Confidence, RuleSyntax, Validation};
 use serde::de::DeserializeOwned;
 
-/// Custom error type for more granular rules loading errors.
 #[derive(Debug, Error)]
 pub enum RulesError {
     #[error("Failed to parse YAML file at path: {0}")]
@@ -33,35 +31,37 @@ pub enum RulesError {
     MissingResponseMatcher { path: String, rule_id: String },
 }
 
-/// Represents a collection of rule syntaxes.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Default)]
 pub struct Rules {
-    pub rules: Vec<RuleSyntax>,
+    pub rules: BTreeMap<String, RuleSyntax>,
+}
+
+#[derive(Deserialize)]
+struct RawRules {
+    rules: Vec<RuleSyntax>,
 }
 
 impl Rules {
-    /// Creates a new empty set of rules.
     pub fn new() -> Self {
-        Self { rules: Vec::new() }
+        Self { rules: BTreeMap::new() }
     }
 
-    /// Updates the current set with the rules from another set.
     pub fn update(&mut self, other: Rules) {
         self.rules.extend(other.rules);
     }
 
-    /// Loads rules from an iterator over (path, contents) pairs.
-    /// Only rules with a confidence level at least as high as `confidence` are retained.
     pub fn from_paths_and_contents<'a, I: IntoIterator<Item = (&'a Path, &'a [u8])>>(
         iterable: I,
         confidence: Confidence,
     ) -> Result<Self> {
         let mut rules = Self::new();
-        for (path, contents) in iterable.into_iter() {
-            match serde_yaml::from_reader::<_, Rules>(contents) {
-                Ok(mut rs) => {
-                    rs.rules.retain(|rule| rule.confidence.is_at_least(&confidence));
-                    for rule_syntax in &rs.rules {
+        for (path, contents) in iterable {
+            match serde_yaml::from_slice::<RawRules>(contents) {
+                Ok(rs) => {
+                    for rule_syntax in rs.rules {
+                        if !rule_syntax.confidence.is_at_least(&confidence) {
+                            continue;
+                        }
                         if let Some(Validation::Http(http_val)) = &rule_syntax.validation {
                             if http_val
                                 .request
@@ -75,8 +75,8 @@ impl Rules {
                                 });
                             }
                         }
+                        rules.rules.insert(rule_syntax.id.clone(), rule_syntax);
                     }
-                    rules.update(rs);
                 }
                 Err(e) => {
                     if let Some(location) = e.location() {
@@ -90,7 +90,7 @@ impl Rules {
                         bail!(RulesError::InvalidResponseMatcherVariant(
                             path.display().to_string(),
                             location.line(),
-                            location.column()
+                            location.column(),
                         ));
                     } else {
                         error!("Failed to parse rules YAML from {}: {}", path.display(), e);
@@ -106,8 +106,6 @@ impl Rules {
         Ok(rules)
     }
 
-    /// Loads rules from the given paths.
-    /// Each path may be a file or a directory.
     pub fn from_paths<P: AsRef<Path>, I: IntoIterator<Item = P>>(
         paths: I,
         confidence: Confidence,
@@ -130,13 +128,27 @@ impl Rules {
         Ok(rules)
     }
 
-    /// Loads rules from a YAML file.
     pub fn from_yaml_file<P: AsRef<Path>>(path: P, confidence: Confidence) -> Result<Self> {
         let path = path.as_ref();
         let _span = debug_span!("Rules::from_yaml_file", "{}", path.display()).entered();
-        match load_yaml_file::<Rules, _>(path) {
-            Ok(mut rules) => {
-                rules.rules.retain(|rule| rule.confidence.is_at_least(&confidence));
+        match load_yaml_file::<RawRules, _>(path) {
+            Ok(rs) => {
+                let mut rules = Rules::new();
+                for rule_syntax in rs.rules {
+                    if !rule_syntax.confidence.is_at_least(&confidence) {
+                        continue;
+                    }
+                    if let Some(Validation::Http(http_val)) = &rule_syntax.validation {
+                        if http_val.request.response_matcher.as_ref().map_or(true, |m| m.is_empty())
+                        {
+                            bail!(RulesError::MissingResponseMatcher {
+                                path: path.display().to_string(),
+                                rule_id: rule_syntax.id.clone(),
+                            });
+                        }
+                    }
+                    rules.rules.insert(rule_syntax.id.clone(), rule_syntax);
+                }
                 debug!("Loaded {} rules from {}", rules.num_rules(), path.display());
                 Ok(rules)
             }
@@ -151,7 +163,6 @@ impl Rules {
         }
     }
 
-    /// Loads rules from multiple YAML files.
     pub fn from_yaml_files<P: AsRef<Path>, I: IntoIterator<Item = P>>(
         paths: I,
         confidence: Confidence,
@@ -166,7 +177,6 @@ impl Rules {
         Ok(rules)
     }
 
-    /// Loads rules from all YAML files in a directory.
     pub fn from_directory<P: AsRef<Path>>(path: P, confidence: Confidence) -> Result<Self> {
         let path = path.as_ref();
         let _span = debug_span!("Rules::from_directory", "{}", path.display()).entered();
@@ -198,32 +208,31 @@ impl Rules {
         Self::from_yaml_files(&yaml_files, confidence)
     }
 
-    /// Returns the number of rules.
     #[inline]
     pub fn num_rules(&self) -> usize {
         self.rules.len()
     }
 
-    /// Returns true if no rules are present.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.rules.is_empty()
     }
 
-    /// Returns an iterator over the rules.
     #[inline]
-    pub fn iter_rules(&self) -> std::slice::Iter<'_, RuleSyntax> {
-        self.rules.iter()
+    pub fn iter_rules(&self) -> std::collections::btree_map::Values<'_, String, RuleSyntax> {
+        self.rules.values()
     }
 }
 
-impl Default for Rules {
-    fn default() -> Self {
-        Self::new()
+impl IntoIterator for Rules {
+    type Item = RuleSyntax;
+    type IntoIter = std::collections::btree_map::IntoValues<String, RuleSyntax>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.rules.into_values()
     }
 }
 
-/// Loads and deserializes a YAML file into a value of type `T`.
 pub fn load_yaml_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     let file = File::open(path)
