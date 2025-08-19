@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.44.0]
+- Fixed issue with self-update on Linux
+
+
 ## [1.43.0]
 - Added rules for clearbit, kickbox, azure container registry, improved Azure Storage key
 - Grouped JSON and JSONL outputs by rule, restoring `matches` arrays in reports

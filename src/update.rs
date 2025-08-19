@@ -95,6 +95,17 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     builder.target("windows-x64");
 
+    // ──────────────────────────────────────────────────────
+    // Disambiguate archive format to avoid picking .deb packages.
+    // Linux and macOS releases use `.tgz`; Windows uses `.zip`.
+    // ──────────────────────────────────────────────────────
+    #[cfg(target_os = "windows")]
+    builder.identifier("zip");
+
+    // Linux releases also ship as .deb and .rpm packages; select the .tgz asset for self‑updates
+    #[cfg(not(target_os = "windows"))]
+    builder.identifier("tgz");
+    
     // Build the updater.
     let Ok(updater) = builder.build() else {
         warn!("Failed to configure update checker");
