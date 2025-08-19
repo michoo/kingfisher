@@ -105,7 +105,7 @@ rules:
             - type: StatusMatch
               status: [200]
     examples:
-      - "Abcdefghijklmnopqrstuvwxyz1234567890ABCD+ACRefg123"
+      - "Abcdefghijklmnopqrstuvwxyz123456789012ABCD+ACRefg123"
     depends_on_rule:
       - rule_id: "kingfisher.azure.4"
         variable: ACR_USERNAME
