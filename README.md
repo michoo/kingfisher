@@ -15,6 +15,7 @@ Kingfisher originated as a fork of Praetorian's Nosey Parker, and is built atop 
 - **Extra targets**: GitLab repos, S3 buckets, Docker images, Jira issues, Confluence pages, and Slack messages
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline mode**: ignore known secrets, flag only new ones
+- **Allowlist support**: suppress false positives with custom regexes or words
 - **Language-aware detection** (source-code parsing) for ~20 languages
 - **Native Windows** binary
 
@@ -158,8 +159,8 @@ Kingfisher ships with hundreds of rules that cover everything from classic cloud
 |----------|---------------|
 | **AI / LLM APIs** | OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), and more
 | **Cloud Providers** | AWS, Azure, GCP, Alibaba Cloud, DigitalOcean, IBM Cloud, Cloudflare, and more
-| **Dev & CI/CD** | GitHub/GitLab tokens, CircleCI, TravisCI, TeamCity, Docker Hub, npm & PyPI publish token, and more
-| **Messaging & Comms** | Slack, Discord, Microsoft Teams, Twilio, Mailgun/SendGrid/Mailchimp, and more
+| **Dev & CI/CD** | GitHub/GitLab tokens, CircleCI, TravisCI, TeamCity, Docker Hub, npm, PyPI, and more
+| **Messaging & Comms** | Slack, Discord, Microsoft Teams, Twilio, Mailgun, SendGrid, Mailchimp, and more
 | **Databases & Data Ops** | MongoDB Atlas, PlanetScale, Postgres DSNs, Grafana Cloud, Datadog, Dynatrace, and more
 | **Payments & Billing** | Stripe, PayPal, Square, GoCardless, and more
 | **Security & DevSecOps** | Snyk, Dependency-Track, CodeClimate, Codacy, OpsGenie, PagerDuty, and more
@@ -179,7 +180,7 @@ Once you've done that, you can provide your custom rules (defined in a YAML file
 
 ## Basic Examples
 
-> **Note**  `kingfisher scan` detects whether the input is a Git repository or a plain directory—no extra flags required.
+> **Note**  `kingfisher scan` detects whether the input is a Git repository or a plain directory, no extra flags required.
 
 ### Scan with secret validation
 
@@ -597,7 +598,31 @@ kingfisher github repos list --organization my-org
 - `--exclude <PATTERN>`: Skip any file or directory whose path matches this glob pattern (repeatable, uses gitignore-style syntax, case sensitive)
 - `--baseline-file <FILE>`: Ignore matches listed in a baseline YAML file
 - `--manage-baseline`: Create or update the baseline file with current findings
+- `--skip-regex <PATTERN>`: Ignore findings whose text matches this regex (repeatable)
+- `--skip-word <WORD>`: Ignore findings containing this case-insensitive word (repeatable)
 
+### Ignore known false positives
+
+Use `--skip-regex` and `--skip-word` to suppress findings you know are benign. Both flags may be provided multiple times and are tested against the secret value **and** the full match context. 
+
+With `--skip-regex`, these should be Rust compatible regular expressions, which you can test out at [regex101](https://regex101.com)
+
+```bash
+# Skip any finding where the finding mentions TEST_KEY
+kingfisher scan --skip-regex '(?i)TEST_KEY' path/
+
+# Skip findings that contain the word "dummy" anywhere in the match
+kingfisher scan --skip-word dummy path/
+
+# Combine multiple patterns
+kingfisher scan \
+  --skip-regex 'AKIA[0-9A-Z]{16}' \
+  --skip-word placeholder \
+  --skip-word dummy \
+  path/
+```
+
+If a `--skip-regex` regular expression fails to compile, the scan aborts with an error so that typos are caught early.
 
 ## Finding Fingerprint
 
@@ -614,36 +639,11 @@ Use `--rule-stats` to collect timing information for every rule. After scanning,
 kingfisher scan --help
 ```
 
-## Business Value
-
-By integrating Kingfisher into your development lifecycle, you can:
-
-- **Prevent Costly Breaches**  
-  Early detection of embedded credentials avoids expensive incident response, legal fees, and reputation damage
-- **Automate Compliance**  
-  Enforce secret‑scanning policies across GitOps, CI/CD, and pull requests to help satisfy SOC 2, PCI‑DSS, GDPR, and other standards
-- **Reduce Noise, Focus on Real Threats**  
-  Validation logic filters out false positives and highlights only active, valid secrets (`--only-valid`)
-- **Accelerate Dev Workflows**  
-  Run in parallel across dozens of languages, integrate with GitHub Actions or any pipeline, and shift security left to minimize delays
-
-## The Risk of Leaked Secrets
-
-Real breaches show how one exposed key can snowball into a full-scale incident:
-
-- **Uber (2016):** GitHub-hosted AWS key let attackers access data on 57 M riders and 600 k drivers. [[BBC](https://www.bbc.com/news/technology-42075306)] [[Ars](https://arstechnica.com/tech-policy/2017/11/report-uber-paid-hackers-100000-to-keep-2016-data-breach-quiet/)]
-- **AWS engineer (2020):** Pushed log files with root credentials to GitHub. [[Register](https://www.theregister.com/2020/01/23/aws_engineer_credentials_github/)] [[UpGuard](https://www.upguard.com/breaches/identity-and-access-misstep-how-an-amazon-engineer-exposed-credentials-and-more)]
-- **Infosys (2023):** Full-admin AWS key left in a public PyPI package for a year. [[Stack](https://www.thestack.technology/infosys-leak-aws-key-exposed-on-pypi/)] [[Blog](https://tomforb.es/blog/infosys-leak/)]
-- **Microsoft (2023):** Azure SAS token in an AI repo exposed 38 TB of internal data. [[Wiz](https://www.wiz.io/blog/38-terabytes-of-private-data-accidentally-exposed-by-microsoft-ai-researchers)] [[TechCrunch](https://techcrunch.com/2023/09/18/microsoft-ai-researchers-accidentally-exposed-terabytes-of-internal-sensitive-data/)]
-- **GitHub (2023):** RSA SSH host key briefly went public; company rotated it. [[GitHub](https://github.blog/news-insights/company-news/we-updated-our-rsa-ssh-host-key/)]
-
-Leaked secrets fuel unauthorized access, lateral movement, regulatory fines, and brand-damaging incident-response costs.
-
 # Roadmap
 
 - More rules
 - More targets
-- Please file a [feature request](https://github.com/mongodb/kingfisher/issues) if you have specific features you'd like added
+- Please file a [feature request](https://github.com/mongodb/kingfisher/issues), or open a PR, if you have features you'd like added
 
 # License
 
