@@ -105,7 +105,7 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
     // Linux releases also ship as .deb and .rpm packages; select the .tgz asset for self‑updates
     #[cfg(not(target_os = "windows"))]
     builder.identifier("tgz");
-    
+
     // Build the updater.
     let Ok(updater) = builder.build() else {
         warn!("Failed to configure update checker");

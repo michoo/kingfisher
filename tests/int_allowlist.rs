@@ -126,7 +126,8 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
 
     rt.block_on(run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db))?;
 
-    let x = Ok(datastore.lock().unwrap().get_matches().len()); x
+    let x = Ok(datastore.lock().unwrap().get_matches().len());
+    x
 }
 
 #[test]
