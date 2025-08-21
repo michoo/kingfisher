@@ -94,15 +94,14 @@ pub async fn validate_jwt_with(token: &str, opts: &ValidateOptions) -> Result<(b
         }
     }
 
-    // parse header (for alg, kid)
+    // parse header enough to read "alg" without jsonwebtoken's enum (which rejects "none")
     let header_b64 = token.split('.').next().ok_or_else(|| anyhow!("invalid JWT format"))?;
     let header_json =
         URL_SAFE_NO_PAD.decode(header_b64).map_err(|e| anyhow!("invalid base64 in header: {e}"))?;
     let header_val: serde_json::Value =
         serde_json::from_slice(&header_json).map_err(|e| anyhow!("invalid header json: {e}"))?;
     let alg_str = header_val.get("alg").and_then(|v| v.as_str()).unwrap_or("");
-    let header = decode_header(token).map_err(|e| anyhow!("decode header: {e}"))?;
-    let alg = header.alg;
+ 
 
     // --- Policy: reject `alg: none` unless explicitly allowed ------------------
     if alg_str.eq_ignore_ascii_case("none") {
@@ -120,6 +119,10 @@ pub async fn validate_jwt_with(token: &str, opts: &ValidateOptions) -> Result<(b
             return Ok((false, "unsigned JWT (alg: none) not allowed".into()));
         }
     }
+ 
+    // Safe to decode full header now that we know alg != none
+    let header = decode_header(token).map_err(|e| anyhow!("decode header: {e}"))?;
+    let alg = header.alg;
 
     let issuer = claims.iss.clone().unwrap_or_default();
     let aud_strings = extract_aud_strings(&claims);
