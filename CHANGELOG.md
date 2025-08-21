@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.45.0]
+- Added `--repo-artifacts` flag to scan repository issues, gists/snippets, and wikis when cloning via `--git-url`
+
 ## [1.44.0]
 - Fixed issue with self-update on Linux
 - Reverted the change to json and jsonl outputs by rule

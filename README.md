@@ -369,12 +369,21 @@ kingfisher scan --github-organization my-org
 
 ### Scan remote GitHub repository
 
+`--git-url` clones the repository and scans its files and history. To also inspect
+related server-side data, supply `--repo-artifacts`. This flag pulls down the
+repository's issues (including pull requests), wiki, and any public gists owned by
+the repository owner and scans them for secrets. Fetching these extras counts
+against API rate limits and private artifacts require a `KF_GITHUB_TOKEN`.
+
 ```bash
+# Scan the repository only
 kingfisher scan --git-url https://github.com/org/repo.git
 
-# Optionally provide a GitHub Token
-KF_GITHUB_TOKEN="ghp_…" kingfisher scan --git-url https://github.com/org/private_repo.git
+# Include issues, wiki, and owner gists
+kingfisher scan --git-url https://github.com/org/repo.git --repo-artifacts
 
+# Private repositories or artifacts
+KF_GITHUB_TOKEN="ghp_…" kingfisher scan --git-url https://github.com/org/private_repo.git --repo-artifacts
 ```
 
 ---
@@ -397,8 +406,20 @@ kingfisher scan --gitlab-user johndoe
 
 ### Scan remote GitLab repository by URL
 
+`--git-url` by itself clones the project repository. To include server-side
+artifacts owned by the project, add `--repo-artifacts`. Kingfisher will retrieve
+the project's issues, wiki, and snippets and scan them for secrets. These extra
+requests may take longer and require a `KF_GITLAB_TOKEN` for private projects.
+
 ```bash
+# Scan the repository only
 kingfisher scan --git-url https://gitlab.com/group/project.git
+
+# Include issues, wiki, and snippets
+kingfisher scan --git-url https://gitlab.com/group/project.git --repo-artifacts
+
+# Private projects or artifacts
+KF_GITLAB_TOKEN="glpat-…" kingfisher scan --git-url https://gitlab.com/group/private_project.git --repo-artifacts
 ```
 
 ### List GitLab repositories
