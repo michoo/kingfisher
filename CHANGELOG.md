@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [1.46.0]
-- Improved AWS rule
+- Improved rules: AWS, pem
 
 ## [1.45.0]
 - Added `--repo-artifacts` flag to scan repository issues, gists/snippets, and wikis when cloning via `--git-url`
