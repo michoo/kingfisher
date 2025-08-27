@@ -4,8 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [1.46.0]
 - Improved rules: AWS, pem
-- Added rule for Ollama, Weights and Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, together.ai
-- Added a new precommit subcommand that installs a git pre-commit hook, prompting or accepting --global/--repo flags to control scope and configuring the hook to run kingfisher --quiet --only-valid --no-update-check
+- Added rule for Ollama, Weights and Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, together.ai, zhipu,
+
 
 ## [1.45.0]
 - Added `--repo-artifacts` flag to scan repository issues, gists/snippets, and wikis when cloning via `--git-url`

@@ -7,7 +7,7 @@ use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 use tracing::Level;
 
 use crate::cli::commands::{
-    github::GitHubArgs, gitlab::GitLabArgs, precommit::PrecommitArgs, rules::RulesArgs,
+    github::GitHubArgs, gitlab::GitLabArgs, rules::RulesArgs,
     scan::ScanArgs,
 };
 
@@ -63,10 +63,6 @@ pub enum Command {
     /// Manage rules
     #[command(alias = "rule")]
     Rules(RulesArgs),
-
-    /// Manage Kingfisher as a Git pre-commit hook
-    #[command(name = "precommit")]
-    Precommit(PrecommitArgs),
 }
 
 pub static RAM_GB: Lazy<Option<f64>> = Lazy::new(|| {
