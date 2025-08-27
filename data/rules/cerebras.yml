@@ -17,7 +17,7 @@ rules:
           method: GET
           url: "https://api.cerebras.ai/v1/models"
           headers:
-            Authorization: "Bearer {{TOKEN}}"
+            Authorization: "Bearer {{ TOKEN }}"
           response_matcher:
             - report_response: true
             - type: StatusMatch

@@ -5,8 +5,6 @@ rules:
       (?xi)
       \b
       (?:wandb|weightsandbiases)
-      (?:.|[\n\r]){0,32}?
-      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
       (?:.|[\n\r]){0,16}?
       (
         [a-f0-9]{40}
@@ -28,10 +26,10 @@ rules:
             Authorization: "Basic {{ 'api:' | append: TOKEN | b64enc }}"
             Content-Type: "application/json"
           body: |
-            {"query":"query { viewer { id } }"}
+            {"query":"query { viewer { email username } }"}
           response_matcher:
             - report_response: true
             - type: JsonValid
             - type: WordMatch
               words:
-                - '"id"'
+                - '"username"'

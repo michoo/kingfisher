@@ -26,6 +26,5 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
-              expected: ["application/json"]
             - type: WordMatch
               words: ["id", "versionId"] 
