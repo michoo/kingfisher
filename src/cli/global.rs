@@ -62,6 +62,10 @@ pub enum Command {
     /// Manage rules
     #[command(alias = "rule")]
     Rules(RulesArgs),
+
+    /// Update the Kingfisher binary
+    #[command(name = "self-update")]
+    SelfUpdate,
 }
 
 pub static RAM_GB: Lazy<Option<f64>> = Lazy::new(|| {
