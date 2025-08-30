@@ -165,6 +165,7 @@ mod tests {
             validation_success,
             calculated_entropy: 4.5,
             visible: true,
+            is_base64: false,
         }
     }
 

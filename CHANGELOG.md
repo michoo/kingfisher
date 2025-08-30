@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.47.0]
 - MongoDB validator now validates `mongodb+srv://` URIs with a fast timeout instead of skipping them
 - Improved rules: github oauth2, diffbot, mailchimp, aws
 - Added validation to SauceLabs rule
 - Added rules: shodan, bitly, flickr
+- Decode Base64 blobs and scan their contents for secrets while skipping short strings for performance
 
 ## [1.46.0]
 - Improved rules: AWS, pem
