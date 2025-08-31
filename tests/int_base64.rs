@@ -23,7 +23,7 @@ fn detects_base64_encoded_secret() -> anyhow::Result<()> {
             "--no-update-check",
         ])
         .assert()
-        .code(0)
+        .code(200)
         .stdout(
             predicate::str::contains("ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa")
                 .and(predicate::str::contains("\"encoding\": \"base64\"")),
