@@ -1,6 +1,6 @@
 rules:
   - name: Docker Registry Credentials (auths JSON)
-    id: kingfisher.docker.auths.1
+    id: kingfisher.docker.1
     pattern: |
       (?xis)
       "auths"\s*:\s*\{
@@ -19,7 +19,7 @@ rules:
         {
           "auths": {
             "quay.io": {
-              "auth": "cmhkaCtyaHRhcDowM1BERk1RTTJQTDlaQUE5T1gzSU9IQjFYTUlXOVNGNU1XRzNSRVRHNThKVVpKMzEwV0ZZRVNOQTdGMExNNTYx"
+              "auth": "cmhkaCtyaHRhcDowM1BERl1RQTJQTDlaQUE5T1gzSU9IQjFYTUlXOVNGNU1XRzNSRVRHNThKVXpKMzEwV0ZZRVMOQTdGMExMNOYx"
             }
           }
         }

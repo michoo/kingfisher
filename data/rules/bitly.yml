@@ -33,4 +33,4 @@ rules:
     references:
       - https://dev.bitly.com/api-reference#Authentication
     examples:
-      - "bitly_token = 20e9827b9c5ddee1b0cec7722bfc557dec833791"
+      - "bitly_token = 20e9817b9c5ddde1b0cec7622bfc557dbc823791"
