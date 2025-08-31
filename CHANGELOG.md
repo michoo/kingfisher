@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 - Improved rules: github oauth2, diffbot, mailchimp, aws
 - Added validation to SauceLabs rule
 - Added rules: shodan, bitly, flickr
-- Decode Base64 blobs and scan their contents for secrets while skipping short strings for performance
+- Decode Base64 blobs and scan their contents for secrets while skipping short strings for performance. This has a small performance impact and can be disabled with `--no-base64`
 
 ## [1.46.0]
 - Improved rules: AWS, pem

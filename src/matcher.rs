@@ -277,6 +277,7 @@ impl<'a> Matcher<'a> {
         lang: Option<String>,
         redact: bool,
         no_dedup: bool,
+        no_base64: bool,
     ) -> Result<ScanResult<'b>>
     where
         'a: 'b,
@@ -312,7 +313,7 @@ impl<'a> Matcher<'a> {
         // Opportunistically look for standalone Base64 blobs. If neither
         // the raw scan nor this check yields anything, we can return early
         // before doing any heavier work.
-        let mut b64_items = get_base64_strings(blob.bytes());
+        let mut b64_items = if no_base64 { Vec::new() } else { get_base64_strings(blob.bytes()) };
 
         if self.user_data.raw_matches_scratch.is_empty() && b64_items.is_empty() {
             // Only record in seen_blobs if deduplication is enabled
@@ -428,42 +429,45 @@ impl<'a> Matcher<'a> {
                 }
             }
         }
-        // If the blob contains standalone Base64 blobs, decode and scan them as well
-        const MAX_B64_DEPTH: usize = 2; // decode at most two levels deep
-        let mut b64_stack: Vec<(DecodedData, usize)> =
-            b64_items.drain(..).map(|d| (d, 0)).collect();
-        while let Some((item, depth)) = b64_stack.pop() {
-            for (rule_id_usize, rule) in rules_db.rules.iter().enumerate() {
-                let re = &rules_db.anchored_regexes[rule_id_usize];
-                filter_match(
-                    blob,
-                    rule.clone(),
-                    re,
-                    item.pos_start,
-                    item.pos_end,
-                    &mut matches,
-                    &mut previous_matches,
-                    rule_id_usize,
-                    &mut seen_matches,
-                    origin,
-                    Some(item.decoded.clone()),
-                    true,
-                    redact,
-                    &filename,
-                    self.profiler.as_ref(),
-                );
-            }
-            if depth + 1 < MAX_B64_DEPTH {
-                for nested in get_base64_strings(item.decoded.as_bytes()) {
-                    b64_stack.push((
-                        DecodedData {
-                            original: nested.original,
-                            decoded: nested.decoded,
-                            pos_start: item.pos_start,
-                            pos_end: item.pos_end,
-                        },
-                        depth + 1,
-                    ));
+
+        if !no_base64 {        
+            // If the blob contains standalone Base64 blobs, decode and scan them as well
+            const MAX_B64_DEPTH: usize = 2; // decode at most two levels deep
+            let mut b64_stack: Vec<(DecodedData, usize)> =
+                b64_items.drain(..).map(|d| (d, 0)).collect();
+            while let Some((item, depth)) = b64_stack.pop() {
+                for (rule_id_usize, rule) in rules_db.rules.iter().enumerate() {
+                    let re = &rules_db.anchored_regexes[rule_id_usize];
+                    filter_match(
+                        blob,
+                        rule.clone(),
+                        re,
+                        item.pos_start,
+                        item.pos_end,
+                        &mut matches,
+                        &mut previous_matches,
+                        rule_id_usize,
+                        &mut seen_matches,
+                        origin,
+                        Some(item.decoded.clone()),
+                        true,
+                        redact,
+                        &filename,
+                        self.profiler.as_ref(),
+                    );
+                }
+                if depth + 1 < MAX_B64_DEPTH {
+                    for nested in get_base64_strings(item.decoded.as_bytes()) {
+                        b64_stack.push((
+                            DecodedData {
+                                original: nested.original,
+                                decoded: nested.decoded,
+                                pos_start: item.pos_start,
+                                pos_end: item.pos_end,
+                            },
+                            depth + 1,
+                        ));
+                    }
                 }
             }
         }
