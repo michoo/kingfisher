@@ -288,17 +288,6 @@ impl<'a> Matcher<'a> {
         self.local_stats.blobs_scanned += 1;
         self.local_stats.bytes_scanned += blob.bytes().len() as u64;
 
-        // Check if blob was already seen and respect no_dedup flag
-        if !no_dedup {
-            if let Some(had_matches) = self.seen_blobs.get(&blob.id) {
-                return Ok(if had_matches {
-                    ScanResult::SeenWithMatches
-                } else {
-                    ScanResult::SeenSansMatches
-                });
-            }
-        }
-
         // Extract filename from origin
         let filename = origin
             .first()
@@ -316,16 +305,7 @@ impl<'a> Matcher<'a> {
         let mut b64_items = if no_base64 { Vec::new() } else { get_base64_strings(blob.bytes()) };
 
         if self.user_data.raw_matches_scratch.is_empty() && b64_items.is_empty() {
-            // Only record in seen_blobs if deduplication is enabled
-            if !no_dedup {
-                return Ok(match self.seen_blobs.insert(blob.id, false) {
-                    None => ScanResult::New(Vec::new()),
-                    Some(true) => ScanResult::SeenWithMatches,
-                    Some(false) => ScanResult::SeenSansMatches,
-                });
-            } else {
-                return Ok(ScanResult::New(Vec::new()));
-            }
+            return Ok(ScanResult::New(Vec::new()));
         }
 
         let rules_db = self.rules_db;
@@ -472,9 +452,15 @@ impl<'a> Matcher<'a> {
             }
         }
         // Finalize
-        // Only record in seen_blobs if deduplication is enabled
-        if !no_dedup {
-            self.seen_blobs.insert(blob.id, !matches.is_empty());
+        if !no_dedup && !matches.is_empty() {
+            let blob_id = blob.id();
+            if let Some(had_matches) = self.seen_blobs.insert(blob_id, true) {
+                return Ok(if had_matches {
+                    ScanResult::SeenWithMatches
+                } else {
+                    ScanResult::SeenSansMatches
+                });
+            }
         }
 
         // --- opportunistic capacity cap ---------------------------------
@@ -571,7 +557,7 @@ fn filter_match<'b>(
             SerializableCaptures::from_captures(&captures, byte_slice.as_ref(), re, redact);
         matches.push(BlobMatch {
             rule: Arc::clone(&rule),
-            blob_id: &blob.id,
+            blob_id: blob.id_ref(),
             matching_input: only_matching_input,
             matching_input_offset_span,
             captures: groups,

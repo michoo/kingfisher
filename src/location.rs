@@ -94,8 +94,7 @@ pub struct LocationMapping {
 impl LocationMapping {
     /// Scan once for all `\n` positions.
     pub fn new(input: &[u8]) -> Self {
-        let newline_offsets =
-            input.iter().enumerate().filter_map(|(i, &b)| (b == b'\n').then_some(i)).collect();
+        let newline_offsets = memchr::memchr_iter(b'\n', input).collect();
         LocationMapping { newline_offsets }
     }
 

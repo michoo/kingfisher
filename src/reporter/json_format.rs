@@ -185,7 +185,6 @@ mod tests {
                 id: BlobId::new(b"mock_blob"),
                 num_bytes: 1024,
                 mime_essence: Some("text/plain".to_string()),
-                charset: Some("UTF-8".to_string()),
                 language: Some("Rust".to_string()),
             };
             let dedup = true;
@@ -219,7 +218,6 @@ mod tests {
                 id: BlobId::new(b"mock_blob"),
                 num_bytes: 1024,
                 mime_essence: Some("text/plain".to_string()),
-                charset: Some("UTF-8".to_string()),
                 language: Some("Rust".to_string()),
             },
             m: mock_match,
@@ -256,7 +254,6 @@ mod tests {
                     id: BlobId::new(b"mock_blob"),
                     num_bytes: 1024,
                     mime_essence: Some("text/plain".to_string()),
-                    charset: Some("UTF-8".to_string()),
                     language: Some("Rust".to_string()),
                 },
                 m: mock_match,
