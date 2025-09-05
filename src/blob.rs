@@ -294,9 +294,15 @@ impl BlobId {
     /// Create a new BlobId computed from the given input.
     #[inline]
     pub fn new(input: &[u8]) -> Self {
+        const CHUNK: usize = 64 * 1024; // 64KB from start and end
         let mut hasher = Sha1::new();
         write!(&mut hasher, "blob {}\0", input.len()).unwrap();
-        hasher.update(input);
+        if input.len() <= CHUNK * 2 {
+            hasher.update(input);
+        } else {
+            hasher.update(&input[..CHUNK]);
+            hasher.update(&input[input.len() - CHUNK..]);
+        }
         BlobId(hasher.finalize().as_slice().try_into().expect("SHA-1 output size mismatch"))
     }
 
@@ -406,5 +412,4 @@ impl BlobMetadata {
     pub fn mime_essence(&self) -> Option<&str> {
         self.mime_essence.as_deref()
     }
-
 }

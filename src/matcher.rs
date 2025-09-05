@@ -10,7 +10,6 @@ use anyhow::Result;
 use base64::{engine::general_purpose, Engine};
 use bstr::BString;
 use http::StatusCode;
-use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use schemars::{
@@ -27,7 +26,7 @@ use xxhash_rust::xxh3::xxh3_64;
 use crate::{
     blob::{Blob, BlobId, BlobIdMap},
     entropy::calculate_shannon_entropy,
-    location::{Location, LocationMapping, OffsetSpan},
+    location::{Location, LocationMapping, OffsetSpan, SourcePoint, SourceSpan},
     origin::OriginSet,
     parser,
     parser::{Checker, Language},
@@ -39,6 +38,10 @@ use crate::{
     snippet::Base64BString,
     util::{intern, redact_value},
 };
+
+const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
+const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
+const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
 
 // -------------------------------------------------------------------------------------------------
 // RawMatch
@@ -255,17 +258,28 @@ impl<'a> Matcher<'a> {
         self.user_data.raw_matches_scratch.reserve(prev_capacity.max(64));
 
         self.user_data.input_len = input.len() as u64;
-        // self.vs_scanner.scan(input, |rid, from, to, _flags| {
-        self.scanner_pool.with(|scanner| {
-            scanner.scan(input, |rule_id, from, to, _flags| {
-                self.user_data.raw_matches_scratch.push(RawMatch {
-                    rule_id,
-                    start_idx: from,
-                    end_idx: to,
-                });
-                vectorscan_rs::Scan::Continue
-            })
-        })?;
+
+        let mut offset: usize = 0;
+        while offset < input.len() {
+            let end = (offset + MAX_CHUNK_SIZE).min(input.len());
+            let slice = &input[offset..end];
+            let base = offset as u64;
+            self.scanner_pool.with(|scanner| {
+                scanner.scan(slice, |rule_id, from, to, _flags| {
+                    self.user_data.raw_matches_scratch.push(RawMatch {
+                        rule_id,
+                        start_idx: from + base,
+                        end_idx: to + base,
+                    });
+                    vectorscan_rs::Scan::Continue
+                })
+            })?;
+
+            if end == input.len() {
+                break;
+            }
+            offset = end.saturating_sub(CHUNK_OVERLAP);
+        }
 
         Ok(())
     }
@@ -302,7 +316,11 @@ impl<'a> Matcher<'a> {
         // Opportunistically look for standalone Base64 blobs. If neither
         // the raw scan nor this check yields anything, we can return early
         // before doing any heavier work.
-        let mut b64_items = if no_base64 { Vec::new() } else { get_base64_strings(blob.bytes()) };
+        let mut b64_items = if no_base64 || blob.len() > BASE64_SCAN_LIMIT {
+            Vec::new()
+        } else {
+            get_base64_strings(blob.bytes())
+        };
 
         if self.user_data.raw_matches_scratch.is_empty() && b64_items.is_empty() {
             return Ok(ScanResult::New(Vec::new()));
@@ -310,7 +328,7 @@ impl<'a> Matcher<'a> {
 
         let rules_db = self.rules_db;
         let mut seen_matches = FxHashSet::default();
-        let mut previous_matches = Vec::new();
+        let mut previous_matches: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
         let tree_sitter_result = if self.user_data.raw_matches_scratch.is_empty() {
             None
         } else {
@@ -343,27 +361,19 @@ impl<'a> Matcher<'a> {
                 })
                 .collect::<Vec<_>>()
         });
-        let mut previous_raw_matches: Vec<(usize, OffsetSpan)> = Vec::new();
+        let mut previous_raw_matches: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
         for &RawMatch { rule_id, start_idx, end_idx } in
             self.user_data.raw_matches_scratch.iter().rev()
         {
             let rule_id_usize: usize = rule_id as usize;
-            // let rule = &rules_db.rules[rule_id_usize];
             let rule = Arc::clone(&rules_db.rules[rule_id_usize]);
             let re = &rules_db.anchored_regexes[rule_id_usize];
             let start_idx_usize = start_idx as usize;
             let end_idx_usize = end_idx as usize;
             let current_span = OffsetSpan::from_range(start_idx_usize..end_idx_usize);
-            // Skip if fully contained in a previous match
-            if previous_raw_matches.iter().any(|(prev_id, prev_span): &(usize, OffsetSpan)| {
-                *prev_id == rule_id_usize
-                    && (prev_span.fully_contains(&current_span)
-                        || current_span.fully_contains(prev_span))
-            }) {
+            if !record_match(&mut previous_raw_matches, rule_id_usize, current_span) {
                 continue;
             }
-            let matching_input_offset_span = OffsetSpan::from_range(start_idx_usize..end_idx_usize);
-            previous_raw_matches.push((rule_id_usize, matching_input_offset_span));
             filter_match(
                 blob,
                 rule,
@@ -487,6 +497,39 @@ fn compute_match_key(content: &[u8], rule_id: &[u8], start: usize, end: usize) -
     end.hash(&mut hasher);
     hasher.finish()
 }
+
+#[inline]
+fn insert_span(spans: &mut Vec<OffsetSpan>, span: OffsetSpan) -> bool {
+    let mut idx = spans.binary_search_by(|s| s.start.cmp(&span.start)).unwrap_or_else(|i| i);
+    if idx > 0 {
+        if spans[idx - 1].fully_contains(&span) {
+            return false;
+        }
+        if span.fully_contains(&spans[idx - 1]) {
+            spans.remove(idx - 1);
+            idx -= 1;
+        }
+    }
+    if idx < spans.len() {
+        if spans[idx].fully_contains(&span) {
+            return false;
+        }
+        if span.fully_contains(&spans[idx]) {
+            spans.remove(idx);
+        }
+    }
+    spans.insert(idx, span);
+    true
+}
+
+#[inline]
+fn record_match(
+    map: &mut FxHashMap<usize, Vec<OffsetSpan>>,
+    rule_id: usize,
+    span: OffsetSpan,
+) -> bool {
+    insert_span(map.entry(rule_id).or_default(), span)
+}
 fn filter_match<'b>(
     blob: &'b Blob,
     // rule: &'b Rule,
@@ -495,7 +538,7 @@ fn filter_match<'b>(
     start: usize,
     end: usize,
     matches: &mut Vec<BlobMatch<'b>>,
-    previous_matches: &mut Vec<(usize, OffsetSpan)>,
+    previous_matches: &mut FxHashMap<usize, Vec<OffsetSpan>>,
     rule_id: usize,
     seen_matches: &mut FxHashSet<u64>,
     _origin: &OriginSet,
@@ -544,11 +587,7 @@ fn filter_match<'b>(
         if !seen_matches.insert(match_key) {
             continue;
         }
-        if previous_matches.iter().any(|(prev_rule_id, prev_loc)| {
-            *prev_rule_id == rule_id
-                && (prev_loc.fully_contains(&matching_input_offset_span)
-                    || matching_input_offset_span.fully_contains(prev_loc))
-        }) {
+        if !record_match(previous_matches, rule_id, matching_input_offset_span) {
             continue;
         }
         let only_matching_input =
@@ -567,7 +606,6 @@ fn filter_match<'b>(
             calculated_entropy,
             is_base64,
         });
-        previous_matches.push((rule_id, matching_input_offset_span));
     }
     if let Some(t) = timer.take() {
         let new_count = (matches.len() - initial_len) as u64;
@@ -773,7 +811,7 @@ pub struct Match {
 impl Match {
     #[inline]
     pub fn convert_owned_blobmatch_to_match<'a>(
-        loc_mapping: &'a LocationMapping,
+        loc_mapping: Option<&'a LocationMapping<'a>>,
         owned_blob_match: &'a OwnedBlobMatch,
         origin_type: &'a str,
     ) -> Self {
@@ -791,7 +829,11 @@ impl Match {
         // The fingerprint will be based on the content of the secret.
         let finding_value_for_fp = std::str::from_utf8(matching_finding_bytes).unwrap_or("");
 
-        let source_span = loc_mapping.get_source_span(&offset_span);
+        let source_span =
+            loc_mapping.map(|lm| lm.get_source_span(&offset_span)).unwrap_or(SourceSpan {
+                start: SourcePoint { line: 0, column: 0 },
+                end: SourcePoint { line: 0, column: 0 },
+            });
         let offset_start: u64 =
             owned_blob_match.matching_input_offset_span.start.try_into().unwrap();
         let offset_end: u64 = owned_blob_match.matching_input_offset_span.end.try_into().unwrap();
@@ -866,33 +908,49 @@ pub struct DecodedData {
     pub pos_start: usize,
     pub pos_end: usize,
 }
+#[inline]
+fn is_base64_byte(b: u8) -> bool {
+    matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'+' | b'/')
+}
+
 pub fn get_base64_strings(input: &[u8]) -> Vec<DecodedData> {
-    lazy_static! {
-        // Require a reasonably long run of valid Base64 characters to reduce
-        // noise. 32 bytes corresponds to 24 decoded bytes.
-        static ref RE_BASE64: Regex = Regex::new(r"[A-Za-z0-9+/]{32,}={0,2}").unwrap();
-    }
     let mut results = Vec::new();
-    for m in RE_BASE64.find_iter(input) {
-        let base64_string = m.as_bytes();
-        // Skip candidates whose length isn't a multiple of four – they cannot
-        // be valid Base64.
-        if base64_string.len() % 4 != 0 {
-            continue;
+    let mut i = 0;
+    while i < input.len() {
+        while i < input.len() && !is_base64_byte(input[i]) {
+            i += 1;
         }
-        if let Ok(decoded) = general_purpose::STANDARD.decode(base64_string) {
-            if let Ok(decoded_str) = std::str::from_utf8(&decoded) {
-                if decoded_str.is_ascii() {
-                    results.push(DecodedData {
-                        original: String::from_utf8_lossy(base64_string).into_owned(),
-                        decoded: decoded_str.to_string(),
-                        pos_start: m.start(),
-                        pos_end: m.end(),
-                    });
+        let start = i;
+        while i < input.len() && is_base64_byte(input[i]) {
+            i += 1;
+        }
+
+        let mut end = i;
+        let mut eq_count = 0;
+        while i < input.len() && input[i] == b'=' && eq_count < 2 {
+            i += 1;
+            eq_count += 1;
+        }
+        end = i;
+
+        let len = end - start;
+        if len >= 32 && len % 4 == 0 {
+            let base64_slice = &input[start..end];
+            if let Ok(decoded) = general_purpose::STANDARD.decode(base64_slice) {
+                if let Ok(decoded_str) = std::str::from_utf8(&decoded) {
+                    if decoded_str.is_ascii() {
+                        results.push(DecodedData {
+                            original: String::from_utf8_lossy(base64_slice).into_owned(),
+                            decoded: decoded_str.to_string(),
+                            pos_start: start,
+                            pos_end: end,
+                        });
+                    }
                 }
             }
         }
     }
+
     results
 }
 
