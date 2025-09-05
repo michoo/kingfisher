@@ -294,7 +294,7 @@ kingfisher scan /some/file --max-file-size 250
 
 ### Scan using a rule _family_ with one flag
 
-_(prefix matching: `--rule kingfisher.aws` loads `kingfisher.aws._`)\*
+_(prefix matching: `--rule kingfisher.aws` loads `kingfisher.aws.*`)_
 
 ```bash
 # Only apply AWS-related rules (kingfisher.aws.1 + kingfisher.aws.2)
