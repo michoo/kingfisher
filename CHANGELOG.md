@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.48.0]
 - Improved error message when self-update cannot find the current binary
 - Optimized memory usage via string interning and extensive data sharing
 - Replaced quadratic match filtering with a per-rule span map, fixing missed secrets in extremely large files and improving scan performance

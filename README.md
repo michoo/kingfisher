@@ -225,6 +225,15 @@ cat /path/to/file.py | kingfisher scan -
 
 ```
 
+### Limit maximum file size scanned (`--max-file-size`)
+
+By default, Kingfisher skips files larger than **64 MB**. You can raise or lower this cap per run with `--max-file-size`, which takes a value in **megabytes**.
+
+```bash
+# Scan files up to 250 mb in size
+kingfisher scan /some/file --max-file-size 250
+```
+
 ### Scan using a rule _family_ with one flag
 
 _(prefix matching: `--rule kingfisher.aws` loads `kingfisher.aws._`)\*
@@ -616,6 +625,14 @@ kingfisher github repos list --organization my-org
 - `--manage-baseline`: Create or update the baseline file with current findings
 - `--skip-regex <PATTERN>`: Ignore findings whose text matches this regex (repeatable)
 - `--skip-word <WORD>`: Ignore findings containing this case-insensitive word (repeatable)
+
+## Understanding `--confidence`
+
+The `--confidence` flag sets a minimum confidence threshold, not an exact match.
+
+- If you pass `--confidence medium`, findings with **medium and higher** confidence (medium + high) will be included.
+- If you pass `--confidence low`, you’ll see **all levels** (low, medium, high).
+
 
 ### Ignore known false positives
 
