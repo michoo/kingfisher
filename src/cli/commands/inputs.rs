@@ -170,9 +170,11 @@ pub struct InputSpecifierArgs {
 pub struct ContentFilteringArgs {
     /// Ignore files larger than the given size in MB
     #[arg(
-        long("max-file-size"),
-        long("max-filesize"),
-        default_value_t = 256.0
+        long = "max-file-size",
+        visible_alias = "max-filesize",      // also show in --help
+        // alias = "max-filesize",            // use this instead if you DON’T want it shown in --help
+        default_value_t = 256.0,
+        value_name = "MB"
     )]
     pub max_file_size_mb: f64,
 
@@ -182,15 +184,15 @@ pub struct ContentFilteringArgs {
     pub exclude: Vec<String>,
 
     /// If true, do NOT extract archive files
-    #[arg(long("no-extract-archives"), default_value_t = false)]
+    #[arg(long = "no-extract-archives", default_value_t = false)]
     pub no_extract_archives: bool,
 
     /// Maximum allowed depth for extracting nested archives
-    #[arg(long("extraction-depth"), default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=25))]
+    #[arg(long = "extraction-depth", default_value_t = 2, value_parser = clap::value_parser!(u8).range(1..=25))]
     pub extraction_depth: u8,
 
     /// If true, do NOT scan binary files
-    #[arg(long("no-binary"), default_value_t = false)]
+    #[arg(long = "no-binary", default_value_t = false)]
     pub no_binary: bool,
 }
 
