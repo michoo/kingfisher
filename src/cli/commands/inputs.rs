@@ -169,12 +169,13 @@ pub struct InputSpecifierArgs {
 #[derive(Args, Debug, Clone)]
 pub struct ContentFilteringArgs {
     /// Ignore files larger than the given size in MB
-    #[arg(long("max-file-size"), default_value_t = 64.0)]
+    #[arg(
+        long("max-file-size"),
+        long("max-filesize"),
+        default_value_t = 256.0
+    )]
     pub max_file_size_mb: f64,
 
-    // /// Use custom path-based ignore rules from the given file(s)
-    // #[arg(long, short, value_hint = ValueHint::FilePath)]
-    // pub ignore: Vec<PathBuf>,
     /// Skip any file or directory whose path matches this glob pattern. Multiple
     /// patterns may be provided by repeating the flag.
     #[arg(long, value_name = "PATTERN")]
@@ -197,7 +198,7 @@ impl ContentFilteringArgs {
     /// Convert the maximum file size in MB to bytes
     pub fn max_file_size_bytes(&self) -> Option<u64> {
         if self.max_file_size_mb < 0.0 {
-            Some(25 * 1024 * 1024) // default 25 MB if negative
+            Some(256 * 1024 * 1024) // default 256 MB if negative
         } else {
             Some((self.max_file_size_mb * 1024.0 * 1024.0) as u64)
         }

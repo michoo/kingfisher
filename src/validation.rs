@@ -70,6 +70,7 @@ static IN_FLIGHT: OnceCell<DashMap<u64, Arc<Notify>>> = OnceCell::new();
 pub fn init_validation_caches() {
     VALIDATION_CACHE.set(DashMap::new()).ok();
     IN_FLIGHT.set(DashMap::new()).ok();
+    aws::set_aws_validation_concurrency(15);
 }
 
 #[derive(Clone)]
@@ -766,16 +767,30 @@ async fn timed_validate_single_match<'a>(
                 return;
             }
 
-            match aws::validate_aws_credentials(&akid, &secret, cache).await {
-                Ok((ok, arn)) => {
+            match aws::validate_aws_credentials(&akid, &secret).await {
+                Ok((ok, msg)) => {
                     m.validation_success = ok;
-                    m.validation_response_body = format!("{} --- ARN: {}", akid, arn);
-                    m.validation_response_status =
-                        if ok { StatusCode::OK } else { StatusCode::UNAUTHORIZED };
-                    if let Ok(acct) = aws::aws_key_to_account_number(&akid) {
-                        m.validation_response_body
-                            .push_str(&format!(" --- AWS Account Number: {:012}", acct));
+                    if ok {
+                        m.validation_response_body = format!("{} --- ARN: {}", akid, msg);
+                        m.validation_response_status = StatusCode::OK;
+                        if let Ok(acct) = aws::aws_key_to_account_number(&akid) {
+                            m.validation_response_body
+                                .push_str(&format!(" --- AWS Account Number: {:012}", acct));
+                        }
+                    } else {
+                        m.validation_response_body =
+                            format!("AWS validation error ({}): {}", akid, msg);
+                        m.validation_response_status = StatusCode::UNAUTHORIZED;
                     }
+                    cache.insert(
+                        cache_key,
+                        CachedResponse {
+                            body: m.validation_response_body.clone(),
+                            status: m.validation_response_status,
+                            is_valid: m.validation_success,
+                            timestamp: Instant::now(),
+                        },
+                    );
                 }
                 Err(e) => {
                     m.validation_success = false;
@@ -783,15 +798,6 @@ async fn timed_validate_single_match<'a>(
                     m.validation_response_status = StatusCode::BAD_GATEWAY;
                 }
             }
-            cache.insert(
-                cache_key,
-                CachedResponse {
-                    body: m.validation_response_body.clone(),
-                    status: m.validation_response_status,
-                    is_valid: m.validation_success,
-                    timestamp: Instant::now(),
-                },
-            );
         }
 
         // ----------------------------------------------------- GCP validator
