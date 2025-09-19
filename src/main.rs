@@ -27,7 +27,7 @@ static GLOBAL: System = System;
 // static GLOBAL: System = System;
 
 use std::{
-    io::Read,
+    io::{IsTerminal, Read},
     sync::{Arc, Mutex},
 };
 
@@ -56,6 +56,7 @@ use kingfisher::{
     rules_database::RulesDatabase,
     scanner::{load_and_record_rules, run_scan},
     update::check_for_update,
+    validation::set_user_agent_suffix,
 };
 use serde_json::json;
 use tempfile::TempDir;
@@ -74,6 +75,8 @@ fn main() -> anyhow::Result<()> {
     color_backtrace::install();
     // Parse command-line arguments
     let args = CommandLineArgs::parse_args();
+
+    set_user_agent_suffix(args.global_args.user_agent_suffix.clone());
 
     // Determine the number of jobs, defaulting to the number of CPUs
     let num_jobs = match args.command {
@@ -122,7 +125,7 @@ fn setup_logging(global_args: &GlobalArgs) {
     let fmt_layer = fmt::layer()
         .with_writer(std::io::stderr) // Write logs to stderr
         .with_target(true) // Enable target filtering
-        .with_ansi(false) // Disable colors
+        .with_ansi(std::io::stderr().is_terminal()) // Emit ANSI colours when stderr is a TTY
         .without_time(); // Remove timestamps
                          // Build and initialize the registry
     registry()

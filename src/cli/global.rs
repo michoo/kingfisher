@@ -41,6 +41,15 @@ impl CommandLineArgs {
             args.global_args.progress = Mode::Never;
         }
 
+        if let Some(suffix) = args.global_args.user_agent_suffix.as_mut() {
+            let trimmed = suffix.trim();
+            if trimmed.is_empty() {
+                args.global_args.user_agent_suffix = None;
+            } else if trimmed.len() != suffix.len() {
+                *suffix = trimmed.to_string();
+            }
+        }
+
         args
     }
 }
@@ -79,15 +88,6 @@ pub static RAM_GB: Lazy<Option<f64>> = Lazy::new(|| {
     }
 });
 
-/// Advanced global options unlikely to be used in normal scenarios.
-#[derive(Args, Debug, Clone)]
-#[command(next_help_heading = "Advanced Global Options")]
-pub struct AdvancedArgs {
-    /// Set the rlimit for the number of open files
-    #[arg(long, default_value_t = 16384, value_name = "LIMIT")]
-    pub rlimit_nofile: u64,
-}
-
 /// Top-level global CLI arguments
 #[derive(Args, Debug, Clone)]
 #[command(next_help_heading = "Global Options")]
@@ -112,8 +112,9 @@ pub struct GlobalArgs {
     #[arg(global = true, long = "no-update-check", default_value_t = false)]
     pub no_update_check: bool,
 
-    #[command(flatten)]
-    pub advanced: AdvancedArgs,
+    /// Append a custom suffix to the default Kingfisher user-agent string
+    #[arg(global = true, long = "user-agent-suffix", value_name = "SUFFIX")]
+    pub user_agent_suffix: Option<String>,
 
     // Internal fields (not CLI arguments)
     #[clap(skip)]
@@ -131,7 +132,7 @@ impl Default for GlobalArgs {
             ignore_certs: false,
             self_update: false,
             no_update_check: false,
-            advanced: AdvancedArgs { rlimit_nofile: 16384 },
+            user_agent_suffix: None,
             color: Mode::Auto,
             progress: Mode::Auto,
         }
