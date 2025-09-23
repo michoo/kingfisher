@@ -7,6 +7,22 @@ use tracing::{debug, debug_span};
 
 use crate::git_url::GitUrl;
 
+const BITBUCKET_CREDENTIAL_HELPER: &str = r#"credential.helper=!_bbcreds() {
+    if [ -n "$KF_BITBUCKET_OAUTH_TOKEN" ]; then
+        echo username="x-token-auth";
+        echo password="$KF_BITBUCKET_OAUTH_TOKEN";
+        return;
+    fi
+    if [ -n "$KF_BITBUCKET_USERNAME" ]; then
+        bb_pass="${KF_BITBUCKET_APP_PASSWORD:-${KF_BITBUCKET_TOKEN:-${KF_BITBUCKET_PASSWORD:-}}}";
+        if [ -n "$bb_pass" ]; then
+            echo username="$KF_BITBUCKET_USERNAME";
+            echo password="$bb_pass";
+            return;
+        fi
+    fi
+}; _bbcreds"#;
+
 /// Represents errors that can occur when interacting with the `git` CLI.
 #[derive(Debug, thiserror::Error)]
 pub enum GitError {
@@ -24,9 +40,9 @@ pub enum GitError {
 
 /// A helper struct for running `git` commands.
 ///
-/// It supports optional GitHub credentials passed via the
-/// `KF_GITHUB_TOKEN` environment variable, and optionally
-/// ignores TLS certificate validation if requested.
+/// It supports optional GitHub, GitLab, and Bitbucket credentials passed via
+/// environment variables and optionally ignores TLS certificate validation if
+/// requested.
 pub struct Git {
     credentials: Vec<String>,
     ignore_certs: bool,
@@ -39,14 +55,29 @@ impl Git {
     pub fn new(ignore_certs: bool) -> Self {
         let mut credentials = Vec::new();
 
-        // If either GitHub or GitLab token is set, first clear existing credential.helpers
-        if std::env::var("KF_GITHUB_TOKEN").is_ok() || std::env::var("KF_GITLAB_TOKEN").is_ok() {
+        let has_github_token =
+            matches!(std::env::var("KF_GITHUB_TOKEN"), Ok(token) if !token.is_empty());
+        let has_gitlab_token =
+            matches!(std::env::var("KF_GITLAB_TOKEN"), Ok(token) if !token.is_empty());
+        let has_bitbucket_username =
+            matches!(std::env::var("KF_BITBUCKET_USERNAME"), Ok(value) if !value.is_empty());
+        let has_bitbucket_password =
+            ["KF_BITBUCKET_APP_PASSWORD", "KF_BITBUCKET_TOKEN", "KF_BITBUCKET_PASSWORD"]
+                .iter()
+                .any(|key| matches!(std::env::var(key), Ok(value) if !value.is_empty()));
+        let has_bitbucket_oauth_token =
+            matches!(std::env::var("KF_BITBUCKET_OAUTH_TOKEN"), Ok(value) if !value.is_empty());
+        let has_bitbucket_credentials =
+            has_bitbucket_oauth_token || (has_bitbucket_username && has_bitbucket_password);
+
+        // If credentials are provided via environment variables, clear existing helpers first.
+        if has_github_token || has_gitlab_token || has_bitbucket_credentials {
             credentials.push("-c".into());
             credentials.push(r#"credential.helper="#.into());
         }
 
         // Inject GitHub token helper
-        if std::env::var("KF_GITHUB_TOKEN").is_ok() {
+        if has_github_token {
             credentials.push("-c".into());
             credentials.push(
                 r#"credential.helper=!_ghcreds() { echo username="kingfisher"; echo password="$KF_GITHUB_TOKEN"; }; _ghcreds"#.into(),
@@ -54,11 +85,17 @@ impl Git {
         }
 
         // Inject GitLab token helper
-        if std::env::var("KF_GITLAB_TOKEN").is_ok() {
+        if has_gitlab_token {
             credentials.push("-c".into());
             credentials.push(
                 r#"credential.helper=!_glcreds() { echo username="oauth2"; echo password="$KF_GITLAB_TOKEN"; }; _glcreds"#.into(),
             );
+        }
+
+        // Inject Bitbucket credential helper for OAuth tokens or basic auth.
+        if has_bitbucket_credentials {
+            credentials.push("-c".into());
+            credentials.push(BITBUCKET_CREDENTIAL_HELPER.into());
         }
 
         Self { credentials, ignore_certs }
@@ -66,7 +103,7 @@ impl Git {
 
     /// Create a basic `git` `Command` with environment variables set to
     /// limit config usage and (optionally) ignore certs. Includes credentials
-    /// if a `KF_GITHUB_TOKEN` is present.
+    /// if GitHub, GitLab, or Bitbucket tokens are present.
     fn git(&self) -> Command {
         let mut cmd = Command::new("git");
         cmd.env("GIT_CONFIG_GLOBAL", "/dev/null");
@@ -192,6 +229,30 @@ mod tests {
             let git = Git::new(false);
             assert_eq!(git.credentials.len(), 4);
         });
+    }
+
+    #[test]
+    fn test_git_new_bitbucket_oauth() {
+        temp_env::with_var("KF_BITBUCKET_OAUTH_TOKEN", Some("oauth"), || {
+            let git = Git::new(false);
+            assert_eq!(git.credentials.len(), 4);
+            assert!(git.credentials.iter().any(|value| value == BITBUCKET_CREDENTIAL_HELPER));
+        });
+    }
+
+    #[test]
+    fn test_git_new_bitbucket_basic_auth() {
+        temp_env::with_vars(
+            &[
+                ("KF_BITBUCKET_USERNAME", Some("user")),
+                ("KF_BITBUCKET_APP_PASSWORD", Some("password")),
+            ],
+            || {
+                let git = Git::new(false);
+                assert_eq!(git.credentials.len(), 4);
+                assert!(git.credentials.iter().any(|value| value == BITBUCKET_CREDENTIAL_HELPER));
+            },
+        );
     }
 
     #[test]

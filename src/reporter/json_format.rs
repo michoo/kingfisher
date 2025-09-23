@@ -39,6 +39,7 @@ mod tests {
     use crate::util::intern;
     use crate::{
         blob::BlobId,
+        cli::commands::bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
         cli::commands::github::GitHubRepoType,
         cli::commands::inputs::ContentFilteringArgs,
         cli::commands::inputs::InputSpecifierArgs,
@@ -89,6 +90,15 @@ mod tests {
                 gitlab_api_url: Url::parse("https://gitlab.com/").unwrap(),
                 gitlab_repo_type: GitLabRepoType::All,
                 gitlab_include_subgroups: false,
+                // Bitbucket
+                bitbucket_user: Vec::new(),
+                bitbucket_workspace: Vec::new(),
+                bitbucket_project: Vec::new(),
+                bitbucket_exclude: Vec::new(),
+                all_bitbucket_workspaces: false,
+                bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/").unwrap(),
+                bitbucket_repo_type: BitbucketRepoType::Source,
+                bitbucket_auth: BitbucketAuthArgs::default(),
                 // Jira options
                 jira_url: None,
                 jql: None,

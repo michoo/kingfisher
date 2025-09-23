@@ -7,7 +7,8 @@ use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 use tracing::Level;
 
 use crate::cli::commands::{
-    github::GitHubArgs, gitlab::GitLabArgs, rules::RulesArgs, scan::ScanArgs,
+    bitbucket::BitbucketArgs, github::GitHubArgs, gitlab::GitLabArgs, rules::RulesArgs,
+    scan::ScanArgs,
 };
 
 #[deny(missing_docs)]
@@ -67,6 +68,10 @@ pub enum Command {
     /// Interact with the GitLab API
     #[command(name = "gitlab")]
     GitLab(GitLabArgs),
+
+    /// Interact with the Bitbucket API
+    #[command(name = "bitbucket")]
+    Bitbucket(BitbucketArgs),
 
     /// Manage rules
     #[command(alias = "rule")]

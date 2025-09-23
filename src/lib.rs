@@ -1,5 +1,6 @@
 pub mod baseline;
 pub mod binary;
+pub mod bitbucket;
 pub mod blob;
 pub mod bstring_escape;
 pub mod bstring_table;

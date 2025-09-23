@@ -5,8 +5,10 @@ use std::{
 
 use anyhow::Result;
 use http::StatusCode;
+use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use schemars::JsonSchema;
 use serde::Serialize;
+use url::Url;
 
 use crate::{
     blob::BlobMetadata,
@@ -32,6 +34,71 @@ use crate::{
     location::SourceSpan,
     origin::{get_repo_url, GitRepoOrigin},
 };
+
+const BITBUCKET_FRAGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'%')
+    .add(b'<')
+    .add(b'>')
+    .add(b'?')
+    .add(b'`')
+    .add(b'{')
+    .add(b'}')
+    .add(b'|');
+
+fn build_git_urls(
+    repo_url: &str,
+    commit_id: &str,
+    file_path: &str,
+    line: usize,
+) -> (String, String, String) {
+    let repo_url = repo_url.trim_end_matches('/');
+    let mut repository_url = repo_url.to_string();
+    let mut commit_url = format!("{repo_url}/commit/{commit_id}");
+    let mut file_url = format!("{repo_url}/blob/{commit_id}/{file_path}#L{line}",);
+
+    if let Ok(parsed) = Url::parse(repo_url) {
+        let scheme = parsed.scheme();
+        let host = parsed.host_str().unwrap_or_default();
+        let segments: Vec<&str> = parsed
+            .path_segments()
+            .map(|segments| segments.filter(|s| !s.is_empty()).collect())
+            .unwrap_or_default();
+
+        let format_anchor = |path: &str| {
+            let normalized = path.replace('\\', "/");
+            utf8_percent_encode(normalized.trim_start_matches('/'), BITBUCKET_FRAGMENT_ENCODE_SET)
+                .to_string()
+        };
+
+        if host.eq_ignore_ascii_case("bitbucket.org") {
+            let joined = segments.join("/");
+            let base = if joined.is_empty() {
+                format!("{scheme}://{host}")
+            } else {
+                format!("{scheme}://{host}/{joined}")
+            };
+            let anchor = format_anchor(file_path);
+            repository_url = base.clone();
+            commit_url = format!("{base}/commits/{commit_id}");
+            file_url = format!("{base}/commits/{commit_id}#L{anchor}F{line}");
+        } else if host.contains("bitbucket") {
+            if segments.len() >= 3 && segments[0].eq_ignore_ascii_case("scm") {
+                let project = segments[1];
+                let repo = segments[2];
+                let base = format!("{scheme}://{host}/projects/{project}/repos/{repo}");
+                let anchor = format_anchor(file_path);
+                repository_url = base.clone();
+                commit_url = format!("{base}/commits/{commit_id}");
+                file_url = format!("{base}/commits/{commit_id}#L{anchor}F{line}");
+            }
+        }
+    }
+
+    (repository_url, commit_url, file_url)
+}
 
 pub fn run(
     global_args: &GlobalArgs,
@@ -67,6 +134,9 @@ impl DetailsReporter {
         let repo_url = repo_url.trim_end_matches(".git").to_string();
         if let Some(cs) = &prov.first_commit {
             let cmd = &cs.commit_metadata;
+            let commit_id = cmd.commit_id.to_string();
+            let (repository_url, commit_url, file_url) =
+                build_git_urls(&repo_url, &commit_id, &cs.blob_path, source_span.start.line);
             // let msg =
             //     String::from_utf8_lossy(cmd.message.lines().next().unwrap_or(&[],),).
             // into_owned();
@@ -75,10 +145,10 @@ impl DetailsReporter {
                 cmd.committer_timestamp.format(gix::date::time::format::SHORT.clone()).to_string();
 
             let git_metadata = serde_json::json!({
-                "repository_url": repo_url,
+                "repository_url": repository_url,
                 "commit": {
-                    "id": cmd.commit_id.to_string(),
-                    "url": format!("{}/commit/{}", repo_url, cmd.commit_id),
+                    "id": commit_id,
+                    "url": commit_url,
                     "date": atime,
                     "committer": {
                         "name": &cmd.committer_name,
@@ -92,13 +162,7 @@ impl DetailsReporter {
                 },
                 "file": {
                     "path": &cs.blob_path,
-                    "url": format!(
-                        "{}/blob/{}/{}#L{}",
-                        repo_url,
-                        cmd.commit_id,
-                        &cs.blob_path,
-                        source_span.start.line
-                    ),
+                    "url": file_url,
                     "git_command": format!(
                         "git -C {} show {}:{}",
                         prov.repo_path.display(),

@@ -1,10 +1,9 @@
-// Integration test to ensure --redact replaces secret values with hashes
 use std::{
-    path::PathBuf,
+    str::FromStr,
     sync::{Arc, Mutex},
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use kingfisher::{
     cli::{
         commands::{
@@ -16,19 +15,32 @@ use kingfisher::{
             rules::RuleSpecifierArgs,
             scan::{ConfidenceLevel, ScanArgs},
         },
-        global::{GlobalArgs, Mode},
+        global::Mode,
+        GlobalArgs,
     },
     findings_store::FindingsStore,
-    rule_loader::RuleLoader,
-    rules_database::RulesDatabase,
-    scanner::run_async_scan,
+    git_url::GitUrl,
+    scanner::{load_and_record_rules, run_scan},
 };
 use tempfile::TempDir;
+use tokio::runtime::Runtime;
 use url::Url;
 
-#[tokio::test]
-async fn test_redact_hashes_finding_values() -> Result<()> {
-    let temp_dir = TempDir::new()?;
+fn determine_exit_code(total: usize, validated: usize) -> i32 {
+    match (total, validated) {
+        (0, _) => 0,
+        (_, v) if v > 0 => 205,
+        _ => 200,
+    }
+}
+
+#[test]
+fn test_bitbucket_remote_scan() -> Result<()> {
+    let temp_dir = TempDir::new().context("tmp dir")?;
+    let clone_dir = temp_dir.path().to_path_buf();
+
+    let repo_url = "https://bitbucket.org/hashashash/secretstest.git";
+    let git_url = GitUrl::from_str(repo_url).expect("parse Bitbucket URL");
 
     let scan_args = ScanArgs {
         num_jobs: 2,
@@ -38,29 +50,31 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
             load_builtins: true,
         },
         input_specifier_args: InputSpecifierArgs {
-            path_inputs: vec![PathBuf::from("testdata/generic_secrets.py")],
-            git_url: Vec::new(),
+            path_inputs: Vec::new(),
+            git_url: vec![git_url],
             github_user: Vec::new(),
             github_organization: Vec::new(),
             github_exclude: Vec::new(),
             all_github_organizations: false,
-            github_api_url: Url::parse("https://api.github.com/").unwrap(),
+            github_api_url: Url::parse("https://api.github.com/")?,
             github_repo_type: GitHubRepoType::Source,
             gitlab_user: Vec::new(),
             gitlab_group: Vec::new(),
             gitlab_exclude: Vec::new(),
             all_gitlab_groups: false,
-            gitlab_api_url: Url::parse("https://gitlab.com/").unwrap(),
+            gitlab_api_url: Url::parse("https://gitlab.com/")?,
             gitlab_repo_type: GitLabRepoType::Owner,
             gitlab_include_subgroups: false,
+
             bitbucket_user: Vec::new(),
             bitbucket_workspace: Vec::new(),
             bitbucket_project: Vec::new(),
             bitbucket_exclude: Vec::new(),
             all_bitbucket_workspaces: false,
-            bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/").unwrap(),
+            bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/")?,
             bitbucket_repo_type: BitbucketRepoType::Source,
             bitbucket_auth: BitbucketAuthArgs::default(),
+
             jira_url: None,
             jql: None,
             confluence_url: None,
@@ -83,17 +97,17 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
         },
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 25.0,
+            no_extract_archives: false,
             extraction_depth: 2,
             no_binary: true,
-            no_extract_archives: false,
             exclude: Vec::new(),
         },
-        confidence: ConfidenceLevel::Low,
-        no_validate: true,
+        confidence: ConfidenceLevel::Medium,
+        no_validate: false,
         rule_stats: false,
         only_valid: false,
-        min_entropy: Some(0.0),
-        redact: true,
+        min_entropy: None,
+        redact: false,
         git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup: true,
@@ -106,29 +120,36 @@ async fn test_redact_hashes_finding_values() -> Result<()> {
 
     let global_args = GlobalArgs {
         verbose: 0,
-        quiet: true,
-        color: Mode::Never,
+        quiet: false,
+        color: Mode::Auto,
+        progress: Mode::Auto,
         no_update_check: false,
         self_update: false,
-        progress: Mode::Never,
         ignore_certs: false,
         user_agent_suffix: None,
     };
 
-    let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
-    let resolved = loaded.resolve_enabled_rules()?;
-    let rules_db = RulesDatabase::from_rules(resolved.into_iter().cloned().collect())?;
+    let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
+    let runtime = Runtime::new()?;
+    let rules_db = Arc::new(load_and_record_rules(&scan_args, &datastore)?);
 
-    let datastore = Arc::new(Mutex::new(FindingsStore::new(temp_dir.path().to_path_buf())));
-    run_async_scan(&global_args, &scan_args, Arc::clone(&datastore), &rules_db).await?;
+    runtime.block_on(async {
+        run_scan(&global_args, &scan_args, &rules_db, Arc::clone(&datastore)).await
+    })?;
 
     let ds = datastore.lock().unwrap();
-    let matches = ds.get_matches();
-    assert!(!matches.is_empty());
-    for m_arc in matches {
-        let m = &m_arc.2;
-        assert!(m.groups.captures.iter().any(|cap| cap.value.starts_with("[REDACTED:")));
-    }
+    let findings = ds.get_matches();
+    let total = findings.len();
+    let validated = findings.iter().filter(|m| m.as_ref().2.validation_success).count();
 
+    assert!(total >= 5, "expected at least 5 findings from Bitbucket repo, got {total}");
+
+    let exit_code = determine_exit_code(total, validated);
+    assert!(
+        exit_code >= 200,
+        "expected findings from Bitbucket repo (exit_code >= 200), got {exit_code}"
+    );
+
+    drop(runtime);
     Ok(())
 }
