@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use kingfisher::{
     cli::{
         commands::{
+            bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
             github::{GitCloneMode, GitHistoryMode, GitHubRepoType},
             gitlab::GitLabRepoType,
             inputs::{ContentFilteringArgs, InputSpecifierArgs},
@@ -67,6 +68,15 @@ fn test_gitlab_remote_scan() -> Result<()> {
             gitlab_api_url: Url::parse("https://gitlab.com/")?,
             gitlab_repo_type: GitLabRepoType::Owner,
             gitlab_include_subgroups: false,
+
+            bitbucket_user: Vec::new(),
+            bitbucket_workspace: Vec::new(),
+            bitbucket_project: Vec::new(),
+            bitbucket_exclude: Vec::new(),
+            all_bitbucket_workspaces: false,
+            bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/")?,
+            bitbucket_repo_type: BitbucketRepoType::Source,
+            bitbucket_auth: BitbucketAuthArgs::default(),
 
             jira_url: None,
             jql: None,
@@ -181,6 +191,15 @@ fn test_gitlab_remote_scan_no_history() -> Result<()> {
             gitlab_api_url: Url::parse("https://gitlab.com/")?,
             gitlab_repo_type: GitLabRepoType::Owner,
             gitlab_include_subgroups: false,
+
+            bitbucket_user: Vec::new(),
+            bitbucket_workspace: Vec::new(),
+            bitbucket_project: Vec::new(),
+            bitbucket_exclude: Vec::new(),
+            all_bitbucket_workspaces: false,
+            bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/")?,
+            bitbucket_repo_type: BitbucketRepoType::Source,
+            bitbucket_auth: BitbucketAuthArgs::default(),
 
             jira_url: None,
             jql: None,

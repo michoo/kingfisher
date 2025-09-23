@@ -15,8 +15,8 @@ Originally forked from Praetorian’s Nosey Parker, Kingfisher adds live cloud-A
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
   - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Multiple targets**:
-  - **Git history**: local repos or GitHub/GitLab orgs/users
-  - **Repository artifacts**: with `--repo-artifacts`, scan GitHub/GitLab repository artifacts such as issues, pull/merge requests, wikis, snippets, and owner gists in addition to code
+  - **Git history**: local repos or GitHub/GitLab/Bitbucket orgs, users, and workspaces
+  - **Repository artifacts**: with `--repo-artifacts`, scan GitHub/GitLab/Bitbucket repository artifacts such as issues, pull/merge requests, wikis, snippets, and owner gists in addition to code
   - **Docker images**: public or private via `--docker-image`
   - **Jira issues**: JQL‑driven scans with `--jira-url` and `--jql`
   - **Confluence pages**: CQL‑driven scans with `--confluence-url` and `--cql`
@@ -71,6 +71,14 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Skip specific GitLab projects during enumeration](#skip-specific-gitlab-projects-during-enumeration)
     - [Scan remote GitLab repository by URL](#scan-remote-gitlab-repository-by-url)
     - [List GitLab repositories](#list-gitlab-repositories)
+  - [Scanning Bitbucket](#scanning-bitbucket)
+    - [Scan Bitbucket workspace](#scan-bitbucket-workspace)
+    - [Scan Bitbucket user](#scan-bitbucket-user)
+    - [Skip specific Bitbucket repositories during enumeration](#skip-specific-bitbucket-repositories-during-enumeration)
+    - [Scan remote Bitbucket repository by URL](#scan-remote-bitbucket-repository-by-url)
+    - [List Bitbucket repositories](#list-bitbucket-repositories)
+    - [Authenticate to Bitbucket](#authenticate-to-bitbucket)
+    - [Self-hosted Bitbucket Server](#self-hosted-bitbucket-server)
   - [Scanning Jira](#scanning-jira)
     - [Scan Jira issues matching a JQL query](#scan-jira-issues-matching-a-jql-query)
     - [Scan the last 1,000 Jira issues:](#scan-the-last-1000-jira-issues)
@@ -552,6 +560,80 @@ kingfisher gitlab repos list --group my-group --include-subgroups
 kingfisher gitlab repos list --group my-group --gitlab-exclude my-group/**/legacy-*
 ```
 
+## Scanning Bitbucket
+
+### Scan Bitbucket workspace
+
+```bash
+kingfisher scan --bitbucket-workspace my-team
+# include Bitbucket Cloud repositories from every accessible workspace
+kingfisher scan --all-bitbucket-workspaces --bitbucket-token "$APP_PASSWORD" --bitbucket-username "$USER"
+```
+
+### Scan Bitbucket user
+
+```bash
+kingfisher scan --bitbucket-user johndoe
+```
+
+### Skip specific Bitbucket repositories during enumeration
+
+Use `--bitbucket-exclude` to ignore repositories while scanning users, workspaces,
+or projects. Patterns accept either `owner/repo` (case-insensitive) or
+gitignore-style globs such as `workspace/**/archive-*`.
+
+```bash
+kingfisher scan --bitbucket-workspace my-team \
+  --bitbucket-exclude my-team/legacy-repo \
+  --bitbucket-exclude my-team/**/archive-*
+```
+
+### Scan remote Bitbucket repository by URL
+
+`--git-url` clones the repository and scans its files and history. To inspect
+Bitbucket artifacts such as issues, add `--repo-artifacts`. Private artifacts
+require credentials (see [Authenticate to Bitbucket](#authenticate-to-bitbucket)).
+
+```bash
+# Scan the repository only
+kingfisher scan --git-url https://bitbucket.org/hashashash/secretstest.git
+
+# Include repository issues
+KF_BITBUCKET_USERNAME="user" \
+KF_BITBUCKET_APP_PASSWORD="app-password" \
+  kingfisher scan --git-url https://bitbucket.org/workspace/project.git --repo-artifacts
+```
+
+### List Bitbucket repositories
+
+```bash
+kingfisher bitbucket repos list --bitbucket-workspace my-team
+# enumerate all accessible workspaces or projects
+kingfisher bitbucket repos list --all-bitbucket-workspaces --bitbucket-token "$APP_PASSWORD" --bitbucket-username "$USER"
+# filter out repositories using glob patterns
+kingfisher bitbucket repos list --bitbucket-workspace my-team --bitbucket-exclude my-team/**/experimental-*
+```
+
+### Authenticate to Bitbucket
+
+Kingfisher supports Bitbucket Cloud and Bitbucket Server credentials:
+
+- **App password or server token** – set `KF_BITBUCKET_USERNAME` and either
+  `KF_BITBUCKET_APP_PASSWORD` or `KF_BITBUCKET_TOKEN`, or pass
+  `--bitbucket-username`/`--bitbucket-token` on the CLI.
+- **OAuth/PAT token** – set `KF_BITBUCKET_OAUTH_TOKEN` or supply
+  `--bitbucket-oauth-token`.
+
+These credentials match the options described in the [ghorg setup
+guide](https://github.com/gabrie30/ghorg/blob/master/README.md#bitbucket-setup).
+
+### Self-hosted Bitbucket Server
+
+Use `--bitbucket-api-url` to point Kingfisher at your server's REST endpoint, for example
+`https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with
+`--bitbucket-username` and `--bitbucket-token`, and pass `--ignore-certs` when
+connecting to HTTP or otherwise insecure instances.
+
 ## Scanning Jira
 
 ### Scan Jira issues matching a JQL query
@@ -618,6 +700,9 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan \
 | ----------------- | ---------------------------- |
 | `KF_GITHUB_TOKEN` | GitHub Personal Access Token |
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
+| `KF_BITBUCKET_USERNAME` | Bitbucket username for basic authentication |
+| `KF_BITBUCKET_APP_PASSWORD` / `KF_BITBUCKET_TOKEN` | Bitbucket app password or server token |
+| `KF_BITBUCKET_OAUTH_TOKEN` | Bitbucket OAuth or PAT token |
 | `KF_JIRA_TOKEN`   | Jira API token               |
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |

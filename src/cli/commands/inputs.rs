@@ -5,6 +5,7 @@ use url::Url;
 
 use crate::{
     cli::commands::{
+        bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
         github::{GitCloneMode, GitHistoryMode, GitHubRepoType},
         gitlab::GitLabRepoType,
     },
@@ -23,15 +24,20 @@ pub struct InputSpecifierArgs {
             "github_organization",
             "gitlab_user",
             "gitlab_group",
+            "bitbucket_user",
+            "bitbucket_workspace",
+            "bitbucket_project",
             "git_url",
             "all_github_organizations",
             "all_gitlab_groups",
+            "all_bitbucket_workspaces",
             "jira_url",
             "confluence_url",
             "docker_image",
             "slack_query",
             "s3_bucket"
         ]),
+        num_args = 0..,
         value_hint = ValueHint::AnyPath
     )]
     pub path_inputs: Vec<PathBuf>,
@@ -105,6 +111,37 @@ pub struct InputSpecifierArgs {
     /// Include projects from GitLab subgroups when scanning groups
     #[arg(long, alias = "include-subgroups")]
     pub gitlab_include_subgroups: bool,
+
+    // Bitbucket Options
+    /// Scan repositories belonging to the specified Bitbucket users
+    #[arg(long)]
+    pub bitbucket_user: Vec<String>,
+
+    /// Scan repositories belonging to the specified Bitbucket workspaces or teams
+    #[arg(long, alias = "bitbucket-workspace", alias = "bitbucket-team")]
+    pub bitbucket_workspace: Vec<String>,
+
+    /// Scan repositories belonging to the specified Bitbucket Server projects
+    #[arg(long, alias = "bitbucket-project")]
+    pub bitbucket_project: Vec<String>,
+
+    /// Skip repositories when enumerating Bitbucket sources (format: owner/repo)
+    #[arg(long = "bitbucket-exclude", value_name = "OWNER/REPO")]
+    pub bitbucket_exclude: Vec<String>,
+
+    /// Scan repositories from all accessible Bitbucket workspaces or projects
+    #[arg(long, alias = "all-bitbucket-workspaces", requires = "bitbucket_api_url")]
+    pub all_bitbucket_workspaces: bool,
+
+    /// Use the specified URL for Bitbucket API access (Cloud or self-hosted)
+    #[arg(long, default_value = "https://api.bitbucket.org/2.0/", value_hint = ValueHint::Url)]
+    pub bitbucket_api_url: Url,
+
+    #[arg(long, default_value_t = BitbucketRepoType::Source)]
+    pub bitbucket_repo_type: BitbucketRepoType,
+
+    #[command(flatten)]
+    pub bitbucket_auth: BitbucketAuthArgs,
 
     /// Jira base URL (e.g. https://jira.example.com)
     #[arg(long, value_hint = ValueHint::Url, requires = "jql")]

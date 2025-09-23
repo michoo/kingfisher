@@ -33,6 +33,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use kingfisher::{
+    bitbucket,
     cli::{
         self,
         commands::{
@@ -69,7 +70,10 @@ use tracing_subscriber::{
 };
 use url::Url;
 
-use crate::cli::commands::gitlab::{GitLabCommand, GitLabRepoType, GitLabReposCommand};
+use crate::cli::commands::{
+    bitbucket::{BitbucketAuthArgs, BitbucketCommand, BitbucketRepoType, BitbucketReposCommand},
+    gitlab::{GitLabCommand, GitLabRepoType, GitLabReposCommand},
+};
 
 fn main() -> anyhow::Result<()> {
     color_backtrace::install();
@@ -84,6 +88,7 @@ fn main() -> anyhow::Result<()> {
         Command::SelfUpdate => 1, // Self-update doesn't need a thread pool
         Command::GitHub(_) => num_cpus::get(), // Default for GitHub commands
         Command::GitLab(_) => num_cpus::get(), // Default for GitLab commands
+        Command::Bitbucket(_) => num_cpus::get(), // Default for Bitbucket commands
         Command::Rules(_) => num_cpus::get(), // Default for Rules commands
     };
 
@@ -260,6 +265,30 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         }
                     },
                 },
+                Command::Bitbucket(bitbucket_args) => match bitbucket_args.command {
+                    BitbucketCommand::Repos(repos_command) => match repos_command {
+                        BitbucketReposCommand::List(list_args) => {
+                            let auth = bitbucket::AuthConfig::from_options(
+                                list_args.auth.bitbucket_username.clone(),
+                                list_args.auth.bitbucket_token.clone(),
+                                list_args.auth.bitbucket_oauth_token.clone(),
+                            );
+                            bitbucket::list_repositories(
+                                bitbucket_args.bitbucket_api_url.clone(),
+                                auth,
+                                global_args.ignore_certs,
+                                global_args.use_progress(),
+                                &list_args.repo_specifiers.user,
+                                &list_args.repo_specifiers.workspace,
+                                &list_args.repo_specifiers.project,
+                                list_args.repo_specifiers.all_workspaces,
+                                &list_args.repo_specifiers.exclude_repos,
+                                list_args.repo_specifiers.repo_type.into(),
+                            )
+                            .await?;
+                        }
+                    },
+                },
                 Command::SelfUpdate => {
                     anyhow::bail!("SelfUpdate command should not reach this branch")
                 }
@@ -299,6 +328,15 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
             gitlab_api_url: Url::parse("https://gitlab.com/").unwrap(),
             gitlab_repo_type: GitLabRepoType::All,
             gitlab_include_subgroups: false,
+
+            bitbucket_user: Vec::new(),
+            bitbucket_workspace: Vec::new(),
+            bitbucket_project: Vec::new(),
+            bitbucket_exclude: Vec::new(),
+            all_bitbucket_workspaces: false,
+            bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/").unwrap(),
+            bitbucket_repo_type: BitbucketRepoType::Source,
+            bitbucket_auth: BitbucketAuthArgs::default(),
 
             jira_url: None,
             jql: None,

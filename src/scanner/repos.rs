@@ -11,6 +11,7 @@ use url::Url;
 
 use crate::blob::BlobIdMap;
 use crate::{
+    bitbucket,
     blob::BlobMetadata,
     cli::{
         commands::{github::GitCloneMode, github::GitHistoryMode, scan},
@@ -242,6 +243,71 @@ pub async fn enumerate_gitlab_repos(
     Ok(repo_urls)
 }
 
+pub async fn enumerate_bitbucket_repos(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+) -> Result<Vec<GitUrl>> {
+    let repo_specifiers = bitbucket::RepoSpecifiers {
+        user: args.input_specifier_args.bitbucket_user.clone(),
+        workspace: args.input_specifier_args.bitbucket_workspace.clone(),
+        project: args.input_specifier_args.bitbucket_project.clone(),
+        all_workspaces: args.input_specifier_args.all_bitbucket_workspaces,
+        repo_filter: args.input_specifier_args.bitbucket_repo_type.into(),
+        exclude_repos: args.input_specifier_args.bitbucket_exclude.clone(),
+    };
+    let mut repo_urls = args.input_specifier_args.git_url.clone();
+    if !repo_specifiers.is_empty() {
+        let mut progress = if global_args.use_progress() {
+            let style =
+                ProgressStyle::with_template("{spinner} {msg} {human_len} [{elapsed_precise}]")
+                    .expect("progress bar style template should compile");
+            let pb = ProgressBar::new_spinner()
+                .with_style(style)
+                .with_message("Enumerating Bitbucket repositories...");
+            pb.enable_steady_tick(Duration::from_millis(500));
+            pb
+        } else {
+            ProgressBar::hidden()
+        };
+        let mut num_found: u64 = 0;
+        let api_url = args.input_specifier_args.bitbucket_api_url.clone();
+        let auth = bitbucket::AuthConfig::from_options(
+            args.input_specifier_args.bitbucket_auth.bitbucket_username.clone(),
+            args.input_specifier_args.bitbucket_auth.bitbucket_token.clone(),
+            args.input_specifier_args.bitbucket_auth.bitbucket_oauth_token.clone(),
+        );
+        let repo_strings = bitbucket::enumerate_repo_urls(
+            &repo_specifiers,
+            api_url,
+            &auth,
+            global_args.ignore_certs,
+            Some(&mut progress),
+        )
+        .await
+        .context("Failed to enumerate Bitbucket repositories")?;
+        for repo_string in repo_strings {
+            match GitUrl::from_str(&repo_string) {
+                Ok(repo_url) => {
+                    repo_urls.push(repo_url);
+                    num_found += 1;
+                }
+                Err(e) => {
+                    progress.suspend(|| {
+                        error!("Failed to parse repo URL from {repo_string}: {e}");
+                    });
+                }
+            }
+        }
+        progress.finish_with_message(format!(
+            "Found {} repositories from Bitbucket",
+            HumanCount(num_found)
+        ));
+    }
+    repo_urls.sort();
+    repo_urls.dedup();
+    Ok(repo_urls)
+}
+
 pub async fn fetch_jira_issues(
     args: &scan::ScanArgs,
     global_args: &global::GlobalArgs,
@@ -338,6 +404,9 @@ pub async fn fetch_slack_messages(
 
 pub async fn fetch_git_host_artifacts(
     repo_urls: &[GitUrl],
+    bitbucket_api_url: &Url,
+    bitbucket_auth: &bitbucket::AuthConfig,
+    bitbucket_host: Option<String>,
     global_args: &global::GlobalArgs,
     datastore: &Arc<Mutex<findings_store::FindingsStore>>,
 ) -> Result<Vec<PathBuf>> {
@@ -365,6 +434,23 @@ pub async fn fetch_git_host_artifacts(
             dirs.extend(
                 gitlab::fetch_repo_items(
                     repo_url,
+                    global_args.ignore_certs,
+                    &output_root,
+                    datastore,
+                )
+                .await?,
+            );
+        } else if host.contains("bitbucket")
+            || bitbucket_host
+                .as_deref()
+                .map(|expected| expected.eq_ignore_ascii_case(&host))
+                .unwrap_or(false)
+        {
+            dirs.extend(
+                bitbucket::fetch_repo_items(
+                    repo_url,
+                    bitbucket_api_url,
+                    bitbucket_auth,
                     global_args.ignore_certs,
                     &output_root,
                     datastore,

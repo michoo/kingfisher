@@ -23,6 +23,10 @@ use tracing::{error, info, warn};
 
 use crate::{cli::global::GlobalArgs, reporter::styles::Styles};
 
+fn styled_heading(styles: &Styles, text: &str) -> String {
+    styles.style_finding_active_heading.apply_to(text).to_string()
+}
+
 /// Check GitHub for a newer Kingfisher release and optionally self‑update.
 ///
 /// * `base_url` lets tests point at a mock server.
@@ -98,7 +102,7 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
     // ───────────── Case 1: running == latest ─────────────
     if release.version == running_v {
         let plain = format!("Kingfisher {running_v} is up to date");
-        info!("{}", styles.style_finding_active_heading.apply_to(&plain));
+        info!("{}", styled_heading(&styles, plain.as_str()));
         return Some(plain);
     }
 
@@ -109,7 +113,7 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
         if curr > latest {
             let plain =
                 format!("Running Kingfisher {curr} which is newer than latest released {latest}");
-            info!("{}", styles.style_finding_active_heading.apply_to(&plain));
+            info!("{}", styled_heading(&styles, plain.as_str()));
             return Some(plain);
         }
         // else fall through to Case 3 (latest > running)
@@ -117,23 +121,22 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
 
     // ───────────── Case 3: latest > running ─────────────
     let plain = format!("New Kingfisher release {} available", release.version);
-    info!("{}", styles.style_finding_active_heading.apply_to(&plain));
+    info!("{}", styled_heading(&styles, plain.as_str()));
 
     // Attempt self‑update when allowed and feasible.
     if global_args.self_update {
         match updater.update() {
-            Ok(status) => info!(
-                "{}",
-                styles
-                    .style_finding_active_heading
-                    .apply_to(&format!("Updated to version {}", status.version()))
-            ),
+            Ok(status) => {
+                let message = format!("Updated to version {}", status.version());
+                info!("{}", styled_heading(&styles, message.as_str()));
+            }
             Err(e) => match e {
                 UpdError::Io(ref io_err) => match io_err.kind() {
                     ErrorKind::PermissionDenied => {
                         warn!(
                             "{}",
-                            styles.style_finding_active_heading.apply_to(
+                            styled_heading(
+                                &styles,
                                 "Cannot replace the current binary - permission denied.\n\
                                  If you installed via a package manager, run its upgrade command.\n\
                                  Otherwise reinstall to a user-writable directory or re-run with sudo."
@@ -143,7 +146,8 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
                     ErrorKind::NotFound => {
                         warn!(
                             "{}",
-                            styles.style_finding_active_heading.apply_to(
+                            styled_heading(
+                                &styles,
                                 "Cannot replace the current binary - file not found.\n\
                                  If you installed via a package manager, run its upgrade command.\n\
                                  Otherwise reinstall to a user-writable directory."

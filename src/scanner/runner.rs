@@ -7,6 +7,7 @@ use tokio::time::{Duration, Instant};
 use tracing::{debug, error, error_span, info, trace};
 
 use crate::{
+    bitbucket,
     cli::{commands::scan, global},
     findings_store,
     findings_store::{FindingsStore, FindingsStoreMessage},
@@ -19,7 +20,8 @@ use crate::{
     rules_database::RulesDatabase,
     safe_list,
     scanner::{
-        clone_or_update_git_repos, enumerate_filesystem_inputs, enumerate_github_repos,
+        clone_or_update_git_repos, enumerate_bitbucket_repos, enumerate_filesystem_inputs,
+        enumerate_github_repos,
         repos::{
             enumerate_gitlab_repos, fetch_confluence_pages, fetch_git_host_artifacts,
             fetch_jira_issues, fetch_s3_objects, fetch_slack_messages,
@@ -71,9 +73,11 @@ pub async fn run_async_scan(
 
     let mut repo_urls = enumerate_github_repos(args, global_args).await?;
     let gitlab_repo_urls = enumerate_gitlab_repos(args, global_args).await?;
+    let bitbucket_repo_urls = enumerate_bitbucket_repos(args, global_args).await?;
 
     // Combine repository URLs
     repo_urls.extend(gitlab_repo_urls);
+    repo_urls.extend(bitbucket_repo_urls);
     repo_urls.sort();
     repo_urls.dedup();
 
@@ -87,6 +91,9 @@ pub async fn run_async_scan(
             if let Some(w) = gitlab::wiki_url(url) {
                 wiki_urls.push(w);
             }
+            if let Some(w) = bitbucket::wiki_url(url) {
+                wiki_urls.push(w);
+            }
         }
         repo_urls.extend(wiki_urls);
         repo_urls.sort();
@@ -96,9 +103,24 @@ pub async fn run_async_scan(
     let mut input_roots = clone_or_update_git_repos(args, global_args, &repo_urls, &datastore)?;
 
     // Fetch issues, gists, and wikis if enabled
+    let bitbucket_auth = bitbucket::AuthConfig::from_options(
+        args.input_specifier_args.bitbucket_auth.bitbucket_username.clone(),
+        args.input_specifier_args.bitbucket_auth.bitbucket_token.clone(),
+        args.input_specifier_args.bitbucket_auth.bitbucket_oauth_token.clone(),
+    );
+    let bitbucket_host =
+        args.input_specifier_args.bitbucket_api_url.host_str().map(|s| s.to_string());
+
     if args.input_specifier_args.repo_artifacts {
-        let repo_artifact_dirs =
-            fetch_git_host_artifacts(&repo_urls, global_args, &datastore).await?;
+        let repo_artifact_dirs = fetch_git_host_artifacts(
+            &repo_urls,
+            &args.input_specifier_args.bitbucket_api_url,
+            &bitbucket_auth,
+            bitbucket_host.clone(),
+            global_args,
+            &datastore,
+        )
+        .await?;
         input_roots.extend(repo_artifact_dirs);
     }
     // Fetch Jira issues if requested

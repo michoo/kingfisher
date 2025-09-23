@@ -11,6 +11,7 @@ use anyhow::Result;
 use kingfisher::{
     cli::{
         commands::{
+            bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
             github::{GitCloneMode, GitHistoryMode, GitHubRepoType},
             gitlab::GitLabRepoType,
             inputs::{ContentFilteringArgs, InputSpecifierArgs},
@@ -81,6 +82,15 @@ rules:
             gitlab_api_url: Url::parse("https://gitlab.com/").unwrap(),
             gitlab_repo_type: GitLabRepoType::Owner,
             gitlab_include_subgroups: false,
+
+            bitbucket_user: Vec::new(),
+            bitbucket_workspace: Vec::new(),
+            bitbucket_project: Vec::new(),
+            bitbucket_exclude: Vec::new(),
+            all_bitbucket_workspaces: false,
+            bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/").unwrap(),
+            bitbucket_repo_type: BitbucketRepoType::Source,
+            bitbucket_auth: BitbucketAuthArgs::default(),
 
             jira_url: None,
             jql: None,
