@@ -11,7 +11,7 @@ Kingfisher is a blazingly fast secret‑scanning and live validation tool built 
 Originally forked from Praetorian’s Nosey Parker, Kingfisher **adds** live cloud-API validation; many more targets (GitLab, BitBucket, Gitea, S3, Docker, Jira, Confluence, Slack); compressed-file extraction and scanning; baseline and allowlist controls; language-aware detection (~20 languages); and a native Windows binary. See [Origins and Divergence](#origins-and-divergence) for details.
 
 ## Key Features
-- **Multiple Scan Targets**: <p align="left">
+- **Multiple Scan Targets**: <p align="center">
   <img alt="Files"      src="https://img.shields.io/badge/Files%20and%20Dirs-000?logo=files&logoColor=white" />
   <img alt="Local Git"  src="https://img.shields.io/badge/Local%20Git%20Repos-000?logo=git&logoColor=white" />
   <img alt="GitHub"     src="https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=white" />
