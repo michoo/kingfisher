@@ -8,15 +8,15 @@
 Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware parsing via Tree‑Sitter, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
 </p>
 
-Originally forked from Praetorian’s Nosey Parker, Kingfisher adds live cloud-API validation; many more targets (GitLab, S3, Docker, Jira, Confluence, Slack); compressed-file extraction and scanning; baseline and allowlist controls; language-aware detection (~20 languages); and a native Windows binary. See [Origins and Divergence](#origins-and-divergence) for details.
+Originally forked from Praetorian’s Nosey Parker, Kingfisher **adds** live cloud-API validation; many more targets (GitLab, BitBucket, Gitea, S3, Docker, Jira, Confluence, Slack); compressed-file extraction and scanning; baseline and allowlist controls; language-aware detection (~20 languages); and a native Windows binary. See [Origins and Divergence](#origins-and-divergence) for details.
 
 ## Key Features
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
   - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Multiple targets**:
-  - **Git history**: local repos or GitHub/GitLab/Bitbucket orgs, users, and workspaces
-  - **Repository artifacts**: with `--repo-artifacts`, scan GitHub/GitLab/Bitbucket repository artifacts such as issues, pull/merge requests, wikis, snippets, and owner gists in addition to code
+  - **Git history**: local repos or GitHub/GitLab/Gitea/Bitbucket orgs, users, and workspaces
+  - **Repository artifacts**: with `--repo-artifacts`, scan GitHub/GitLab/Bitbucket repository artifacts such as issues, pull/merge requests, wikis, snippets, and owner gists in addition to code (Gitea wikis are also cloned when available)
   - **Docker images**: public or private via `--docker-image`
   - **Jira issues**: JQL‑driven scans with `--jira-url` and `--jql`
   - **Confluence pages**: CQL‑driven scans with `--confluence-url` and `--cql`
@@ -71,6 +71,12 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Skip specific GitLab projects during enumeration](#skip-specific-gitlab-projects-during-enumeration)
     - [Scan remote GitLab repository by URL](#scan-remote-gitlab-repository-by-url)
     - [List GitLab repositories](#list-gitlab-repositories)
+  - [Scanning Gitea](#scanning-gitea)
+    - [Scan Gitea organization (requires `KF_GITEA_TOKEN`)](#scan-gitea-organization-requires-kf_gitea_token)
+    - [Scan Gitea user](#scan-gitea-user)
+    - [Skip specific Gitea repositories during enumeration](#skip-specific-gitea-repositories-during-enumeration)
+    - [Scan remote Gitea repository by URL](#scan-remote-gitea-repository-by-url)
+    - [List Gitea repositories](#list-gitea-repositories)
   - [Scanning Bitbucket](#scanning-bitbucket)
     - [Scan Bitbucket workspace](#scan-bitbucket-workspace)
     - [Scan Bitbucket user](#scan-bitbucket-user)
@@ -560,6 +566,59 @@ kingfisher gitlab repos list --group my-group --include-subgroups
 kingfisher gitlab repos list --group my-group --gitlab-exclude my-group/**/legacy-*
 ```
 
+## Scanning Gitea
+
+### Scan Gitea organization (requires `KF_GITEA_TOKEN`)
+
+```bash
+kingfisher scan --gitea-organization my-org
+# self-hosted example
+KF_GITEA_TOKEN="gtoken" kingfisher scan --gitea-organization platform --gitea-api-url https://gitea.internal.example/api/v1/
+```
+
+### Scan Gitea user
+
+```bash
+kingfisher scan --gitea-user johndoe
+```
+
+### Skip specific Gitea repositories during enumeration
+
+Repeat `--gitea-exclude` for each repository you want to ignore when scanning users
+or organizations. Accepts `owner/repo` identifiers or gitignore-style glob patterns
+like `team/**/archive-*`.
+
+```bash
+kingfisher scan --gitea-organization my-org \
+  --gitea-exclude my-org/legacy-repo \
+  --gitea-exclude my-org/**/archive-*
+```
+
+### Scan remote Gitea repository by URL
+
+`--git-url` clones the repository and scans its history. Adding `--repo-artifacts`
+also clones the repository wiki if one exists. Private repositories and wikis
+require `KF_GITEA_TOKEN` (and `KF_GITEA_USERNAME` when cloning via HTTPS).
+
+```bash
+# Scan the repository only
+kingfisher scan --git-url https://gitea.com/org/repo.git
+
+# Include the repository wiki (if present)
+KF_GITEA_TOKEN="gtoken" KF_GITEA_USERNAME="org" \
+  kingfisher scan --git-url https://gitea.com/org/repo.git --repo-artifacts
+```
+
+### List Gitea repositories
+
+```bash
+kingfisher gitea repos list --gitea-organization my-org
+# enumerate every organization visible to the authenticated user
+KF_GITEA_TOKEN="gtoken" kingfisher gitea repos list --all-gitea-organizations
+# self-hosted example
+KF_GITEA_TOKEN="gtoken" kingfisher gitea repos list --user johndoe --gitea-api-url https://gitea.internal.example/api/v1/
+```
+
 ## Scanning Bitbucket
 
 ### Scan Bitbucket workspace
@@ -700,6 +759,8 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan \
 | ----------------- | ---------------------------- |
 | `KF_GITHUB_TOKEN` | GitHub Personal Access Token |
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
+| `KF_GITEA_TOKEN` | Gitea Personal Access Token |
+| `KF_GITEA_USERNAME` | Username for private Gitea clones (used with `KF_GITEA_TOKEN`) |
 | `KF_BITBUCKET_USERNAME` | Bitbucket username for basic authentication |
 | `KF_BITBUCKET_APP_PASSWORD` / `KF_BITBUCKET_TOKEN` | Bitbucket app password or server token |
 | `KF_BITBUCKET_OAUTH_TOKEN` | Bitbucket OAuth or PAT token |

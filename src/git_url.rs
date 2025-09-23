@@ -64,8 +64,8 @@ impl TryFrom<Url> for GitUrl {
     type Error = &'static str;
 
     fn try_from(url: Url) -> Result<Self, Self::Error> {
-        if url.scheme() != "https"
-            || url.host().is_none()
+        // if url.scheme() != "https"
+        if url.host().is_none()
             || !url.username().is_empty()
             || url.password().is_some()
             || url.query().is_some()

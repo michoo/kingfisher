@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.54.0]
+- Added first-class Gitea support, including CLI commands, environment-based authentication, documentation, and integration with scans and repository enumeration.
+
 ## [v1.53.0]
 - Added first-class Bitbucket support, including CLI commands, authentication helpers, documentation, and integration testing.
 
