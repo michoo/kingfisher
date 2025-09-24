@@ -428,62 +428,20 @@ impl DetailsReporter {
             })
             .next();
 
-        let mut file_path = rm
+        let file_path = rm
             .origin
             .iter()
-            .filter_map(|origin| match origin {
-                Origin::File(e) => {
-                    if let Some(url) = self.repo_artifact_url(&e.path) {
-                        Some(url)
-                    } else if let Some(url) = self.jira_issue_url(&e.path, args) {
-                        Some(url)
-                    } else if let Some(url) = self.confluence_page_url(&e.path) {
-                        Some(url)
-                    } else if let Some(url) = self.slack_message_url(&e.path) {
-                        Some(url)
-                    } else if let Some(mapped) = self.s3_display_path(&e.path) {
-                        Some(mapped)
-                    } else if let Some(mapped) = self.docker_display_path(&e.path) {
-                        Some(mapped)
-                    } else {
-                        Some(e.path.display().to_string())
-                    }
-                }
-                Origin::GitRepo(e) => e.first_commit.as_ref().map(|c| c.blob_path.clone()),
-                Origin::Extended(e) => e.path().map(|p| p.display().to_string()),
+            .find_map(|origin| self.origin_display_path(origin, args))
+            .or_else(|| {
+                rm.origin.iter().find_map(|origin| {
+                    origin
+                        .blob_path()
+                        .map(|p| p.display().to_string())
+                        .and_then(Self::non_empty_string)
+                })
             })
-            .find(|path| !path.trim().is_empty())
-            .unwrap_or_else(|| {
-                rm.origin
-                    .iter()
-                    .find_map(|origin| origin.blob_path().map(|p| p.display().to_string()))
-                    .unwrap_or_default()
-            });
-
-        // If the file path is still empty, and we have git blob metadata,
-        // try to reconstruct the path from the git object ID.
-        if file_path.is_empty() {
-            let blob_hex = rm.blob_metadata.id.hex();
-            if let Some(repo_origin) = rm.origin.iter().find_map(|origin| match origin {
-                Origin::GitRepo(e) => Some(e),
-                _ => None,
-            }) {
-                let (prefix, suffix) = blob_hex.split_at(2);
-                let repo_path = repo_origin.repo_path.as_ref();
-                let git_dir_objects = repo_path.join(".git").join("objects");
-                let objects_dir = if git_dir_objects.is_dir() {
-                    git_dir_objects
-                } else {
-                    repo_path.join("objects")
-                };
-                let fallback_path = objects_dir.join(prefix).join(suffix);
-                file_path = fallback_path.display().to_string();
-            }
-
-            if file_path.is_empty() {
-                file_path = format!("blob:{blob_hex}");
-            }
-        }
+            .or_else(|| self.git_object_fallback_path(rm))
+            .unwrap_or_else(|| format!("blob:{}", rm.blob_metadata.id.hex()));
 
         FindingReporterRecord {
             rule: RuleMetadata {
@@ -508,6 +466,58 @@ impl DetailsReporter {
                 encoding: if rm.m.is_base64 { Some("base64".to_string()) } else { None },
                 git_metadata: git_metadata_val,
             },
+        }
+    }
+
+    fn origin_display_path(
+        &self,
+        origin: &Origin,
+        args: &cli::commands::scan::ScanArgs,
+    ) -> Option<String> {
+        match origin {
+            Origin::File(e) => self
+                .repo_artifact_url(&e.path)
+                .and_then(Self::non_empty_string)
+                .or_else(|| self.jira_issue_url(&e.path, args).and_then(Self::non_empty_string))
+                .or_else(|| self.confluence_page_url(&e.path).and_then(Self::non_empty_string))
+                .or_else(|| self.slack_message_url(&e.path).and_then(Self::non_empty_string))
+                .or_else(|| self.s3_display_path(&e.path).and_then(Self::non_empty_string))
+                .or_else(|| self.docker_display_path(&e.path).and_then(Self::non_empty_string))
+                .or_else(|| Self::non_empty_string(e.path.display().to_string())),
+            Origin::GitRepo(e) => {
+                e.first_commit.as_ref().and_then(|c| Self::non_empty_string(c.blob_path.clone()))
+            }
+            Origin::Extended(e) => {
+                e.path().map(|p| p.display().to_string()).and_then(Self::non_empty_string)
+            }
+        }
+    }
+
+    fn git_object_fallback_path(&self, rm: &ReportMatch) -> Option<String> {
+        let blob_hex = rm.blob_metadata.id.hex();
+        rm.origin.iter().find_map(|origin| {
+            if let Origin::GitRepo(repo_origin) = origin {
+                let (prefix, suffix) = blob_hex.split_at(2);
+                let repo_path = repo_origin.repo_path.as_ref();
+                let git_dir_objects = repo_path.join(".git").join("objects");
+                let objects_dir = if git_dir_objects.is_dir() {
+                    git_dir_objects
+                } else {
+                    repo_path.join("objects")
+                };
+                let fallback_path = objects_dir.join(prefix).join(suffix);
+                Self::non_empty_string(fallback_path.display().to_string())
+            } else {
+                None
+            }
+        })
+    }
+
+    fn non_empty_string(value: String) -> Option<String> {
+        if value.trim().is_empty() {
+            None
+        } else {
+            Some(value)
         }
     }
 
