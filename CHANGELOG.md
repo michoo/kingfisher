@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [v1.54.0]
 - Added first-class Gitea support, including CLI commands, environment-based authentication, documentation, and integration with scans and repository enumeration.
 - Populate the finding path from git blob metadata so history-derived secrets display their file location instead of an empty path
+- Replaced Match::finding_id’s SHA1-based hashing with a fast xxh3_64 digest that keeps IDs deterministic while eliminating a hot-path SHA1 dependency
 
 ## [v1.53.0]
 - Added first-class Bitbucket support, including CLI commands, authentication helpers, documentation, and integration testing.

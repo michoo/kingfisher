@@ -17,7 +17,8 @@ use schemars::{
     JsonSchema,
 };
 use serde::{Deserialize, Serialize};
-use sha1::{Digest, Sha1};
+// use sha1::{Digest, Sha1};
+use xxhash_rust::xxh3::xxh3_64;
 
 /// Returns false as the default value.
 fn default_false() -> bool {
@@ -341,9 +342,8 @@ impl RuleSyntax {
 
     /// Computes a content-based fingerprint of the rule's pattern.
     pub fn finding_sha1_fingerprint(&self) -> String {
-        let mut hasher = Sha1::new();
-        hasher.update(self.pattern.as_bytes());
-        format!("{:x}", hasher.finalize())
+        let hash = xxh3_64(self.pattern.as_bytes());
+        format!("{:x}", hash)
     }
 
     /// Serializes the rule syntax to JSON.

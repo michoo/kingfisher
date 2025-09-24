@@ -1,7 +1,6 @@
 use std::{
     borrow::Cow,
     hash::{Hash, Hasher},
-    io::Write,
     str,
     sync::{Arc, Mutex},
 };
@@ -18,7 +17,6 @@ use schemars::{
     JsonSchema,
 };
 use serde::{Deserialize, Serialize};
-use sha1::{Digest, Sha1};
 use smallvec::SmallVec;
 use tracing::debug;
 use xxhash_rust::xxh3::xxh3_64;
@@ -863,34 +861,12 @@ impl Match {
     }
 
     pub fn finding_id(&self) -> String {
-        let mut h = Sha1::new();
-        write!(&mut h, "{}\0", self.rule.finding_sha1_fingerprint())
-            .expect("should be able to write to memory");
-        serde_json::to_writer(&mut h, &self.groups)
+        let mut buffer = Vec::with_capacity(128);
+        buffer.extend_from_slice(self.rule.finding_sha1_fingerprint().as_bytes());
+        buffer.push(0);
+        serde_json::to_writer(&mut buffer, &self.groups)
             .expect("should be able to serialize groups as JSON");
-        let hash: sha2::digest::generic_array::GenericArray<
-            u8,
-            sha2::digest::typenum::UInt<
-                sha2::digest::typenum::UInt<
-                    sha2::digest::typenum::UInt<
-                        sha2::digest::typenum::UInt<
-                            sha2::digest::typenum::UInt<
-                                sha2::digest::typenum::UTerm,
-                                sha2::digest::consts::B1,
-                            >,
-                            sha2::digest::consts::B0,
-                        >,
-                        sha2::digest::consts::B1,
-                    >,
-                    sha2::digest::consts::B0,
-                >,
-                sha2::digest::consts::B0,
-            >,
-        > = h.finalize();
-        // Take the first 8 bytes of the hash
-        let mut num = u64::from_be_bytes([
-            hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7],
-        ]);
+        let mut num = xxh3_64(&buffer);
         // Ensure the number is positive and within i64 range
         num &= 0x7FFF_FFFF_FFFF_FFFF; // Clear the sign bit to make it positive
                                       // Convert to string
