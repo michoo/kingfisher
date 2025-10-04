@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+- Improved performance of tree-sitter parsing
+- Updated Windows build script to ensure static binary is produced
+
 ## [v1.54.0]
 - Added first-class Gitea support, including CLI commands, environment-based authentication, documentation, and integration with scans and repository enumeration.
 - Populate the finding path from git blob metadata so history-derived secrets display their file location instead of an empty path

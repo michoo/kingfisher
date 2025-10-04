@@ -86,9 +86,10 @@ if /I not "%LOCALAPPDATA:~1,1%"==":" (
 )
 
 REM ── Install Hyperscan ------------------------------------------------------
-echo Installing Hyperscan via vcpkg...
+set "VCPKG_TRIPLET=x64-windows-static"
+echo Installing Hyperscan (%VCPKG_TRIPLET%) via vcpkg...
 pushd "%HOMEDRIVE%\vcpkg"           REM ► work inside the vcpkg root
-"%VCPKG_EXE%" install hyperscan:x64-windows || (
+"%VCPKG_EXE%" install hyperscan:%VCPKG_TRIPLET% || (
     echo ERROR: vcpkg install failed.
     popd
     exit /b 1
@@ -97,7 +98,7 @@ popd
 set "LIBHS_NO_PKG_CONFIG=1"
 
 REM Point vectorscan‑rs‑sys at the Hyperscan install
-set "HYPERSCAN_ROOT=%HOMEDRIVE%\vcpkg\installed\x64-windows"
+set "HYPERSCAN_ROOT=%HOMEDRIVE%\vcpkg\installed\%VCPKG_TRIPLET%"
 set "LIB=%HYPERSCAN_ROOT%\lib;%LIB%"
 set "INCLUDE=%HYPERSCAN_ROOT%\include;%INCLUDE%"
 
@@ -113,7 +114,9 @@ if %ERRORLEVEL% NEQ 0 (
     echo Rust is already installed.
 )
 
-echo Building for Windows x64...
+set "RUSTFLAGS=%RUSTFLAGS% -C target-feature=+crt-static"
+
+echo Building static Windows x64 binary...
 cargo build --release --target x86_64-pc-windows-msvc || (
     echo Cargo build failed.
     exit /b 1
