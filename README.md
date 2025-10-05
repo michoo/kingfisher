@@ -14,9 +14,9 @@ Originally forked from Praetorian’s Nosey Parker, Kingfisher **adds** live clo
 ### Multiple Scan Targets
 <div align="center">
 
-| Files & Dirs | Local Git | GitHub | GitLab | Azure DevOps | Bitbucket | Gitea |
+| Files / Dirs | Local Git | GitHub | GitLab | Azure DevOps | Bitbucket | Gitea |
 |:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|
-| <img src="./docs/assets/icons/files.svg" height="40" alt="Files & Dirs"/><br/><sub>Files & Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure DevOps"/><br/><sub>Azure DevOps</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |
+| <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files / Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure DevOps"/><br/><sub>Azure DevOps</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |
 
 | Docker | Jira | Confluence | Slack | AWS S3 |
 |:------:|:----:|:-----------:|:-----:|:------:|
