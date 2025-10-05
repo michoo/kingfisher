@@ -63,11 +63,12 @@ struct ExcludeMatcher {
 
 impl ExcludeMatcher {
     fn matches(&self, name: &str) -> bool {
-        if self.exact.contains(name) {
+        let candidate = name.to_lowercase();
+        if self.exact.contains(&candidate) {
             return true;
         }
         if let Some(globs) = &self.globs {
-            return globs.is_match(name);
+            return globs.is_match(&candidate);
         }
         false
     }
@@ -108,12 +109,35 @@ fn normalize_repo_identifier(parts: &[String]) -> Option<String> {
 }
 
 fn parse_repo_identifier_from_path(path: &str) -> Option<String> {
-    let segments: Vec<String> = path
+    let mut segments: Vec<String> = path
         .trim_matches('/')
         .split('/')
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
         .collect();
+
+    if segments.is_empty() {
+        return None;
+    }
+
+    if segments.len() == 2 {
+        let org = segments.first()?.trim().trim_matches('/');
+        let project = segments.last()?.trim().trim_matches('/');
+        if org.is_empty() || project.is_empty() {
+            return None;
+        }
+
+        let org = org.to_lowercase();
+        let project_raw = project.to_string();
+        if looks_like_glob(&project_raw) {
+            let pattern = format!("{org}/{}/**", project_raw.to_lowercase());
+            return Some(pattern);
+        }
+
+        let project_normalized = project_raw.trim_end_matches(".git").to_lowercase();
+        let repo = project_normalized.clone();
+        return Some(format!("{org}/{project_normalized}/{repo}"));
+    }
 
     if segments.len() < 3 {
         return None;
@@ -181,23 +205,24 @@ fn build_exclude_matcher(exclude_repos: &[String]) -> ExcludeMatcher {
     for raw in exclude_repos {
         match parse_excluded_repo(raw) {
             Some(name) => {
-                if looks_like_glob(&name) {
-                    match Glob::new(&name) {
+                let normalized = name.to_lowercase();
+                if looks_like_glob(&normalized) {
+                    match Glob::new(&normalized) {
                         Ok(glob) => {
                             glob_builder.add(glob);
                             has_glob = true;
                         }
                         Err(err) => {
                             warn!("Ignoring invalid Azure exclusion pattern '{raw}': {err}");
-                            exact.insert(name);
+                            exact.insert(normalized);
                         }
                     }
                 } else {
-                    exact.insert(name);
+                    exact.insert(normalized);
                 }
             }
             None => {
-                warn!("Ignoring invalid Azure exclusion '{raw}' (expected organization/project/repository)");
+                warn!("Ignoring invalid Azure exclusion '{raw}' (expected organization/project[/repository])");
             }
         }
     }
@@ -293,14 +318,50 @@ async fn fetch_repositories_for_org(
     let url = format!("{base}/{encoded_org}/_apis/git/repositories?api-version={API_VERSION}");
     let request = auth.apply(client.get(&url));
     let response = request.send().await?;
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(anyhow!(
+    let status = response.status();
+    let headers = response.headers().clone();
+    let body_bytes = response.bytes().await?;
+
+    if !status.is_success() {
+        let body = String::from_utf8_lossy(&body_bytes).trim().to_string();
+        let auth_hint = if matches!(
+            status,
+            reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN
+        ) {
+            if auth.token.is_some() {
+                "Verify that the Azure token or PAT has access to the requested organization and has not expired."
+            } else {
+                "Set KF_AZURE_TOKEN or KF_AZURE_PAT with an Azure DevOps Personal Access Token that can read repositories."
+            }
+        } else {
+            ""
+        };
+
+        let mut message = format!(
             "Azure Repos API request failed for organization '{organization}' ({status}): {body}"
+        );
+        if !auth_hint.is_empty() {
+            message.push_str(&format!("\n{auth_hint}"));
+        }
+        return Err(anyhow!(message));
+    }
+
+    let is_json = headers
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| {
+            value.split(';').next().unwrap_or("").trim().eq_ignore_ascii_case("application/json")
+        })
+        .unwrap_or(false);
+
+    if !is_json {
+        let body = String::from_utf8_lossy(&body_bytes);
+        return Err(anyhow!(
+            "Azure Repos API response for organization '{organization}' did not include JSON: {body}"
         ));
     }
-    let payload: AzureListResponse<AzureRepository> = response.json().await?;
+
+    let payload: AzureListResponse<AzureRepository> = serde_json::from_slice(&body_bytes)?;
     Ok(payload.value)
 }
 
@@ -562,8 +623,46 @@ mod tests {
     }
 
     #[test]
+    fn parse_excluded_repo_allows_project_alias() {
+        let raw = "Org/Project";
+        let ident = parse_excluded_repo(raw).expect("identifier");
+        assert_eq!(ident, "org/project/project");
+    }
+
+    #[test]
+    fn parse_excluded_repo_allows_project_glob() {
+        let raw = "org/*";
+        let ident = parse_excluded_repo(raw).expect("identifier");
+        assert_eq!(ident, "org/*/**");
+    }
+
+    #[test]
     fn exclude_matcher_matches_glob() {
         let matcher = build_exclude_matcher(&["org/*/repo".to_string()]);
+        assert!(should_exclude_repo("https://dev.azure.com/org/project/_git/repo", &matcher));
+    }
+
+    #[test]
+    fn exclude_matcher_matches_project_alias() {
+        let matcher = build_exclude_matcher(&["org/project".to_string()]);
+        assert!(should_exclude_repo("https://dev.azure.com/org/project/_git/project", &matcher));
+    }
+
+    #[test]
+    fn exclude_matcher_matches_project_glob() {
+        let matcher = build_exclude_matcher(&["org/*".to_string()]);
+        assert!(should_exclude_repo("https://dev.azure.com/org/project/_git/repo", &matcher));
+    }
+
+    #[test]
+    fn exclude_matcher_is_case_insensitive_for_exact_matches() {
+        let matcher = build_exclude_matcher(&["Org/Project/Repo".to_string()]);
+        assert!(should_exclude_repo("https://dev.azure.com/org/project/_git/repo", &matcher));
+    }
+
+    #[test]
+    fn exclude_matcher_is_case_insensitive_for_globs() {
+        let matcher = build_exclude_matcher(&["ORG/*".to_string()]);
         assert!(should_exclude_repo("https://dev.azure.com/org/project/_git/repo", &matcher));
     }
 

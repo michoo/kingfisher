@@ -31,6 +31,15 @@ const GITEA_CREDENTIAL_HELPER: &str = r#"credential.helper=!_gteacreds() {
     fi
 }; _gteacreds"#;
 
+const AZURE_CREDENTIAL_HELPER: &str = r#"credential.helper=!_azcreds() {
+    token="${KF_AZURE_TOKEN:-${KF_AZURE_PAT:-}}";
+    if [ -n "$token" ]; then
+        user="${KF_AZURE_USERNAME:-pat}";
+        echo username="$user";
+        echo password="$token";
+    fi
+}; _azcreds"#;
+
 /// Represents errors that can occur when interacting with the `git` CLI.
 #[derive(Debug, thiserror::Error)]
 pub enum GitError {
@@ -79,9 +88,17 @@ impl Git {
             matches!(std::env::var("KF_BITBUCKET_OAUTH_TOKEN"), Ok(value) if !value.is_empty());
         let has_bitbucket_credentials =
             has_bitbucket_oauth_token || (has_bitbucket_username && has_bitbucket_password);
+        let has_azure_token = ["KF_AZURE_TOKEN", "KF_AZURE_PAT"]
+            .iter()
+            .any(|key| matches!(std::env::var(key), Ok(value) if !value.is_empty()));
 
         // If credentials are provided via environment variables, clear existing helpers first.
-        if has_github_token || has_gitlab_token || has_gitea_token || has_bitbucket_credentials {
+        if has_github_token
+            || has_gitlab_token
+            || has_gitea_token
+            || has_bitbucket_credentials
+            || has_azure_token
+        {
             credentials.push("-c".into());
             credentials.push(r#"credential.helper="#.into());
         }
@@ -112,6 +129,11 @@ impl Git {
         if has_bitbucket_credentials {
             credentials.push("-c".into());
             credentials.push(BITBUCKET_CREDENTIAL_HELPER.into());
+        }
+
+        if has_azure_token {
+            credentials.push("-c".into());
+            credentials.push(AZURE_CREDENTIAL_HELPER.into());
         }
 
         Self { credentials, ignore_certs }

@@ -596,8 +596,9 @@ kingfisher scan --azure-project my-org/payments --azure-project my-org/core-plat
 ### Skip specific Azure repositories during enumeration
 
 Repeat `--azure-exclude` to ignore repositories when scanning organizations or projects.
-Use identifiers like `ORGANIZATION/PROJECT/REPOSITORY` or gitignore-style patterns such as
-`my-org/*/archive-*`.
+Use identifiers like `ORGANIZATION/PROJECT/REPOSITORY`. Repositories that share the same
+name as their project can be excluded with `ORGANIZATION/PROJECT`, and gitignore-style
+patterns such as `my-org/*/archive-*` are also supported.
 
 ```bash
 kingfisher scan --azure-organization my-org \

@@ -11,7 +11,7 @@ publish = false
 [package]
 name = "kingfisher"
 version = "1.55.0"
-description = "MongoDB's blazingly fast secret scanning and validation tool"
+description = "MongoDB's blazingly fast and accurate secret scanning and validation tool"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -32,7 +32,7 @@ assets = [
 
 [package.metadata.generate-rpm]
 package = "kingfisher"
-summary = "MongoDB's blazingly fast secret scanning and validation tool"
+summary = "MongoDB's blazingly fast and accurate secret scanning and validation tool"
 license = "Apache-2.0"
 url = "https://github.com/mongodb/kingfisher"
 assets = [
@@ -229,7 +229,7 @@ incremental = false
 
 [profile.dev]
 opt-level = 0
-debug = true
+# debug = true
 incremental = true
 codegen-units = 256
 
