@@ -12,14 +12,17 @@ Originally forked from Praetorian’s Nosey Parker, Kingfisher **adds** live clo
 ## Key Features
 
 ### Multiple Scan Targets
+<div align="center">
 
-| Files / Dirs | Local Git | GitHub | GitLab | Azure DevOps | Bitbucket | Gitea |
+| Files & Dirs | Local Git | GitHub | GitLab | Azure DevOps | Bitbucket | Gitea |
 |:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|
-| <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files & Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure DevOps"/><br/><sub>Azure DevOps</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |
+| <img src="./docs/assets/icons/files.svg" height="40" alt="Files & Dirs"/><br/><sub>Files & Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure DevOps"/><br/><sub>Azure DevOps</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |
 
 | Docker | Jira | Confluence | Slack | AWS S3 |
 |:------:|:----:|:-----------:|:-----:|:------:|
 | <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |
+
+</div>
 
 ### Performance, Accuracy, and Hundreds of Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
