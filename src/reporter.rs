@@ -48,6 +48,19 @@ const BITBUCKET_FRAGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}')
     .add(b'|');
 
+const AZURE_QUERY_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'#')
+    .add(b'%')
+    .add(b'<')
+    .add(b'>')
+    .add(b'?')
+    .add(b'`')
+    .add(b'{')
+    .add(b'}')
+    .add(b'|');
+
 fn build_git_urls(
     repo_url: &str,
     commit_id: &str,
@@ -93,6 +106,19 @@ fn build_git_urls(
                 repository_url = base.clone();
                 commit_url = format!("{base}/commits/{commit_id}");
                 file_url = format!("{base}/commits/{commit_id}#L{anchor}F{line}");
+            }
+        } else if host.eq_ignore_ascii_case("dev.azure.com") || host.ends_with(".visualstudio.com")
+        {
+            let normalized = file_path.replace('\\', "/");
+            let trimmed = normalized.trim_start_matches('/');
+            let encoded_path = utf8_percent_encode(trimmed, AZURE_QUERY_ENCODE_SET).to_string();
+            repository_url = repo_url.to_string();
+            commit_url = format!("{repo_url}/commit/{commit_id}");
+            if line > 0 {
+                file_url =
+                    format!("{repo_url}/commit/{commit_id}?path=/{}&line={line}", encoded_path);
+            } else {
+                file_url = format!("{repo_url}/commit/{commit_id}?path=/{}", encoded_path);
             }
         }
     }
@@ -667,6 +693,7 @@ mod tests {
         cli::commands::output::OutputArgs,
         cli::commands::scan::{ConfidenceLevel, ScanArgs},
         cli::commands::{
+            azure::AzureRepoType,
             bitbucket::{BitbucketAuthArgs, BitbucketRepoType},
             gitea::GiteaRepoType,
             github::{GitCloneMode, GitHistoryMode, GitHubRepoType},
@@ -789,6 +816,12 @@ mod tests {
                 bitbucket_api_url: Url::parse("https://api.bitbucket.org/2.0/").unwrap(),
                 bitbucket_repo_type: BitbucketRepoType::Source,
                 bitbucket_auth: BitbucketAuthArgs::default(),
+                azure_organization: Vec::new(),
+                azure_project: Vec::new(),
+                azure_exclude: Vec::new(),
+                all_azure_projects: false,
+                azure_base_url: Url::parse("https://dev.azure.com/").unwrap(),
+                azure_repo_type: AzureRepoType::Source,
                 jira_url: None,
                 jql: None,
                 confluence_url: None,
@@ -843,6 +876,28 @@ mod tests {
             .and_then(|path| path.as_str())
             .unwrap();
         assert_eq!(git_file_path, "path/in/history.txt");
+    }
+
+    use super::build_git_urls;
+
+    #[test]
+    fn azure_commit_links_use_query_paths() {
+        let (repo_url, commit_url, file_url) = build_git_urls(
+            "https://dev.azure.com/org/project/_git/repo",
+            "0123456789abcdef",
+            "dir/file.txt",
+            7,
+        );
+
+        assert_eq!(repo_url, "https://dev.azure.com/org/project/_git/repo");
+        assert_eq!(
+            commit_url,
+            "https://dev.azure.com/org/project/_git/repo/commit/0123456789abcdef"
+        );
+        assert_eq!(
+            file_url,
+            "https://dev.azure.com/org/project/_git/repo/commit/0123456789abcdef?path=/dir/file.txt&line=7"
+        );
     }
 }
 

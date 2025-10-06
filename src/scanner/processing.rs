@@ -31,7 +31,12 @@ impl<'a> BlobProcessor<'a> {
     ) -> Result<Option<DatastoreMessage>> {
         let _span = debug_span!("matcher", temp_id = blob.temp_id()).entered();
         let t1 = Instant::now();
-        let res = self.matcher.scan_blob(&blob, &origin, None, redact, no_dedup, no_base64)?;
+        let language_hint = origin
+            .iter()
+            .find_map(|p| p.blob_path())
+            .and_then(|path| ContentInspector::default().guess_language(path, blob.bytes()));
+        let res =
+            self.matcher.scan_blob(&blob, &origin, language_hint, redact, no_dedup, no_base64)?;
         let scan_us = t1.elapsed().as_micros();
         match res {
             // blob already seen, but with no matches; nothing to do!

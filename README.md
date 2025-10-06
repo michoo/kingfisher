@@ -5,29 +5,26 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware parsing via Tree‑Sitter, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
+Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware source code parsing, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
 </p>
 
 Originally forked from Praetorian’s Nosey Parker, Kingfisher **adds** live cloud-API validation; many more targets (GitLab, BitBucket, Gitea, S3, Docker, Jira, Confluence, Slack); compressed-file extraction and scanning; baseline and allowlist controls; language-aware detection (~20 languages); and a native Windows binary. See [Origins and Divergence](#origins-and-divergence) for details.
-
 ## Key Features
-- **Multiple Scan Targets**:
-  <p align="center">
-    <img alt="Files & Dirs" src="https://img.shields.io/badge/Files%20and%20Dirs-000?logoColor=white" />
-    <img alt="Local Git"    src="https://img.shields.io/badge/Local%20Git%20Repos-000?logo=git&logoColor=white" />
-    <img alt="GitHub"       src="https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=white" />
-    <img alt="GitLab"       src="https://img.shields.io/badge/GitLab-FC6D26?logo=gitlab&logoColor=white" />
-    <img alt="Bitbucket"    src="https://img.shields.io/badge/Bitbucket-0052CC?logo=bitbucket&logoColor=white" />
-    <img alt="Gitea"        src="https://img.shields.io/badge/Gitea-609926?logo=gitea&logoColor=white" />
-    <br/>
-    <img alt="Docker"       src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" />
-    <img alt="Jira"         src="https://img.shields.io/badge/Jira-0052CC?logo=jirasoftware&logoColor=white" />
-    <img alt="Confluence"   src="https://img.shields.io/badge/Confluence-172B4D?logo=confluence&logoColor=white" />
-    <img alt="Slack"        src="https://img.shields.io/badge/Slack-4A154B?logo=slack&logoColor=white" />
-    <img alt="AWS S3"       src="https://img.shields.io/badge/AWS%20S3-232F3E?logo=amazonaws&logoColor=white" />
-  </p>
 
+### Multiple Scan Targets
+<div align="center">
 
+| Files / Dirs | Local Git | GitHub | GitLab | Azure DevOps | Bitbucket | Gitea |
+|:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|
+| <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files / Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure DevOps"/><br/><sub>Azure DevOps</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |
+
+| Docker | Jira | Confluence | Slack | AWS S3 |
+|:------:|:----:|:-----------:|:-----:|:------:|
+| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |
+
+</div>
+
+### Performance, Accuracy, and Hundreds of Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
@@ -46,6 +43,8 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
 
 - [Kingfisher](#kingfisher)
   - [Key Features](#key-features)
+    - [Multiple Scan Targets](#multiple-scan-targets)
+    - [Performance, Accuracy, and Hundreds of Rules](#performance-accuracy-and-hundreds-of-rules)
 - [Benchmark Results](#benchmark-results)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
@@ -67,25 +66,30 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Scan while ignoring likely test files](#scan-while-ignoring-likely-test-files)
     - [Exclude specific paths](#exclude-specific-paths)
     - [Scan changes in CI pipelines](#scan-changes-in-ci-pipelines)
-  - [Scan an S3 bucket](#scan-an-s3-bucket)
-  - [Scanning Docker Images](#scanning-docker-images)
-  - [Scanning GitHub](#scanning-github)
-    - [Scan GitHub organisation (requires `KF_GITHUB_TOKEN`)](#scan-github-organisation-requires-kf_github_token)
+  - [ Scanning an AWS S3 Bucket](#-scanning-an-aws-s3-bucket)
+  - [ Scanning Docker Images](#-scanning-docker-images)
+  - [ Scanning GitHub](#-scanning-github)
+    - [Scan GitHub organization (requires `KF_GITHUB_TOKEN`)](#scan-github-organization-requires-kf_github_token)
     - [Skip specific GitHub repositories during enumeration](#skip-specific-github-repositories-during-enumeration)
     - [Scan remote GitHub repository](#scan-remote-github-repository)
-  - [Scanning GitLab](#scanning-gitlab)
+  - [ Scanning GitLab](#-scanning-gitlab)
     - [Scan GitLab group (requires `KF_GITLAB_TOKEN`)](#scan-gitlab-group-requires-kf_gitlab_token)
     - [Scan GitLab user](#scan-gitlab-user)
     - [Skip specific GitLab projects during enumeration](#skip-specific-gitlab-projects-during-enumeration)
     - [Scan remote GitLab repository by URL](#scan-remote-gitlab-repository-by-url)
     - [List GitLab repositories](#list-gitlab-repositories)
-  - [Scanning Gitea](#scanning-gitea)
+  - [ Scanning Azure Repos](#-scanning-azure-repos)
+    - [Scan Azure DevOps organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)](#scan-azure-devops-organization-or-collection-requires-kf_azure_token-or-kf_azure_pat)
+    - [Scan specific Azure DevOps projects](#scan-specific-azure-devops-projects)
+    - [Skip specific Azure repositories during enumeration](#skip-specific-azure-repositories-during-enumeration)
+    - [List Azure repositories](#list-azure-repositories)
+  - [ Scanning Gitea](#-scanning-gitea)
     - [Scan Gitea organization (requires `KF_GITEA_TOKEN`)](#scan-gitea-organization-requires-kf_gitea_token)
     - [Scan Gitea user](#scan-gitea-user)
     - [Skip specific Gitea repositories during enumeration](#skip-specific-gitea-repositories-during-enumeration)
     - [Scan remote Gitea repository by URL](#scan-remote-gitea-repository-by-url)
     - [List Gitea repositories](#list-gitea-repositories)
-  - [Scanning Bitbucket](#scanning-bitbucket)
+  - [ Scanning Bitbucket](#-scanning-bitbucket)
     - [Scan Bitbucket workspace](#scan-bitbucket-workspace)
     - [Scan Bitbucket user](#scan-bitbucket-user)
     - [Skip specific Bitbucket repositories during enumeration](#skip-specific-bitbucket-repositories-during-enumeration)
@@ -93,12 +97,12 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [List Bitbucket repositories](#list-bitbucket-repositories)
     - [Authenticate to Bitbucket](#authenticate-to-bitbucket)
     - [Self-hosted Bitbucket Server](#self-hosted-bitbucket-server)
-  - [Scanning Jira](#scanning-jira)
+  - [ Scanning Jira](#-scanning-jira)
     - [Scan Jira issues matching a JQL query](#scan-jira-issues-matching-a-jql-query)
     - [Scan the last 1,000 Jira issues:](#scan-the-last-1000-jira-issues)
-  - [Scanning Confluence](#scanning-confluence)
+  - [ Scanning Confluence](#-scanning-confluence)
     - [Scan Confluence pages matching a CQL query](#scan-confluence-pages-matching-a-cql-query)
-  - [Scanning Slack](#scanning-slack)
+  - [ Scanning Slack](#-scanning-slack)
     - [Scan Slack messages matching a search query](#scan-slack-messages-matching-a-search-query)
   - [Environment Variables for Tokens](#environment-variables-for-tokens)
   - [Exit Codes](#exit-codes)
@@ -394,7 +398,8 @@ kingfisher scan ./my-project \
   --exclude tests \
   -v
 ```
-## Scan an S3 bucket
+
+## <img alt="GitHub" src="./docs/assets/icons/aws-s3.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning an AWS S3 Bucket
 You can scan S3 objects directly:
 
 ```bash
@@ -445,7 +450,8 @@ docker run --rm \
   ghcr.io/mongodb/kingfisher:latest \
     scan --s3-bucket bucket-name
 ```
-## Scanning Docker Images
+
+## <img alt="Docker" src="./docs/assets/icons/docker.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Docker Images
 
 Kingfisher will first try to use any locally available image, then fall back to pulling via OCI.  
 
@@ -475,9 +481,9 @@ kingfisher scan --docker-image some-private-registry.dkr.ecr.us-east-1.amazonaws
 kingfisher scan --docker-image private.registry.example.com/my-image:tag
 ```
 
-## Scanning GitHub
+## <img alt="GitHub" src="./docs/assets/icons/github.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning GitHub
 
-### Scan GitHub organisation (requires `KF_GITHUB_TOKEN`)
+### Scan GitHub organization (requires `KF_GITHUB_TOKEN`)
 
 ```bash
 kingfisher scan --github-organization my-org
@@ -517,7 +523,7 @@ KF_GITHUB_TOKEN="ghp_…" kingfisher scan --git-url https://github.com/org/priva
 
 ---
 
-## Scanning GitLab
+## <img alt="GitLab" src="./docs/assets/icons/gitlab.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning GitLab
 
 ### Scan GitLab group (requires `KF_GITLAB_TOKEN`)
 
@@ -573,8 +579,48 @@ kingfisher gitlab repos list --group my-group --include-subgroups
 # skip specific projects when listing or scanning (supports glob patterns)
 kingfisher gitlab repos list --group my-group --gitlab-exclude my-group/**/legacy-*
 ```
+## <img alt="Azure Repos" src="./docs/assets/icons/azure-devops.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Azure Repos
 
-## Scanning Gitea
+### Scan Azure DevOps organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)
+
+```bash
+kingfisher scan --azure-organization my-org
+
+# Azure DevOps Server example
+KF_AZURE_PAT="pat" kingfisher scan --azure-organization DefaultCollection --azure-base-url https://ado.internal.example/tfs/
+```
+
+### Scan specific Azure DevOps projects
+
+Projects are specified as `ORGANIZATION/PROJECT`. Repeat the flag for multiple projects.
+
+```bash
+kingfisher scan --azure-project my-org/payments --azure-project my-org/core-platform
+```
+
+### Skip specific Azure repositories during enumeration
+
+Repeat `--azure-exclude` to ignore repositories when scanning organizations or projects.
+Use identifiers like `ORGANIZATION/PROJECT/REPOSITORY`. Repositories that share the same
+name as their project can be excluded with `ORGANIZATION/PROJECT`, and gitignore-style
+patterns such as `my-org/*/archive-*` are also supported.
+
+```bash
+kingfisher scan --azure-organization my-org \
+  --azure-exclude my-org/payments/legacy-service \
+  --azure-exclude my-org/**/archive-*
+```
+
+### List Azure repositories
+
+```bash
+kingfisher azure repos list --organization my-org
+# list repositories for specific projects
+kingfisher azure repos list --project my-org/app --project my-org/api
+# skip specific repositories while listing (supports glob patterns)
+kingfisher azure repos list --organization my-org --azure-exclude my-org/**/experimental-*
+```
+## <img alt="Gitea" src="./docs/assets/icons/gitea.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Gitea
 
 ### Scan Gitea organization (requires `KF_GITEA_TOKEN`)
 
@@ -626,9 +672,7 @@ KF_GITEA_TOKEN="gtoken" kingfisher gitea repos list --all-gitea-organizations
 # self-hosted example
 KF_GITEA_TOKEN="gtoken" kingfisher gitea repos list --user johndoe --gitea-api-url https://gitea.internal.example/api/v1/
 ```
-
-## Scanning Bitbucket
-
+## <img alt="Bitbucket" src="./docs/assets/icons/bitbucket.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Bitbucket
 ### Scan Bitbucket workspace
 
 ```bash
@@ -700,8 +744,7 @@ Use `--bitbucket-api-url` to point Kingfisher at your server's REST endpoint, fo
 `https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with
 `--bitbucket-username` and `--bitbucket-token`, and pass `--ignore-certs` when
 connecting to HTTP or otherwise insecure instances.
-
-## Scanning Jira
+## <img alt="Jira" src="./docs/assets/icons/jira.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Jira
 
 ### Scan Jira issues matching a JQL query
 
@@ -720,8 +763,7 @@ KF_JIRA_TOKEN="token" kingfisher scan \
   --max-results 1000
 ```
 
-## Scanning Confluence
-
+## <img alt="Confluence" src="./docs/assets/icons/confluence.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Confluence
 ### Scan Confluence pages matching a CQL query
 
 ```bash
@@ -746,8 +788,7 @@ Generate a personal access token and set it in the `KF_CONFLUENCE_TOKEN` environ
 
 To use basic authentication instead, also set `KF_CONFLUENCE_USER` to your Confluence email address; Kingfisher will then send the username and `KF_CONFLUENCE_TOKEN` as a Basic auth header. If the server responds with a redirect to a login page, the credentials are invalid or lack the required permissions.
 
-## Scanning Slack
-
+## <img alt="Slack" src="./docs/assets/icons/slack.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Slack
 ### Scan Slack messages matching a search query
 
 ```bash
@@ -769,6 +810,8 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan \
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
 | `KF_GITEA_TOKEN` | Gitea Personal Access Token |
 | `KF_GITEA_USERNAME` | Username for private Gitea clones (used with `KF_GITEA_TOKEN`) |
+| `KF_AZURE_TOKEN` / `KF_AZURE_PAT` | Azure DevOps Personal Access Token |
+| `KF_AZURE_USERNAME` | Username to use with Azure DevOps PATs (defaults to `pat` when unset) |
 | `KF_BITBUCKET_USERNAME` | Bitbucket username for basic authentication |
 | `KF_BITBUCKET_APP_PASSWORD` / `KF_BITBUCKET_TOKEN` | Bitbucket app password or server token |
 | `KF_BITBUCKET_OAUTH_TOKEN` | Bitbucket OAuth or PAT token |
@@ -971,13 +1014,15 @@ kingfisher scan --help
 Kingfisher began as a fork of Praetorian’s Nosey Parker, as our experiment with adding live validation support and embedding that validation directly inside each rule.  
 
 Since that initial fork, it has diverged heavily from Nosey Parker:
-- Replaced the SQLite datastore with an in-memory store + Bloom filter
-- Collapsed the workflow into a single scan-and-report phase with direct JSON/BSON/SARIF outputs  
-- Added Tree-Sitter parsing on top of Hyperscan for deeper language-aware detection  
-- Removed datastore-driven reporting/annotations in favor of live validation, baselines, allowlists, and compressed-file extraction  
+- Added support for live validation of discovered secrets  
+- Added hundreds of new rules  
+- Added support for analyzing compressed files  
+- Added support for building "baselines" to allow for only reporting on newly discovered secrets  
+- Added Tree-Sitter based source code parsing on top of Hyperscan for deeper language-aware detection  
 - Expanded support for new targets (GitLab, BitBucket, Gitea, Jira, Confluence, Slack, S3, Docker, etc.)  
+- Replaced the SQLite datastore with an in-memory store + Bloom filter  
+- Collapsed the workflow into a single scan-and-report phase with direct JSON/BSON/SARIF outputs  
 - Delivered cross-platform builds, including native Windows  
-
 
 # Roadmap
 

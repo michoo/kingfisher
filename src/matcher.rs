@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     hash::{Hash, Hasher},
     str,
     sync::{Arc, Mutex},
@@ -40,6 +39,7 @@ use crate::{
 const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
 const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
 const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
+const TREE_SITTER_SCAN_LIMIT: usize = 64 * 1024; // only run tree-sitter on blobs ≤64 KiB
 
 // -------------------------------------------------------------------------------------------------
 // RawMatch
@@ -320,18 +320,22 @@ impl<'a> Matcher<'a> {
             get_base64_strings(blob.bytes())
         };
 
-        if self.user_data.raw_matches_scratch.is_empty() && b64_items.is_empty() {
+        let lang_hint = lang.as_deref();
+        let has_raw_matches = !self.user_data.raw_matches_scratch.is_empty();
+        let has_base64_items = !b64_items.is_empty();
+
+        if !has_raw_matches && !has_base64_items && !(no_base64 && lang_hint.is_some()) {
             return Ok(ScanResult::New(Vec::new()));
         }
 
         let rules_db = self.rules_db;
         let mut seen_matches = FxHashSet::default();
         let mut previous_matches: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
-        let tree_sitter_result = if self.user_data.raw_matches_scratch.is_empty() {
-            None
-        } else {
-            lang.and_then(|lang_str| {
-                get_language_and_queries(&lang_str).and_then(|(language, queries)| {
+        let should_run_tree_sitter = blob.len() <= TREE_SITTER_SCAN_LIMIT
+            && (has_raw_matches || (no_base64 && lang_hint.is_some()));
+        let tree_sitter_result = if should_run_tree_sitter {
+            lang_hint.and_then(|lang_str| {
+                get_language_and_queries(lang_str).and_then(|(language, queries)| {
                     let checker = Checker { language, rules: queries };
                     match checker.check(&blob.bytes()) {
                         Ok(results) => Some(results),
@@ -342,6 +346,8 @@ impl<'a> Matcher<'a> {
                     }
                 })
             })
+        } else {
+            None
         };
         // Process matches
         let mut matches = Vec::new();
@@ -407,7 +413,7 @@ impl<'a> Matcher<'a> {
                             rule_id_usize,
                             &mut seen_matches,
                             origin,
-                            Some(ts_match.clone()),
+                            Some(ts_match.as_bytes()),
                             *is_base64_decoded,
                             redact,
                             &filename,
@@ -437,7 +443,7 @@ impl<'a> Matcher<'a> {
                         rule_id_usize,
                         &mut seen_matches,
                         origin,
-                        Some(item.decoded.clone()),
+                        Some(item.decoded.as_bytes()),
                         true,
                         redact,
                         &filename,
@@ -540,7 +546,7 @@ fn filter_match<'b>(
     rule_id: usize,
     seen_matches: &mut FxHashSet<u64>,
     _origin: &OriginSet,
-    ts_match: Option<String>,
+    ts_match: Option<&[u8]>,
     is_base64: bool,
     redact: bool,
     filename: &str,
@@ -551,12 +557,11 @@ fn filter_match<'b>(
 
     let initial_len = matches.len();
 
-    // Use Cow to avoid unnecessary copying when ts_match is None
-    let byte_slice: Cow<[u8]> = match ts_match {
-        Some(ts_match_value) => Cow::Owned(ts_match_value.into_bytes()),
-        None => Cow::Borrowed(&blob.bytes()[start..end]),
-    };
-    for captures in re.captures_iter(byte_slice.as_ref()) {
+    let blob_bytes = blob.bytes();
+    let default_slice = &blob_bytes[start..end];
+    let haystack = ts_match.unwrap_or(default_slice);
+
+    for captures in re.captures_iter(haystack) {
         let full_capture = captures.get(0).unwrap();
         let matching_input = captures.get(1).unwrap_or(full_capture);
         let min_entropy = rule.min_entropy();
@@ -590,8 +595,7 @@ fn filter_match<'b>(
         }
         let only_matching_input =
             &blob.bytes()[matching_input_offset_span.start..matching_input_offset_span.end];
-        let groups =
-            SerializableCaptures::from_captures(&captures, byte_slice.as_ref(), re, redact);
+        let groups = SerializableCaptures::from_captures(&captures, haystack, re, redact);
         matches.push(BlobMatch {
             rule: Arc::clone(&rule),
             blob_id: blob.id_ref(),
