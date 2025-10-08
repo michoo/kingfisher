@@ -332,7 +332,7 @@ impl<'a> Matcher<'a> {
         let rules_db = self.rules_db;
         let mut seen_matches = FxHashSet::default();
         let mut previous_matches: FxHashMap<usize, Vec<OffsetSpan>> = FxHashMap::default();
-        
+
         let should_run_tree_sitter = blob.len() > 0
             && blob.len() <= TREE_SITTER_MAX_LIMIT
             && blob.len() >= TREE_SITTER_MIN_LIMIT
