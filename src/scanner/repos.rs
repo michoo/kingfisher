@@ -622,6 +622,7 @@ pub async fn fetch_s3_objects(
         Some(matcher_stats),
         enable_profiling,
         Some(shared_profiler.clone()),
+        args.compat_ignore_comments,
     )?;
     let mut processor = BlobProcessor { matcher };
 

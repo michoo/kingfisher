@@ -1,0 +1,52 @@
+@@ -1,50 +1,51 @@
+ use std::{
+     hash::{Hash, Hasher},
+     str,
+     sync::{Arc, Mutex},
+ };
+ 
+ use anyhow::Result;
+ use base64::{engine::general_purpose, Engine};
+ use bstr::BString;
+ use http::StatusCode;
+ use regex::bytes::Regex;
+ use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+ use schemars::{
+     gen::SchemaGenerator,
+     schema::{ArrayValidation, InstanceType, Schema},
+     JsonSchema,
+ };
+ use serde::{Deserialize, Serialize};
+ use smallvec::SmallVec;
+ use tracing::debug;
+ use xxhash_rust::xxh3::xxh3_64;
+ 
+ use crate::{
+     blob::{Blob, BlobId, BlobIdMap},
+     entropy::calculate_shannon_entropy,
++    inline_ignore::InlineIgnoreConfig,
+     location::{Location, LocationMapping, OffsetSpan, SourcePoint, SourceSpan},
+     origin::OriginSet,
+     parser,
+     parser::{Checker, Language},
+     rule_profiling::{ConcurrentRuleProfiler, RuleStats, RuleTimer},
+     rules::rule::Rule,
+     rules_database::RulesDatabase,
+     safe_list::{is_safe_match, is_user_match},
+     scanner_pool::ScannerPool,
+     snippet::Base64BString,
+     util::{intern, redact_value},
+ };
+ 
+ const MAX_CHUNK_SIZE: usize = 1 << 30; // 1 GiB per scan segment
+ const CHUNK_OVERLAP: usize = 64 * 1024; // 64 KiB overlap to catch boundary matches
+ const BASE64_SCAN_LIMIT: usize = 64 * 1024 * 1024; // skip expensive Base64 pass on huge blobs
+ const TREE_SITTER_SCAN_LIMIT: usize = 64 * 1024; // only run tree-sitter on blobs ≤64 KiB
+ 
+ // -------------------------------------------------------------------------------------------------
+ // RawMatch
+ // -------------------------------------------------------------------------------------------------
+ /// A raw match, as recorded by a callback to Vectorscan.
+ ///
+ /// When matching with Vectorscan, we simply collect all matches into a
+ /// preallocated `Vec`, and then go through them all after scanning is complete.

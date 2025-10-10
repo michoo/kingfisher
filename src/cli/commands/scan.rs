@@ -118,6 +118,10 @@ pub struct ScanArgs {
     /// Skipwords to allow-list secret matches (case-insensitive, repeatable)
     #[arg(long = "skip-word", value_name = "WORD")]
     pub skip_word: Vec<String>,
+
+    /// Also recognise `gitleaks:allow` and `trufflehog:ignore` inline directives
+    #[arg(long = "compat-ignore-comments", default_value_t = false)]
+    pub compat_ignore_comments: bool,
 }
 
 /// Confidence levels for findings

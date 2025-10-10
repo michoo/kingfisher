@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+- Added kingfisher:ignore (or kingfisher:allow) to silence a finding inline within a file
+- Added: to reuse existing inline directives from other scanners, pass --compat-ignore-comments to also accept NOSONAR, kics-scan ignore,  gitleaks:allow and trufflehog:ignore
+
 ## [v1.56.0]
 - Fixed tree-sitter scanning bug where passing --no-base64 caused errors to be printed when the file type couldn’t be determined
 
