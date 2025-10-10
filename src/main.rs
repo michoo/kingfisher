@@ -437,6 +437,8 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         skip_word: Vec::new(),
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_base64: false,
+        compat_ignore_comments: false,
+        no_inline_ignore: false,
     }
 }
 /// Run the rules check command
