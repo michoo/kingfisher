@@ -122,6 +122,10 @@ pub struct ScanArgs {
     /// Also recognise `gitleaks:allow` and `trufflehog:ignore` inline directives
     #[arg(long = "compat-ignore-comments", default_value_t = false)]
     pub compat_ignore_comments: bool,
+
+    /// Disable inline ignore directives entirely
+    #[arg(long = "no-ignore", default_value_t = false)]
+    pub no_inline_ignore: bool,
 }
 
 /// Confidence levels for findings

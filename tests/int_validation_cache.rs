@@ -196,6 +196,8 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
         skip_regex: Vec::new(),
         skip_word: Vec::new(),
         no_base64: false,
+        compat_ignore_comments: false,
+        no_inline_ignore: false,
     };
 
     /* --------------------------------------------------------- *

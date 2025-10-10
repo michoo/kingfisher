@@ -231,6 +231,7 @@ impl<'a> Matcher<'a> {
         enable_profiling: bool,
         shared_profiler: Option<Arc<ConcurrentRuleProfiler>>,
         include_external_ignore_syntax: bool,
+        disable_inline_ignores: bool,
     ) -> Result<Self> {
         // Changed: removed `with_capacity(16384)` so we don't pre-allocate a large Vec
         let raw_matches_scratch = Vec::new();
@@ -252,7 +253,11 @@ impl<'a> Matcher<'a> {
             seen_blobs,
             user_data,
             profiler,
-            inline_ignore_config: InlineIgnoreConfig::new(include_external_ignore_syntax),
+            inline_ignore_config: if disable_inline_ignores {
+                InlineIgnoreConfig::disabled()
+            } else {
+                InlineIgnoreConfig::new(include_external_ignore_syntax)
+            },
         })
     }
 
@@ -1027,7 +1032,17 @@ mod test {
             let rules_db  = RulesDatabase::from_rules(vec![rule]).unwrap();
             let seen      = BlobIdMap::new();
             let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
-            let mut m     = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false).unwrap();
+            let mut m     = Matcher::new(
+                &rules_db,
+                scanner_pool,
+                &seen,
+                None,
+                false,
+                None,
+                false,
+                false,
+            )
+            .unwrap();
 
             // ── run the scan ──────────────────────────────────────────────
             m.scan_bytes_raw(&noise, "buf").unwrap();
@@ -1098,6 +1113,7 @@ mod test {
             None,
             enable_rule_profiling,
             None, // Pass the shared profiler
+            false,
             false,
         )?;
         matcher.scan_bytes_raw(input.as_bytes(), "fname")?;
@@ -1186,7 +1202,7 @@ mod test {
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
         let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
-        let mut m = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false)?;
+        let mut m = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false, false)?;
 
         let buf = b"dup dup"; // two literal hits, same rule
 
@@ -1222,7 +1238,8 @@ mod test {
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
         let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
-        let mut matcher = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false)?;
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false, false)?;
 
         let blob = Blob::from_bytes(b"let key = \"secret_token\" # kingfisher:ignore".to_vec());
         let origin = OriginSet::from(Origin::from_file(PathBuf::from("inline.txt")));
@@ -1253,7 +1270,8 @@ mod test {
         let rules_db = RulesDatabase::from_rules(vec![rule])?;
         let seen = BlobIdMap::new();
         let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
-        let mut matcher = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false)?;
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false, false)?;
 
         let blob = Blob::from_bytes(
             br#"let data = """
@@ -1296,7 +1314,8 @@ line2
 
         let seen = BlobIdMap::new();
         let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
-        let mut matcher = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false)?;
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, false, false)?;
         let matches_without_compat =
             match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
                 ScanResult::New(matches) => matches.len(),
@@ -1306,7 +1325,8 @@ line2
 
         let seen = BlobIdMap::new();
         let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
-        let mut matcher = Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, true)?;
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen, None, false, None, true, false)?;
         match matcher.scan_blob(&blob, &origin, None, false, false, false)? {
             ScanResult::New(matches) => assert!(matches.is_empty()),
             _ => panic!("unexpected scan result"),

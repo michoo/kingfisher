@@ -19,6 +19,11 @@ impl InlineIgnoreConfig {
         Self { tokens }
     }
 
+    /// Return a configuration with inline ignores disabled.
+    pub fn disabled() -> Self {
+        Self { tokens: Vec::new() }
+    }
+
     #[inline]
     fn has_tokens(&self) -> bool {
         !self.tokens.is_empty()
@@ -178,93 +183,16 @@ fn line_has_directive(line: &[u8], tokens: &[&'static str]) -> bool {
     let mut lowercase = line.to_vec();
     lowercase.iter_mut().for_each(|b| *b = b.to_ascii_lowercase());
 
-    for token in tokens {
-        let needle = token.as_bytes();
-        let mut offset = 0;
-        while offset < lowercase.len() {
-            if let Some(pos) = memchr::memmem::find(&lowercase[offset..], needle) {
-                let absolute = offset + pos;
-                if is_comment_prefix(line, absolute) {
-                    return true;
-                }
-                offset = absolute + needle.len();
-            } else {
-                break;
-            }
-        }
-    }
-
-    false
-}
-
-fn is_comment_prefix(line: &[u8], token_index: usize) -> bool {
-    if line.is_empty() || token_index == 0 || token_index > line.len() {
-        return false;
-    }
-
-    let mut end = token_index;
-    while end > 0 && line[end - 1].is_ascii_whitespace() {
-        end -= 1;
-    }
-
-    if end == 0 {
-        return false;
-    }
-
-    let trimmed = &line[..end];
-    let last = trimmed[end - 1];
-    let head = &trimmed[..end - 1];
-
-    match last {
-        b'#' => head.last().map(|c| c.is_ascii_whitespace()).unwrap_or(true),
-        b'/' => {
-            if head.last() == Some(&b'/') {
-                let before = &head[..head.len().saturating_sub(1)];
-                before.last().map(|c| c.is_ascii_whitespace()).unwrap_or(true)
-            } else if head.last() == Some(&b'*') {
-                let before = &head[..head.len().saturating_sub(1)];
-                before.last().map(|c| c.is_ascii_whitespace()).unwrap_or(true)
-            } else {
-                false
-            }
-        }
-        b'-' => {
-            if head.last() == Some(&b'-') {
-                let before = &head[..head.len().saturating_sub(1)];
-                before.last().map(|c| c.is_ascii_whitespace()).unwrap_or(true)
-            } else {
-                false
-            }
-        }
-        b'*' => {
-            if head.last() == Some(&b'/') {
-                let before = &head[..head.len().saturating_sub(1)];
-                before.last().map(|c| c.is_ascii_whitespace()).unwrap_or(true)
-            } else {
-                head.iter().all(|c| c.is_ascii_whitespace())
-            }
-        }
-        _ => false,
-    }
+    tokens.iter().any(|token| memchr::memmem::find(&lowercase, token.as_bytes()).is_some())
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        is_comment_prefix, line_bounds, line_has_directive, should_skip_for_directive_search,
-        trim_ascii_whitespace, InlineIgnoreConfig,
+        line_bounds, line_has_directive, should_skip_for_directive_search, trim_ascii_whitespace,
+        InlineIgnoreConfig,
     };
     use crate::location::OffsetSpan;
-
-    #[test]
-    fn detects_comment_prefixes() {
-        assert!(is_comment_prefix(b"// kingfisher:ignore", 3));
-        assert!(is_comment_prefix(b"  # kingfisher:ignore", 4));
-        assert!(is_comment_prefix(b"value /* kingfisher:ignore */", 9));
-        // assert!(is_comment_prefix(b"value -- kingfisher:ignore", 12));
-        // assert!(is_comment_prefix(b" * kingfisher:ignore", 4));
-        assert!(!is_comment_prefix(b"http://kingfisher:ignore", 13));
-    }
 
     #[test]
     fn bounds_cover_expected_ranges() {
@@ -278,6 +206,8 @@ mod tests {
     fn detects_directives_in_lines() {
         let tokens = ["kingfisher:ignore", "kingfisher:allow"];
         assert!(line_has_directive(b"secret # kingfisher:ignore", &tokens));
+        assert!(line_has_directive(b"kingfisher:allow before value", &tokens));
+        assert!(line_has_directive(b"value // TruffleHog:Ignore", &["trufflehog:ignore"]));
         assert!(!line_has_directive(b"secret", &tokens));
     }
 
@@ -338,5 +268,18 @@ mod tests {
         assert!(should_skip_for_directive_search(b"   \"\"\"   "));
         assert!(should_skip_for_directive_search(b"let secret = \"\"\""));
         assert!(!should_skip_for_directive_search(b"value"));
+    }
+
+    #[test]
+    fn disabled_config_never_ignores() {
+        let blob = b"let secret = 'value' # kingfisher:ignore";
+        let matched = b"value";
+        let start = blob
+            .windows(matched.len())
+            .position(|window| window == matched)
+            .expect("match bytes present");
+        let span = OffsetSpan::from_range(start..start + matched.len());
+        let config = InlineIgnoreConfig::disabled();
+        assert!(!config.should_ignore(blob, &span));
     }
 }

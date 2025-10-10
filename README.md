@@ -117,7 +117,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   - [Notable Scan Options](#notable-scan-options)
   - [Understanding `--confidence`](#understanding---confidence)
     - [Ignore known false positives](#ignore-known-false-positives)
-    - [Inline ignore directives](#inline-ignore-directives)
+      - [Inline ignore directives](#inline-ignore-directives)
   - [Finding Fingerprint](#finding-fingerprint)
   - [Rule Performance Profiling](#rule-performance-profiling)
   - [CLI Options](#cli-options)
@@ -964,6 +964,7 @@ leaves the default unchanged.
 - `--skip-regex <PATTERN>`: Ignore findings whose text matches this regex (repeatable)
 - `--skip-word <WORD>`: Ignore findings containing this case-insensitive word (repeatable)
 - `--compat-ignore-comments`: Honor inline directives from other scanners (treat `gitleaks:allow` and `trufflehog:ignore` like native suppressions)
+- `--no-ignore`: Disable inline directives entirely so every match is reported
 ## Understanding `--confidence`
 
 The `--confidence` flag sets a minimum confidence threshold, not an exact match.
@@ -978,9 +979,10 @@ Use `--skip-regex` and `--skip-word` to suppress findings you know are benign. B
 
 ### Inline ignore directives
 
-Add `kingfisher:ignore` (or `kingfisher:allow`) to a trailing comment on the same line as a finding to silence it. Multi-line strings may also be ignored by placing the directive on the closing delimiter line **or** on the next logical line after the string:
+Add `kingfisher:ignore` (or `kingfisher:allow`) anywhere on the same line as a finding to silence it. Multi-line strings may also be ignored by placing the directive on the closing delimiter line, on the next logical line after the string, **or** on a comment immediately before the value:
 
 ```python
+# kingfisher:ignore
 API_KEY = """
 line 1
 line 2
@@ -988,7 +990,7 @@ line 2
 # kingfisher:ignore
 ```
 
-Kingfisher recognizes comment markers for the host language, including `#`, `//`, `/* */`, `--`, and `*`-prefixed block comments, so you can use this suppression style across languages. To reuse existing inline directives from other scanners, pass `--compat-ignore-comments` to also accept `NOSONAR`, `kics-scan ignore`,  `gitleaks:allow` and `trufflehog:ignore`.
+Kingfisher searches the surrounding lines for these tokens without requiring language-specific comment markers, so directives work even in templated files or unusual syntaxes. To reuse existing inline directives from other scanners, pass `--compat-ignore-comments` to also accept `gitleaks:allow` and `trufflehog:ignore`. Use `--no-ignore` when you want to disable inline suppressions entirely.
 
 With `--skip-regex`, these should be Rust compatible regular expressions, which you can test out at [regex101](https://regex101.com)
 
