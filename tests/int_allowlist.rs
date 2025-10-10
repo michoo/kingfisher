@@ -134,7 +134,6 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         skip_regex: skip_regex,
         skip_word: skip_skipword,
         no_base64: false,
-        compat_ignore_comments: false,
         no_inline_ignore: false,
     };
 

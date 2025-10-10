@@ -864,7 +864,6 @@ mod tests {
             manage_baseline: false,
             skip_regex: Vec::new(),
             skip_word: Vec::new(),
-            compat_ignore_comments: false,
             no_inline_ignore: false,
         };
 
