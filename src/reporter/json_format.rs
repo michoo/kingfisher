@@ -143,6 +143,7 @@ mod tests {
                 since_commit: None,
                 branch: None,
             },
+            compat_ignore_comments: false,
             content_filtering_args: ContentFilteringArgs {
                 max_file_size_mb: 25.0,
                 no_extract_archives: false,

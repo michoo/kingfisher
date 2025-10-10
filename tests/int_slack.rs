@@ -102,6 +102,7 @@ impl TestContext {
                 since_commit: None,
                 branch: None,
             },
+            compat_ignore_comments: false,
             content_filtering_args: ContentFilteringArgs {
                 max_file_size_mb: 25.0,
                 extraction_depth: 2,
@@ -227,6 +228,7 @@ async fn test_scan_slack_messages() -> Result<()> {
             since_commit: None,
             branch: None,
         },
+        compat_ignore_comments: false,
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 25.0,
             extraction_depth: 2,
