@@ -36,11 +36,12 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
         return None;
     }
 
-    // Decide once whether we want coloured output.
-    let use_color = std::io::stderr().is_terminal() && !global_args.quiet;
+    // Respect the user's color preferences when printing update
+    // by delegating to the same helper used by the main reporter logic. This keeps
+    // the update checker in sync with the rest of the application and avoids
+    // emitting raw ANSI escape codes when colour output has been disabled.
+    let use_color = !global_args.quiet && global_args.use_color(std::io::stderr());
     let styles = Styles::new(use_color);
-
-    // info!("{}", "Checking for updates…");
 
     let mut builder = Update::configure();
     builder
@@ -113,22 +114,22 @@ pub fn check_for_update(global_args: &GlobalArgs, base_url: Option<&str>) -> Opt
         if curr > latest {
             let plain =
                 format!("Running Kingfisher {curr} which is newer than latest released {latest}");
-            info!("{}", plain);
+            info!("{}", styled_heading(&styles, plain.as_str()));
             return Some(plain);
         }
         // else fall through to Case 3 (latest > running)
     }
 
     // ───────────── Case 3: latest > running ─────────────
-    let plain = format!("NEW KINGFISHER RELEASE {} AVAILABLE", release.version);
-    info!("{}", plain);
+    let plain = format!("New Kingfisher release {} available", release.version);
+    info!("{}", styled_heading(&styles, plain.as_str()));
 
     // Attempt self‑update when allowed and feasible.
     if global_args.self_update {
         match updater.update() {
             Ok(status) => {
-                let message = format!("UPDATED TO VERSION {}", status.version());
-                info!("{}", message);
+                let message = format!("Updated to version {}", status.version());
+                info!("{}", styled_heading(&styles, message.as_str()));
             }
             Err(e) => match e {
                 UpdError::Io(ref io_err) => match io_err.kind() {
