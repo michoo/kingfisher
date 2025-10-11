@@ -11,7 +11,7 @@ impl InlineIgnoreConfig {
     ///
     /// * `additional_tokens` - inline ignore directives supplied by the user.
     pub fn new(additional_tokens: &[String]) -> Self {
-        let mut tokens = vec![b"kingfisher:ignore".to_vec(), b"kingfisher:allow".to_vec()];
+        let mut tokens = vec![b"kingfisher:ignore".to_vec()];
 
         for token in additional_tokens {
             let trimmed = token.trim();
@@ -285,9 +285,9 @@ mod tests {
 
     #[test]
     fn detects_directives_in_lines() {
-        let tokens = vec![b"kingfisher:ignore".to_vec(), b"kingfisher:allow".to_vec()];
+        let tokens = vec![b"kingfisher:ignore".to_vec()];
         assert!(line_has_directive(b"secret # kingfisher:ignore", &tokens));
-        assert!(line_has_directive(b"kingfisher:allow before value", &tokens));
+        assert!(line_has_directive(b"kingfisher:ignore before value", &tokens));
         assert!(line_has_directive(b"value // Gitleaks:Allow", &[b"gitleaks:allow".to_vec()]));
         assert!(!line_has_directive(b"secret", &tokens));
     }

@@ -998,7 +998,7 @@ If a `--skip-regex` regular expression fails to compile, the scan aborts with an
 
 ### Inline ignore directives
 
-Add `kingfisher:ignore` (or `kingfisher:allow`) anywhere on the same line as a finding to silence it. Multi-line strings and PEM-style blocks may also be ignored by placing the directive on the closing delimiter line (for example, `"""  # kingfisher:ignore`), on the next logical line after the string, **or** on a comment immediately before the value:
+Add `kingfisher:ignore` anywhere on the same line as a finding to silence it. Multi-line strings and PEM-style blocks may also be ignored by placing the directive on the closing delimiter line (for example, `"""  # kingfisher:ignore`), on the next logical line after the string, **or** on a comment immediately before the value:
 
 ```python
 # kingfisher:ignore
