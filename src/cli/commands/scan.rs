@@ -1,4 +1,5 @@
 use clap::{Args, ValueEnum};
+use std::path::PathBuf;
 use strum::Display;
 use tracing::debug;
 
@@ -118,6 +119,14 @@ pub struct ScanArgs {
     /// Skipwords to allow-list secret matches (case-insensitive, repeatable)
     #[arg(long = "skip-word", value_name = "WORD")]
     pub skip_word: Vec<String>,
+
+    /// AWS account IDs whose findings should skip live credential validation (repeatable)
+    #[arg(long = "skip-aws-account", value_name = "ACCOUNT_ID", value_delimiter = ',')]
+    pub skip_aws_account: Vec<String>,
+
+    /// File containing AWS account IDs to skip (one per line, `#` comments ignored)
+    #[arg(long = "skip-aws-account-file", value_name = "FILE")]
+    pub skip_aws_account_file: Option<PathBuf>,
 
     /// Additional inline ignore directives to recognise (repeatable)
     #[arg(long = "ignore-comment", value_name = "DIRECTIVE")]

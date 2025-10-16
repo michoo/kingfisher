@@ -3,6 +3,7 @@ pub mod bitbucket;
 pub mod gitea;
 pub mod github;
 pub mod gitlab;
+pub mod huggingface;
 pub mod inputs;
 pub mod output;
 pub mod rules;

@@ -85,6 +85,13 @@ rules:
             gitlab_repo_type: GitLabRepoType::Owner,
             gitlab_include_subgroups: false,
 
+            huggingface_user: Vec::new(),
+            huggingface_organization: Vec::new(),
+            huggingface_model: Vec::new(),
+            huggingface_dataset: Vec::new(),
+            huggingface_space: Vec::new(),
+            huggingface_exclude: Vec::new(),
+
             gitea_user: Vec::new(),
             gitea_organization: Vec::new(),
             gitea_exclude: Vec::new(),
@@ -120,6 +127,9 @@ rules:
             s3_prefix: None,
             role_arn: None,
             aws_local_profile: None,
+            gcs_bucket: None,
+            gcs_prefix: None,
+            gcs_service_account: None,
             // Docker image scanning
             docker_image: Vec::new(),
             // git clone / history options
@@ -151,6 +161,8 @@ rules:
         manage_baseline: false,
         skip_regex: Vec::new(),
         skip_word: Vec::new(),
+        skip_aws_account: Vec::new(),
+        skip_aws_account_file: None,
         no_base64: false,
         extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,

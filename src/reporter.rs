@@ -703,7 +703,7 @@ mod tests {
         git_commit_metadata::CommitMetadata,
         location::{Location, OffsetSpan, SourcePoint, SourceSpan},
         matcher::{SerializableCapture, SerializableCaptures},
-        origin::OriginSet,
+        origin::{Origin, OriginSet},
         rules::rule::{Confidence, Rule, RuleSyntax},
     };
     use gix::{date::Time, ObjectId};
@@ -711,79 +711,8 @@ mod tests {
     use std::path::PathBuf;
     use tempfile::tempdir;
 
-    #[test]
-    fn build_finding_record_uses_git_blob_path() {
-        let temp = tempdir().unwrap();
-        let datastore =
-            Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
-        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
-
-        let repo_path = Arc::new(PathBuf::from("/tmp/repo"));
-        let commit_metadata = Arc::new(CommitMetadata {
-            commit_id: ObjectId::from_hex(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
-            committer_name: "Alice".into(),
-            committer_email: "alice@example.com".into(),
-            committer_timestamp: Time::new(0, 0),
-        });
-        let blob_path = "path/in/history.txt".to_string();
-        let origin = OriginSet::new(
-            Origin::from_git_repo_with_first_commit(repo_path, commit_metadata, blob_path.clone()),
-            vec![],
-        );
-
-        let rule = Arc::new(Rule::new(RuleSyntax {
-            name: "Test Rule".into(),
-            id: "test.rule".into(),
-            pattern: ".*".into(),
-            min_entropy: 0.0,
-            confidence: Confidence::Medium,
-            visible: true,
-            examples: vec![],
-            negative_examples: vec![],
-            references: vec![],
-            validation: None,
-            depends_on_rule: vec![],
-        }));
-
-        let blob_id = BlobId::new(b"blob-data");
-        let report_match = ReportMatch {
-            origin,
-            blob_metadata: BlobMetadata {
-                id: blob_id,
-                num_bytes: 42,
-                mime_essence: None,
-                language: Some("Unknown".into()),
-            },
-            m: Match {
-                location: Location {
-                    offset_span: OffsetSpan { start: 0, end: 10 },
-                    source_span: SourceSpan {
-                        start: SourcePoint { line: 19, column: 0 },
-                        end: SourcePoint { line: 19, column: 10 },
-                    },
-                },
-                groups: SerializableCaptures {
-                    captures: SmallVec::<[SerializableCapture; 2]>::new(),
-                },
-                blob_id,
-                finding_fingerprint: 123,
-                rule: Arc::clone(&rule),
-                validation_response_body: "Bad credentials".into(),
-                validation_response_status: 401,
-                validation_success: false,
-                calculated_entropy: 5.29,
-                visible: true,
-                is_base64: false,
-            },
-            comment: None,
-            match_confidence: Confidence::Medium,
-            visible: true,
-            validation_response_body: "Bad credentials".into(),
-            validation_response_status: 401,
-            validation_success: false,
-        };
-
-        let scan_args = ScanArgs {
+    fn sample_scan_args() -> ScanArgs {
+        ScanArgs {
             num_jobs: 1,
             rules: RuleSpecifierArgs::default(),
             input_specifier_args: InputSpecifierArgs {
@@ -802,6 +731,12 @@ mod tests {
                 gitlab_api_url: Url::parse("https://gitlab.com/").unwrap(),
                 gitlab_repo_type: GitLabRepoType::All,
                 gitlab_include_subgroups: false,
+                huggingface_user: Vec::new(),
+                huggingface_organization: Vec::new(),
+                huggingface_model: Vec::new(),
+                huggingface_dataset: Vec::new(),
+                huggingface_space: Vec::new(),
+                huggingface_exclude: Vec::new(),
                 gitea_user: Vec::new(),
                 gitea_organization: Vec::new(),
                 gitea_exclude: Vec::new(),
@@ -833,6 +768,9 @@ mod tests {
                 s3_prefix: None,
                 role_arn: None,
                 aws_local_profile: None,
+                gcs_bucket: None,
+                gcs_prefix: None,
+                gcs_service_account: None,
                 docker_image: Vec::new(),
                 git_clone: GitCloneMode::Bare,
                 git_history: GitHistoryMode::Full,
@@ -864,8 +802,97 @@ mod tests {
             manage_baseline: false,
             skip_regex: Vec::new(),
             skip_word: Vec::new(),
+            skip_aws_account: Vec::new(),
+            skip_aws_account_file: None,
             no_inline_ignore: false,
+        }
+    }
+
+    fn sample_report_match(
+        validation_body: &str,
+        validation_status: u16,
+        validation_success: bool,
+    ) -> (ReportMatch, String) {
+        let repo_path = Arc::new(PathBuf::from("/tmp/repo"));
+        let commit_metadata = Arc::new(CommitMetadata {
+            commit_id: ObjectId::from_hex(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
+            committer_name: "Alice".into(),
+            committer_email: "alice@example.com".into(),
+            committer_timestamp: Time::new(0, 0),
+        });
+        let blob_path = "path/in/history.txt".to_string();
+        let origin = OriginSet::new(
+            Origin::from_git_repo_with_first_commit(repo_path, commit_metadata, blob_path.clone()),
+            vec![],
+        );
+
+        let rule = Arc::new(Rule::new(RuleSyntax {
+            name: "Test Rule".into(),
+            id: "test.rule".into(),
+            pattern: ".*".into(),
+            min_entropy: 0.0,
+            confidence: Confidence::Medium,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None,
+            depends_on_rule: vec![],
+        }));
+
+        let blob_id = BlobId::new(b"blob-data");
+        let validation_body_owned = validation_body.to_string();
+        let report_match = ReportMatch {
+            origin,
+            blob_metadata: BlobMetadata {
+                id: blob_id,
+                num_bytes: 42,
+                mime_essence: None,
+                language: Some("Unknown".into()),
+            },
+            m: Match {
+                location: Location {
+                    offset_span: OffsetSpan { start: 0, end: 10 },
+                    source_span: SourceSpan {
+                        start: SourcePoint { line: 19, column: 0 },
+                        end: SourcePoint { line: 19, column: 10 },
+                    },
+                },
+                groups: SerializableCaptures {
+                    captures: SmallVec::<[SerializableCapture; 2]>::new(),
+                },
+                blob_id,
+                finding_fingerprint: 123,
+                rule: Arc::clone(&rule),
+                validation_response_body: validation_body_owned.clone(),
+                validation_response_status: validation_status,
+                validation_success,
+                calculated_entropy: 5.29,
+                visible: true,
+                is_base64: false,
+            },
+            comment: None,
+            match_confidence: Confidence::Medium,
+            visible: true,
+            validation_response_body: validation_body_owned,
+            validation_response_status: validation_status,
+            validation_success,
         };
+
+        (report_match, blob_path)
+    }
+
+    #[test]
+    fn build_finding_record_uses_git_blob_path() {
+        let temp = tempdir().unwrap();
+        let datastore =
+            Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
+        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
+
+        let (report_match, blob_path) =
+            sample_report_match("Bad credentials", StatusCode::UNAUTHORIZED.as_u16(), false);
+
+        let scan_args = sample_scan_args();
 
         let record = reporter.build_finding_record(&report_match, &scan_args);
         assert_eq!(record.finding.path, blob_path);
@@ -878,6 +905,28 @@ mod tests {
             .and_then(|path| path.as_str())
             .unwrap();
         assert_eq!(git_file_path, "path/in/history.txt");
+    }
+
+    #[test]
+    fn skip_list_matches_surface_skip_reason() {
+        let temp = tempdir().unwrap();
+        let datastore =
+            Arc::new(Mutex::new(findings_store::FindingsStore::new(temp.path().to_path_buf())));
+        let reporter = DetailsReporter { datastore, styles: Styles::new(false), only_valid: false };
+
+        let (report_match, _) = sample_report_match(
+            "(skip list entry) AWS validation not attempted for account 111122223333.",
+            StatusCode::CONTINUE.as_u16(),
+            false,
+        );
+        let scan_args = sample_scan_args();
+
+        let record = reporter.build_finding_record(&report_match, &scan_args);
+        assert_eq!(record.finding.validation.status, "Not Attempted");
+        assert_eq!(
+            record.finding.validation.response,
+            "(skip list entry) AWS validation not attempted for account 111122223333."
+        );
     }
 
     use super::build_git_urls;

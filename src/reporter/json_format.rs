@@ -93,6 +93,14 @@ mod tests {
                 gitlab_repo_type: GitLabRepoType::All,
                 gitlab_include_subgroups: false,
 
+                // Hugging Face
+                huggingface_user: Vec::new(),
+                huggingface_organization: Vec::new(),
+                huggingface_model: Vec::new(),
+                huggingface_dataset: Vec::new(),
+                huggingface_space: Vec::new(),
+                huggingface_exclude: Vec::new(),
+
                 // Gitea
                 gitea_user: Vec::new(),
                 gitea_organization: Vec::new(),
@@ -132,6 +140,9 @@ mod tests {
                 s3_prefix: None,
                 role_arn: None,
                 aws_local_profile: None,
+                gcs_bucket: None,
+                gcs_prefix: None,
+                gcs_service_account: None,
 
                 docker_image: Vec::new(),
                 // clone / history options
@@ -163,6 +174,8 @@ mod tests {
             manage_baseline: false,
             skip_regex: Vec::new(),
             skip_word: Vec::new(),
+            skip_aws_account: Vec::new(),
+            skip_aws_account_file: None,
             no_base64: false,
             no_inline_ignore: false,
         }

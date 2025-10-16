@@ -95,6 +95,14 @@ pub fn init_validation_caches() {
     aws::set_aws_validation_concurrency(15);
 }
 
+pub fn set_skip_aws_account_ids<I, S>(ids: I)
+where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+{
+    aws::set_aws_skip_account_ids(ids);
+}
+
 #[derive(Clone)]
 pub struct CachedResponse {
     pub body: String,
@@ -779,6 +787,26 @@ async fn timed_validate_single_match<'a>(
                     commit_and_return(m);
                     return;
                 }
+            }
+
+            if let Some(account_id) = aws::should_skip_aws_validation(&akid) {
+                m.validation_success = false;
+                m.validation_response_body = format!(
+                    "(skip list entry) AWS validation not attempted for account {}.",
+                    account_id
+                );
+                m.validation_response_status = StatusCode::CONTINUE;
+                cache.insert(
+                    cache_key,
+                    CachedResponse {
+                        body: m.validation_response_body.clone(),
+                        status: m.validation_response_status,
+                        is_valid: m.validation_success,
+                        timestamp: Instant::now(),
+                    },
+                );
+                commit_and_return(m);
+                return;
             }
 
             if let Err(e) = aws::validate_aws_credentials_input(&akid, &secret) {

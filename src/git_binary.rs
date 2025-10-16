@@ -40,6 +40,15 @@ const AZURE_CREDENTIAL_HELPER: &str = r#"credential.helper=!_azcreds() {
     fi
 }; _azcreds"#;
 
+const HUGGINGFACE_CREDENTIAL_HELPER: &str = r#"credential.helper=!_hfcreds() {
+    token="$KF_HUGGINGFACE_TOKEN";
+    if [ -n "$token" ]; then
+        user="${KF_HUGGINGFACE_USERNAME:-hf_user}";
+        echo username="$user";
+        echo password="$token";
+    fi
+}; _hfcreds"#;
+
 /// Represents errors that can occur when interacting with the `git` CLI.
 #[derive(Debug, thiserror::Error)]
 pub enum GitError {
@@ -47,12 +56,35 @@ pub enum GitError {
     IOError(#[from] std::io::Error),
 
     #[error(
-        "git execution failed\ncode={}\nstdout=```\n{}```\nstderr=```\n{}```",
-        .status,
-        String::from_utf8_lossy(.stdout),
-        String::from_utf8_lossy(.stderr)
+        "git execution failed (status: {status}){summary}",
+        status = format_exit_status(.status),
+        summary = format_git_error_summary(.stdout.as_slice(), .stderr.as_slice())
     )]
     GitError { stdout: Vec<u8>, stderr: Vec<u8>, status: ExitStatus },
+}
+
+fn format_exit_status(status: &ExitStatus) -> String {
+    status.code().map(|code| code.to_string()).unwrap_or_else(|| status.to_string())
+}
+
+fn format_git_error_summary(stdout: &[u8], stderr: &[u8]) -> String {
+    let mut messages = Vec::new();
+    if let Some(line) = summarize_output(stderr) {
+        messages.push(line);
+    }
+    if let Some(line) = summarize_output(stdout) {
+        messages.push(line);
+    }
+    if messages.is_empty() {
+        String::new()
+    } else {
+        format!(": {}", messages.join(" | "))
+    }
+}
+
+fn summarize_output(output: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(output);
+    text.lines().map(str::trim).find(|line| !line.is_empty()).map(|line| line.to_owned())
 }
 
 /// A helper struct for running `git` commands.
@@ -91,6 +123,8 @@ impl Git {
         let has_azure_token = ["KF_AZURE_TOKEN", "KF_AZURE_PAT"]
             .iter()
             .any(|key| matches!(std::env::var(key), Ok(value) if !value.is_empty()));
+        let has_huggingface_token =
+            matches!(std::env::var("KF_HUGGINGFACE_TOKEN"), Ok(value) if !value.is_empty());
 
         // If credentials are provided via environment variables, clear existing helpers first.
         if has_github_token
@@ -98,6 +132,7 @@ impl Git {
             || has_gitea_token
             || has_bitbucket_credentials
             || has_azure_token
+            || has_huggingface_token
         {
             credentials.push("-c".into());
             credentials.push(r#"credential.helper="#.into());
@@ -134,6 +169,11 @@ impl Git {
         if has_azure_token {
             credentials.push("-c".into());
             credentials.push(AZURE_CREDENTIAL_HELPER.into());
+        }
+
+        if has_huggingface_token {
+            credentials.push("-c".into());
+            credentials.push(HUGGINGFACE_CREDENTIAL_HELPER.into());
         }
 
         Self { credentials, ignore_certs }

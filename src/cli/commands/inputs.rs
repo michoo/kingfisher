@@ -28,6 +28,11 @@ pub struct InputSpecifierArgs {
             "gitlab_group",
             "gitea_user",
             "gitea_organization",
+            "huggingface_user",
+            "huggingface_organization",
+            "huggingface_model",
+            "huggingface_dataset",
+            "huggingface_space",
             "bitbucket_user",
             "bitbucket_workspace",
             "bitbucket_project",
@@ -43,7 +48,8 @@ pub struct InputSpecifierArgs {
             "confluence_url",
             "docker_image",
             "slack_query",
-            "s3_bucket"
+            "s3_bucket",
+            "gcs_bucket"
         ]),
         num_args = 0..,
         value_hint = ValueHint::AnyPath
@@ -119,6 +125,30 @@ pub struct InputSpecifierArgs {
     /// Include projects from GitLab subgroups when scanning groups
     #[arg(long, alias = "include-subgroups")]
     pub gitlab_include_subgroups: bool,
+
+    /// Scan models, datasets, and Spaces belonging to the specified Hugging Face users
+    #[arg(long = "huggingface-user")]
+    pub huggingface_user: Vec<String>,
+
+    /// Scan models, datasets, and Spaces belonging to the specified Hugging Face organizations
+    #[arg(long = "huggingface-organization", alias = "huggingface-org")]
+    pub huggingface_organization: Vec<String>,
+
+    /// Scan a specific Hugging Face model (format: owner/name or full URL)
+    #[arg(long = "huggingface-model")]
+    pub huggingface_model: Vec<String>,
+
+    /// Scan a specific Hugging Face dataset (format: owner/name or full URL)
+    #[arg(long = "huggingface-dataset")]
+    pub huggingface_dataset: Vec<String>,
+
+    /// Scan a specific Hugging Face Space (format: owner/name or full URL)
+    #[arg(long = "huggingface-space")]
+    pub huggingface_space: Vec<String>,
+
+    /// Skip specific Hugging Face repositories during enumeration (accepts optional prefixes like model:, dataset:, or space:)
+    #[arg(long = "huggingface-exclude", value_name = "IDENTIFIER")]
+    pub huggingface_exclude: Vec<String>,
 
     // Gitea Options
     /// Scan repositories belonging to the specified Gitea user
@@ -256,6 +286,18 @@ pub struct InputSpecifierArgs {
     #[arg(long, requires = "s3_bucket")]
     pub aws_local_profile: Option<String>,
 
+    /// Scan the specified Google Cloud Storage bucket
+    #[arg(long)]
+    pub gcs_bucket: Option<String>,
+
+    /// Optional prefix within the GCS bucket
+    #[arg(long, requires = "gcs_bucket")]
+    pub gcs_prefix: Option<String>,
+
+    /// Path to a service account JSON file for GCS authentication
+    #[arg(long, value_hint = ValueHint::FilePath, requires = "gcs_bucket")]
+    pub gcs_service_account: Option<PathBuf>,
+
     /// Docker/OCI images to scan (no local Docker required)
     #[arg(long = "docker-image")]
     pub docker_image: Vec<String>,
@@ -299,7 +341,6 @@ pub struct ContentFilteringArgs {
     #[arg(
         long = "max-file-size",
         visible_alias = "max-filesize",      // also show in --help
-        // alias = "max-filesize",            // use this instead if you DON’T want it shown in --help
         default_value_t = 256.0,
         value_name = "MB"
     )]

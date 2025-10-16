@@ -52,7 +52,7 @@ use kingfisher::{
     },
     findings_store,
     findings_store::FindingsStore,
-    gitea, github,
+    gitea, github, huggingface,
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
     scanner::{load_and_record_rules, run_scan},
@@ -75,6 +75,7 @@ use crate::cli::commands::{
     bitbucket::{BitbucketAuthArgs, BitbucketCommand, BitbucketRepoType, BitbucketReposCommand},
     gitea::{GiteaCommand, GiteaRepoType, GiteaReposCommand},
     gitlab::{GitLabCommand, GitLabRepoType, GitLabReposCommand},
+    huggingface::{HuggingFaceCommand, HuggingFaceReposCommand},
 };
 
 fn main() -> anyhow::Result<()> {
@@ -93,6 +94,7 @@ fn main() -> anyhow::Result<()> {
         Command::Bitbucket(_) => num_cpus::get(), // Default for Bitbucket commands
         Command::Gitea(_) => num_cpus::get(), // Default for Gitea commands
         Command::Azure(_) => num_cpus::get(), // Default for Azure commands
+        Command::HuggingFace(_) => num_cpus::get(), // Default for Hugging Face commands
         Command::Rules(_) => num_cpus::get(), // Default for Rules commands
     };
 
@@ -327,6 +329,28 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         }
                     },
                 },
+                Command::HuggingFace(hf_args) => match hf_args.command {
+                    HuggingFaceCommand::Repos(repos_command) => match repos_command {
+                        HuggingFaceReposCommand::List(list_args) => {
+                            let specifiers = huggingface::RepoSpecifiers {
+                                user: list_args.repo_specifiers.user.clone(),
+                                organization: list_args.repo_specifiers.organization.clone(),
+                                model: list_args.repo_specifiers.model.clone(),
+                                dataset: list_args.repo_specifiers.dataset.clone(),
+                                space: list_args.repo_specifiers.space.clone(),
+                                exclude: list_args.repo_specifiers.exclude.clone(),
+                            };
+                            let auth = huggingface::AuthConfig::from_env();
+                            huggingface::list_repositories(
+                                &specifiers,
+                                &auth,
+                                global_args.ignore_certs,
+                                global_args.use_progress(),
+                            )
+                            .await?;
+                        }
+                    },
+                },
                 Command::SelfUpdate => {
                     anyhow::bail!("SelfUpdate command should not reach this branch")
                 }
@@ -367,6 +391,13 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
             gitlab_repo_type: GitLabRepoType::All,
             gitlab_include_subgroups: false,
 
+            huggingface_user: Vec::new(),
+            huggingface_organization: Vec::new(),
+            huggingface_model: Vec::new(),
+            huggingface_dataset: Vec::new(),
+            huggingface_space: Vec::new(),
+            huggingface_exclude: Vec::new(),
+
             gitea_user: Vec::new(),
             gitea_organization: Vec::new(),
             gitea_exclude: Vec::new(),
@@ -400,6 +431,9 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
             s3_prefix: None,
             role_arn: None,
             aws_local_profile: None,
+            gcs_bucket: None,
+            gcs_prefix: None,
+            gcs_service_account: None,
             // Slack query
             slack_query: None,
             slack_api_url: Url::parse("https://slack.com/api/").unwrap(),
@@ -436,6 +470,8 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         manage_baseline: false,
         skip_regex: Vec::new(),
         skip_word: Vec::new(),
+        skip_aws_account: Vec::new(),
+        skip_aws_account_file: None,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_base64: false,
         no_inline_ignore: false,
