@@ -135,7 +135,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   - [Notable Scan Options](#notable-scan-options)
   - [Understanding `--confidence`](#understanding---confidence)
     - [Ignore known false positives](#ignore-known-false-positives)
-    - [Skip Canary Tokens](#skip-canary-tokens)
+    - [Skip Canary Tokens (AWS)](#skip-canary-tokens-aws)
       - [Common CLI flows](#common-cli-flows)
     - [Inline ignore directives](#inline-ignore-directives)
   - [Finding Fingerprint](#finding-fingerprint)
@@ -1110,42 +1110,62 @@ kingfisher scan \
 
 If a `--skip-regex` regular expression fails to compile, the scan aborts with an error so that typos are caught early.
 
-### Skip Canary Tokens
+### Skip Canary Tokens (AWS)
 
-Canary tokens are intentionally-leaked credentials defenders sprinkle across infrastructure to catch adversaries. Research has highlighted that static identification of AWS canary tokens is now table stakes for both attackers avoiding noisy traps and responders running hygiene scans. Kingfisher ships with the same awareness so you can clean environments without detonating the tripwires that many canary tokens deploy.
+Canary/honey tokens are intentionally leaked credentials used to catch misuse. Kingfisher can **recognize and skip** known AWS canary accounts so hygiene scans don’t set off alerts.
 
-To avoid triggering AWS honey tokens, provide `--skip-aws-account` with the 12-digit account numbers associated with your canaries (you can pass a comma-separated list or use `--skip-aws-account-file` to read from disk—blank lines and `#` comments are ignored). Kingfisher pre-seeds its skip list with a number of (but not every) Thinkst Canary AWS account IDs that back canarytokens.org, so routine scans bypass them automatically.
+**How to skip**  
+Pass the 12-digit AWS account IDs for your canaries via `--skip-aws-account` (comma-separated) or `--skip-aws-account-file` (one ID per line; blank lines and `#` comments allowed). Kingfisher also ships with a **pre-seeded (but not exhaustive)** list of Thinkst Canary account IDs used by canarytokens.org, so many are skipped automatically.
 
 ```bash
-kingfisher scan /path/to/file \
+kingfisher scan /path/to/code \
   --skip-aws-account "171436882533,534261010715"
+
+# or combine preloaded canary IDs with a just-created decoy account
+printf '999900001111 \n534261010715' > /tmp/canary_accounts.txt
+
+kingfisher scan /path/to/repo \
+  --skip-aws-account-file /tmp/canary_accounts.txt
 
 ```
 
-By default, any finding tied to a skip-listed account is marked as **Not Attempted** and the validation response explains that AWS verification was not performed. This keeps routine hygiene scans from triggering alerts in production telemetry while making it clear that the credential's status still needs manual verification if required.
+**What you’ll see**  
+Findings tied to a skip-listed account report Validation: Not Attempted and note that the entry came from the skip list:
+
+```bash
+AWS SECRET ACCESS KEY => [KINGFISHER.AWS.2]
+ |Finding.......: <REDACTED>
+ |Fingerprint...: 2141074333616819500
+ |Confidence....: medium
+ |Entropy.......: 5.00
+ |Validation....: Not Attempted
+ |__Response....: (skip list entry) AWS validation not attempted for account 171436882533.
+ |Language......: Unknown
+ |Line Num......: 21
+ |Path..........: /Users/mickg/dev/ghcanary/new-canaries.log
+```
+
+**Why this matters**
+Skipping prevents noisy tripwires in prod telemetry while keeping the status explicit—“Not Attempted” isn’t a pass. If needed, verify these credentials out-of-band or with a safe, non-triggering method.
+
 
 #### Common CLI flows
 
 ```bash
 # Skip a few in-house canaries during a filesystem scan
 kingfisher scan repo/ \
-  --skip-aws-account 111122223333,444455556666
+  --skip-aws-account "111122223333,444455556666"
 
-# Read a longer list from disk while also ignoring test fixtures
+# Read a longer list from disk
 kingfisher scan repo/ \
-  --skip-aws-account-file /tmp/scripts/canary_accounts.txt \
-  --skip-word fixture
+  --skip-aws-account-file /tmp/scripts/canary_accounts.txt
 
 # Combine preloaded canary IDs with a just-created decoy account
-printf '999900001111\n' > /tmp/new_canary.txt
+printf '999900001111\n534261010715\n' > /tmp/new_canary.txt
 
 kingfisher scan /path/to/repo \
   --skip-aws-account-file /tmp/new_canary.txt
 
-# Validate only newly introduced secrets in CI without firing alerts
-kingfisher scan --git-diff origin/main \
-  --skip-aws-account-file .ci/canaries.txt \
-  --exit-on-validation
 ```
 
 Tip: if you manage multiple canary fleets (Thinkst, self-hosted alternatives, or bespoke decoys), checkpoint the account IDs alongside your infrastructure-as-code so security teams can rotate or expand the skip list without editing pipelines.
