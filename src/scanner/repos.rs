@@ -17,10 +17,10 @@ use crate::{
         commands::{github::GitCloneMode, github::GitHistoryMode, scan},
         global,
     },
-    confluence, findings_store,
+    confluence, findings_store, gcs,
     git_binary::{CloneMode, Git},
     git_url::GitUrl,
-    gitea, github, gitlab, jira,
+    gitea, github, gitlab, huggingface, jira,
     matcher::{Match, Matcher, MatcherStats},
     origin::{Origin, OriginSet},
     rules_database::RulesDatabase,
@@ -297,6 +297,69 @@ pub async fn enumerate_gitea_repos(
 
         progress.finish_with_message(format!(
             "Found {} repositories from Gitea",
+            HumanCount(num_found)
+        ));
+    }
+    repo_urls.sort();
+    repo_urls.dedup();
+    Ok(repo_urls)
+}
+
+pub async fn enumerate_huggingface_repos(
+    args: &scan::ScanArgs,
+    global_args: &global::GlobalArgs,
+) -> Result<Vec<GitUrl>> {
+    let repo_specifiers = huggingface::RepoSpecifiers {
+        user: args.input_specifier_args.huggingface_user.clone(),
+        organization: args.input_specifier_args.huggingface_organization.clone(),
+        model: args.input_specifier_args.huggingface_model.clone(),
+        dataset: args.input_specifier_args.huggingface_dataset.clone(),
+        space: args.input_specifier_args.huggingface_space.clone(),
+        exclude: args.input_specifier_args.huggingface_exclude.clone(),
+    };
+
+    let mut repo_urls = args.input_specifier_args.git_url.clone();
+    if !repo_specifiers.is_empty() {
+        let mut progress = if global_args.use_progress() {
+            let style =
+                ProgressStyle::with_template("{spinner} {msg} {human_len} [{elapsed_precise}]")
+                    .expect("progress bar style template should compile");
+            let pb = ProgressBar::new_spinner()
+                .with_style(style)
+                .with_message("Enumerating Hugging Face repositories...");
+            pb.enable_steady_tick(Duration::from_millis(500));
+            pb
+        } else {
+            ProgressBar::hidden()
+        };
+
+        let mut num_found: u64 = 0;
+        let auth = huggingface::AuthConfig::from_env();
+        let repo_strings = huggingface::enumerate_repo_urls(
+            &repo_specifiers,
+            &auth,
+            global_args.ignore_certs,
+            Some(&mut progress),
+        )
+        .await
+        .context("Failed to enumerate Hugging Face repositories")?;
+
+        for repo_string in repo_strings {
+            match GitUrl::from_str(&repo_string) {
+                Ok(repo_url) => {
+                    repo_urls.push(repo_url);
+                    num_found += 1;
+                }
+                Err(e) => {
+                    progress.suspend(|| {
+                        error!("Failed to parse repo URL from {repo_string}: {e}");
+                    });
+                }
+            }
+        }
+
+        progress.finish_with_message(format!(
+            "Found {} repositories from Hugging Face",
             HumanCount(num_found)
         ));
     }
@@ -675,6 +738,84 @@ pub async fn fetch_s3_objects(
 
     let total = progress.position();
     progress.finish_with_message(format!("Fetched {} S3 objects", total));
+
+    Ok(())
+}
+
+pub async fn fetch_gcs_objects(
+    args: &scan::ScanArgs,
+    datastore: &Arc<Mutex<findings_store::FindingsStore>>,
+    rules_db: &RulesDatabase,
+    matcher_stats: &Mutex<MatcherStats>,
+    enable_profiling: bool,
+    shared_profiler: Arc<crate::rule_profiling::ConcurrentRuleProfiler>,
+    progress_enabled: bool,
+) -> Result<()> {
+    let Some(bucket) = args.input_specifier_args.gcs_bucket.as_deref() else {
+        return Ok(());
+    };
+    let prefix = args.input_specifier_args.gcs_prefix.as_deref();
+    let service_account = args.input_specifier_args.gcs_service_account.as_deref();
+
+    let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+    let seen_blobs = BlobIdMap::new();
+    let matcher = Matcher::new(
+        rules_db,
+        scanner_pool,
+        &seen_blobs,
+        Some(matcher_stats),
+        enable_profiling,
+        Some(shared_profiler.clone()),
+        &args.extra_ignore_comments,
+        args.no_inline_ignore,
+    )?;
+    let mut processor = BlobProcessor { matcher };
+
+    let progress = if progress_enabled {
+        let style =
+            ProgressStyle::with_template("{spinner} {msg} ({pos} objects) [{elapsed_precise}]")
+                .expect("progress bar style template should compile");
+        let pb = ProgressBar::new_spinner().with_style(style).with_message("Fetching GCS objects");
+        pb.enable_steady_tick(Duration::from_millis(500));
+        pb
+    } else {
+        ProgressBar::hidden()
+    };
+
+    let pb = progress.clone();
+
+    let bucket_name = bucket.to_string();
+
+    gcs::visit_bucket_objects(bucket, prefix, service_account, move |key, bytes| {
+        let origin = OriginSet::new(
+            Origin::from_extended(serde_json::json!({
+                "path": format!("gs://{}/{}", bucket_name, key)
+            })),
+            Vec::new(),
+        );
+        let blob = crate::blob::Blob::from_bytes(bytes);
+
+        if let Some((origin, blob_md, scored_matches)) =
+            processor.run(origin, blob, args.no_dedup, args.redact, args.no_base64)?
+        {
+            let origin_arc = Arc::new(origin);
+            let blob_arc = Arc::new(blob_md);
+
+            let mut batch = Vec::with_capacity(scored_matches.len());
+            for (_score, m) in scored_matches {
+                batch.push((origin_arc.clone(), blob_arc.clone(), m));
+            }
+
+            let added = datastore.lock().unwrap().record(batch, !args.no_dedup);
+            debug!("Added {} new GCS blobs", added);
+        }
+        pb.inc(1);
+        Ok(())
+    })
+    .await?;
+
+    let total = progress.position();
+    progress.finish_with_message(format!("Fetched {} GCS objects", total));
 
     Ok(())
 }

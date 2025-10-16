@@ -115,7 +115,7 @@ impl<'a> Display for PrettyFindingRecord<'a> {
         } else {
             writeln!(f, " |Validation....: {}", finding.validation.status)?;
         }
-        if finding.validation.status != "Not Attempted" {
+        if !finding.validation.response.is_empty() {
             writeln!(f, " |__Response....: {}", style_fn(&finding.validation.response))?;
         }
         writeln!(f, " |Language......: {}", finding.language)?;

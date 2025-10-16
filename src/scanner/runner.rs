@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    fs,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::{bail, Context, Result};
 use crossbeam_skiplist::SkipMap;
@@ -21,10 +24,11 @@ use crate::{
     safe_list,
     scanner::{
         clone_or_update_git_repos, enumerate_azure_repos, enumerate_bitbucket_repos,
-        enumerate_filesystem_inputs, enumerate_github_repos,
+        enumerate_filesystem_inputs, enumerate_github_repos, enumerate_huggingface_repos,
         repos::{
             enumerate_gitea_repos, enumerate_gitlab_repos, fetch_confluence_pages,
-            fetch_git_host_artifacts, fetch_jira_issues, fetch_s3_objects, fetch_slack_messages,
+            fetch_gcs_objects, fetch_git_host_artifacts, fetch_jira_issues, fetch_s3_objects,
+            fetch_slack_messages,
         },
         run_secret_validation, save_docker_images,
         summary::print_scan_summary,
@@ -74,12 +78,14 @@ pub async fn run_async_scan(
     let mut repo_urls = enumerate_github_repos(args, global_args).await?;
     let gitlab_repo_urls = enumerate_gitlab_repos(args, global_args).await?;
     let gitea_repo_urls = enumerate_gitea_repos(args, global_args).await?;
+    let huggingface_repo_urls = enumerate_huggingface_repos(args, global_args).await?;
     let bitbucket_repo_urls = enumerate_bitbucket_repos(args, global_args).await?;
     let azure_repo_urls = enumerate_azure_repos(args, global_args).await?;
 
     // Combine repository URLs
     repo_urls.extend(gitlab_repo_urls);
     repo_urls.extend(gitea_repo_urls);
+    repo_urls.extend(huggingface_repo_urls);
     repo_urls.extend(bitbucket_repo_urls);
     repo_urls.extend(azure_repo_urls);
     repo_urls.sort();
@@ -182,8 +188,20 @@ pub async fn run_async_scan(
     )
     .await?;
 
-    let has_s3 = args.input_specifier_args.s3_bucket.is_some();
-    if input_roots.is_empty() && !has_s3 {
+    fetch_gcs_objects(
+        args,
+        &datastore,
+        rules_db,
+        &matcher_stats,
+        enable_profiling,
+        Arc::clone(&shared_profiler),
+        progress_enabled,
+    )
+    .await?;
+
+    let has_remote_objects = args.input_specifier_args.s3_bucket.is_some()
+        || args.input_specifier_args.gcs_bucket.is_some();
+    if input_roots.is_empty() && !has_remote_objects {
         bail!("No inputs to scan");
     }
 
@@ -230,6 +248,26 @@ pub async fn run_async_scan(
         let mut ds = datastore.lock().unwrap();
         crate::baseline::apply_baseline(&mut ds, &path, args.manage_baseline, &input_roots)?;
     }
+
+    let mut skip_aws_accounts = args.skip_aws_account.clone();
+
+    if let Some(path) = args.skip_aws_account_file.as_ref() {
+        let contents = fs::read_to_string(path).with_context(|| {
+            format!("Failed to read --skip-aws-account-file {}", path.display())
+        })?;
+
+        for line in contents.lines() {
+            let content = line.split('#').next().unwrap_or("");
+            for value in content.split(|c: char| c.is_ascii_whitespace() || c == ',' || c == ';') {
+                let trimmed = value.trim();
+                if !trimmed.is_empty() {
+                    skip_aws_accounts.push(trimmed.to_string());
+                }
+            }
+        }
+    }
+
+    crate::validation::set_skip_aws_account_ids(skip_aws_accounts);
 
     // If validation is enabled, run it as a second phase
     if !args.no_validate {

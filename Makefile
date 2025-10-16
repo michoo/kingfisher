@@ -110,11 +110,11 @@ setup-zig:
 ubuntu-x64: setup-zig   # ensures Zig & cargo-zigbuild exist
 	@echo "Checking Rust toolchain…"
 	@$(MAKE) check-rust || { \
-	    echo "🦀  Installing Rust 1.88.0 …"; \
+            echo "🦀  Installing Rust 1.90.0 …"; \
 	    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
 	    . $$HOME/.cargo/env; \
-	    rustup toolchain install 1.88.0; \
-	    rustup default 1.88.0; \
+            rustup toolchain install 1.90.0; \
+            rustup default 1.90.0; \
 	}
 
 	@echo "📦  Installing build dependencies (musl, cmake, etc.)…"
@@ -150,11 +150,11 @@ ubuntu-x64: setup-zig   # ensures Zig & cargo-zigbuild exist
 ubuntu-arm64: setup-zig   # ensures Zig & cargo-zigbuild exist
 	@echo "Checking Rust toolchain…"
 	@$(MAKE) check-rust || { \
-	    echo "🦀  Installing Rust 1.88.0 …"; \
+            echo "🦀  Installing Rust 1.90.0 …"; \
 	    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
 	    . $$HOME/.cargo/env; \
-	    rustup toolchain install 1.88.0; \
-	    rustup default 1.88.0; \
+            rustup toolchain install 1.90.0; \
+            rustup default 1.90.0; \
 	}
 
 	@echo "📦  Installing build dependencies (musl, cmake, etc.)…"
@@ -245,7 +245,7 @@ endif
 linux-x64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/amd64 --rm \
-	  -v "$$(pwd):/src" -w /src rust:1.88-alpine sh -eu -c '\
+          -v "$$(pwd):/src" -w /src rust:1.90-alpine sh -eu -c '\
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -256,7 +256,7 @@ linux-x64: check-docker create-dockerignore
 		    patch perl ragel && \
 	        git openssl-dev curl && \
 		\
-		cargo test --workspace --all-targets --release ; \
+		cargo test --workspace --all-targets ; \
 		\
 		rustup target add x86_64-unknown-linux-musl && \
 		\
@@ -274,7 +274,7 @@ linux-x64: check-docker create-dockerignore
 linux-arm64: check-docker create-dockerignore
 	@mkdir -p target/release
 	docker run --platform linux/arm64 --rm \
-	  -v "$$(pwd):/src" -w /src rust:1.88-alpine sh -eu -c '\
+          -v "$$(pwd):/src" -w /src rust:1.90-alpine sh -eu -c '\
 		apk add --no-cache \
 		    musl-dev \
 		    gcc g++ make cmake pkgconfig \
@@ -287,7 +287,7 @@ linux-arm64: check-docker create-dockerignore
 		\
 		rustup target add aarch64-unknown-linux-musl && \
 		\
-		cargo test --workspace --all-targets --release ; \
+		cargo test --workspace --all-targets ; \
 		\
 		export PKG_CONFIG_ALLOW_CROSS=1 ; \
 		export RUSTFLAGS="-C target-feature=+crt-static" ; \
@@ -385,7 +385,7 @@ check-rust:
 	  echo "Rust not found."; \
 	  exit 1; \
 	fi; \
-	required=1.88.0; \
+        required=1.90.0; \
 	if [ $$(printf '%s\n' "$$required" "$$version" | sort -V | head -n1) != "$$required" ]; then \
 	  echo "Rust version $$version is older than required $$required."; \
 	  exit 1; \

@@ -5,22 +5,23 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s hardware‑accelerated Hyperscan regex engine with language‑aware source code parsing, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
+Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s SIMD accelerated regex engine (Hyperscan) with language‑aware source code parsing, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
 </p>
 
-Originally forked from Praetorian’s Nosey Parker, Kingfisher **adds** live cloud-API validation; many more targets (GitLab, BitBucket, Gitea, S3, Docker, Jira, Confluence, Slack); compressed-file extraction and scanning; baseline and allowlist controls; language-aware detection (~20 languages); and a native Windows binary. See [Origins and Divergence](#origins-and-divergence) for details.
+Originally forked from Praetorian’s Nosey Parker, Kingfisher has since significantly expanded and diverged, adding live validation, 10+ new scan targets, and major architectural enhancements. See [Origins and Divergence](#origins-and-divergence) for details.
+
 ## Key Features
 
 ### Multiple Scan Targets
 <div align="center">
 
-| Files / Dirs | Local Git | GitHub | GitLab | Azure DevOps | Bitbucket | Gitea |
-|:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|
-| <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files / Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure DevOps"/><br/><sub>Azure DevOps</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |
+| Files / Dirs | Local Git | GitHub | GitLab | Azure Repos | Bitbucket | Gitea | Hugging Face |
+|:-------------:|:----------:|:------:|:------:|:-------------:|:----------:|:------:|:-------------:|
+| <img src="./docs/assets/icons/files.svg" height="40" alt="Files / Dirs"/><br/><sub>Files / Dirs</sub> | <img src="./docs/assets/icons/local-git.svg" height="40" alt="Local Git"/><br/><sub>Local Git</sub> | <img src="./docs/assets/icons/github.svg" height="40" alt="GitHub"/><br/><sub>GitHub</sub> | <img src="./docs/assets/icons/gitlab.svg" height="40" alt="GitLab"/><br/><sub>GitLab</sub> | <img src="./docs/assets/icons/azure-devops.svg" height="40" alt="Azure Repos"/><br/><sub>Azure Repos</sub> | <img src="./docs/assets/icons/bitbucket.svg" height="40" alt="Bitbucket"/><br/><sub>Bitbucket</sub> | <img src="./docs/assets/icons/gitea.svg" height="40" alt="Gitea"/><br/><sub>Gitea</sub> |<img src="./docs/assets/icons/huggingface.svg" height="40" width="40" alt="Hugging Face"/><br/><sub>Hugging Face</sub> |
 
-| Docker | Jira | Confluence | Slack | AWS S3 |
-|:------:|:----:|:-----------:|:-----:|:------:|
-| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |
+| Docker | Jira | Confluence | Slack | AWS S3 | Google Cloud |
+|:------:|:----:|:-----------:|:-----:|:------:|:---:|
+| <img src="./docs/assets/icons/docker.svg" height="40" alt="Docker"/><br/><sub>Docker</sub> | <img src="./docs/assets/icons/jira.svg" height="40" alt="Jira"/><br/><sub>Jira</sub> | <img src="./docs/assets/icons/confluence.svg" height="40" alt="Confluence"/><br/><sub>Confluence</sub> | <img src="./docs/assets/icons/slack.svg" height="40" alt="Slack"/><br/><sub>Slack</sub> | <img src="./docs/assets/icons/aws-s3.svg" height="40" alt="AWS S3"/><br/><sub>AWS&nbsp;S3</sub> |  <img src="./docs/assets/icons/gcs.svg" height="40" alt="Google Cloud Storage"/><br/><sub>Cloud Storage</sub> |
 
 </div>
 
@@ -41,17 +42,27 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   <img src="docs/runtime-comparison.png" alt="Kingfisher Runtime Comparison" style="vertical-align: center;" />
 </p>
 
+# Table of Contents
+
+<details>
+
 - [Kingfisher](#kingfisher)
   - [Key Features](#key-features)
     - [Multiple Scan Targets](#multiple-scan-targets)
     - [Performance, Accuracy, and Hundreds of Rules](#performance-accuracy-and-hundreds-of-rules)
 - [Benchmark Results](#benchmark-results)
+- [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
-    - [Run Kingfisher in Docker](#run-kingfisher-in-docker)
+    - [Pre-built Releases](#pre-built-releases)
+    - [Homebrew](#homebrew)
+    - [Linux and macOS](#linux-and-macos)
+    - [Windows](#windows)
+    - [Compile](#compile)
+    - [ Run Kingfisher in Docker](#-run-kingfisher-in-docker)
 - [🔐 Detection Rules at a Glance](#-detection-rules-at-a-glance)
-  - [Write Custom Rules!](#write-custom-rules)
-- [Usage](#usage)
+  - [📝 Write Custom Rules!](#-write-custom-rules)
+- [🎉 Usage](#-usage)
   - [Basic Examples](#basic-examples)
     - [Scan with secret validation](#scan-with-secret-validation)
     - [Scan a directory containing multiple Git repositories](#scan-a-directory-containing-multiple-git-repositories)
@@ -67,6 +78,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Exclude specific paths](#exclude-specific-paths)
     - [Scan changes in CI pipelines](#scan-changes-in-ci-pipelines)
   - [ Scanning an AWS S3 Bucket](#-scanning-an-aws-s3-bucket)
+  - [ Scanning a Google Cloud Storage Bucket](#-scanning-a-google-cloud-storage-bucket)
   - [ Scanning Docker Images](#-scanning-docker-images)
   - [ Scanning GitHub](#-scanning-github)
     - [Scan GitHub organization (requires `KF_GITHUB_TOKEN`)](#scan-github-organization-requires-kf_github_token)
@@ -79,8 +91,8 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Scan remote GitLab repository by URL](#scan-remote-gitlab-repository-by-url)
     - [List GitLab repositories](#list-gitlab-repositories)
   - [ Scanning Azure Repos](#-scanning-azure-repos)
-    - [Scan Azure DevOps organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)](#scan-azure-devops-organization-or-collection-requires-kf_azure_token-or-kf_azure_pat)
-    - [Scan specific Azure DevOps projects](#scan-specific-azure-devops-projects)
+    - [Scan Azure Repos organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)](#scan-azure-repos-organization-or-collection-requires-kf_azure_token-or-kf_azure_pat)
+    - [Scan specific Azure Repos projects](#scan-specific-azure-repos-projects)
     - [Skip specific Azure repositories during enumeration](#skip-specific-azure-repositories-during-enumeration)
     - [List Azure repositories](#list-azure-repositories)
   - [ Scanning Gitea](#-scanning-gitea)
@@ -97,6 +109,12 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [List Bitbucket repositories](#list-bitbucket-repositories)
     - [Authenticate to Bitbucket](#authenticate-to-bitbucket)
     - [Self-hosted Bitbucket Server](#self-hosted-bitbucket-server)
+  - [ Scanning Hugging Face](#-scanning-hugging-face)
+    - [Scan Hugging Face user](#scan-hugging-face-user)
+    - [Scan Hugging Face organization](#scan-hugging-face-organization)
+    - [Scan specific Hugging Face resources](#scan-specific-hugging-face-resources)
+    - [List Hugging Face repositories](#list-hugging-face-repositories)
+    - [Authenticate to Hugging Face](#authenticate-to-hugging-face)
   - [ Scanning Jira](#-scanning-jira)
     - [Scan Jira issues matching a JQL query](#scan-jira-issues-matching-a-jql-query)
     - [Scan the last 1,000 Jira issues:](#scan-the-last-1000-jira-issues)
@@ -107,7 +125,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   - [Environment Variables for Tokens](#environment-variables-for-tokens)
   - [Exit Codes](#exit-codes)
   - [Update Checks](#update-checks)
-- [Advanced Options](#advanced-options)
+- [🤓 Advanced Options](#-advanced-options)
   - [Build a Baseline / Detect New Secrets](#build-a-baseline--detect-new-secrets)
   - [List Builtin Rules](#list-builtin-rules)
   - [To scan using **only** your own `my_rules.yaml` you could run:](#to-scan-using-only-your-own-my_rulesyaml-you-could-run)
@@ -117,6 +135,8 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   - [Notable Scan Options](#notable-scan-options)
   - [Understanding `--confidence`](#understanding---confidence)
     - [Ignore known false positives](#ignore-known-false-positives)
+    - [Skip Canary Tokens (AWS)](#skip-canary-tokens-aws)
+      - [Common CLI flows](#common-cli-flows)
     - [Inline ignore directives](#inline-ignore-directives)
   - [Finding Fingerprint](#finding-fingerprint)
   - [Rule Performance Profiling](#rule-performance-profiling)
@@ -125,36 +145,58 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
 - [Roadmap](#roadmap)
 - [License](#license)
 
+</details>
+
+
 # Getting Started
 ## Installation
+### Pre-built Releases
+Pre-built binaries are available from the [Releases](https://github.com/mongodb/kingfisher/releases) section.
 
-On macOS, you can simply
+### Homebrew
+
 
 ```bash
 brew install kingfisher
 ```
 
-Pre-built binaries are also available on the [Releases](https://github.com/mongodb/kingfisher/releases) section of this page.
+### Linux and macOS
 
-You can also install using [ubi](https://github.com/houseabsolute/ubi), which downloads the correct binary for your platform:
+<details>
+
+You can easily install using [ubi](https://github.com/houseabsolute/ubi), which downloads the correct binary for your platform.
 
 ```bash
 # Linux, macOS
 curl --silent --location \
     https://raw.githubusercontent.com/houseabsolute/ubi/master/bootstrap/bootstrap-ubi.sh | \
     sh && \
-  ubi --project mongodb/kingfisher --in "$HOME/bin"
+  ubi --project mongodb/kingfisher --in "$HOME/.local/bin"
 ```
+
+This installs and runs `ubi` and then places the `kingfisher` executable in `~/.local/bin` on Unix-like systems.
+
+</details>
+
+### Windows
+
+<details>
+
+You can easily install using [ubi](https://github.com/houseabsolute/ubi), which downloads the correct binary for your platform.
 
 ```powershell
 # Windows
 powershell -exec bypass -c "Invoke-WebRequest -URI 'https://raw.githubusercontent.com/houseabsolute/ubi/master/bootstrap/bootstrap-ubi.ps1' -UseBasicParsing | Invoke-Expression" && ubi --project mongodb/kingfisher --in .
 ```
 
-This installs `ubi` and then places the `kingfisher` executable in `~/bin` on Unix-like
-systems (or the current directory on Windows).
+This installs and runs `ubi` and then places the `kingfisher` executable in the current directory on Windows.
+</details>
 
-Or you may compile for your platform via `make`:
+
+### Compile
+You may compile for your platform via `make`
+
+<details>
 
 ```bash
 # NOTE: Requires Docker
@@ -174,9 +216,14 @@ make darwin-all # builds both x64 and arm64
 make all # builds for every OS and architecture supported
 ```
 
-### Run Kingfisher in Docker
+</details>
 
-Run the dockerized Kingfisher container:
+### <img src="./docs/assets/icons/docker.svg" height="40" style="vertical-align:text-bottom;" alt="Docker"/> Run Kingfisher in Docker
+
+Run the dockerized Kingfisher container
+
+<details>
+
 ```bash
 # GitHub Container Registry 
 docker run --rm ghcr.io/mongodb/kingfisher:latest --version
@@ -233,6 +280,8 @@ docker run --rm \
 
 ```
 
+</details>
+
 # 🔐 Detection Rules at a Glance
 
 Kingfisher ships with [hundreds of rules](/data/rules/) that cover everything from classic cloud keys to the latest AI SaaS tokens. Below is an overview:
@@ -248,7 +297,7 @@ Kingfisher ships with [hundreds of rules](/data/rules/) that cover everything fr
 | **Security & DevSecOps** | Snyk, Dependency-Track, CodeClimate, Codacy, OpsGenie, PagerDuty, and more |
 | **Misc. SaaS & Tools** | 1Password, Adobe, Atlassian/Jira, Asana, Netlify, Baremetrics, and more |
 
-## Write Custom Rules!
+## 📝 Write Custom Rules!
 
 Kingfisher ships with hundreds of rules with HTTP and service‑specific validation checks (AWS, Azure, GCP, etc.) to confirm if a detected string is a live credential.
 
@@ -258,7 +307,7 @@ First, review [docs/RULES.md](/docs/RULES.md) to learn how to create custom King
 
 Once you've done that, you can provide your custom rules (defined in a YAML file) and provide it to Kingfisher at runtime --- no recompiling required!
 
-# Usage
+# 🎉 Usage
 
 ## Basic Examples
 
@@ -400,7 +449,7 @@ kingfisher scan ./my-project \
   -v
 ```
 
-## <img alt="GitHub" src="./docs/assets/icons/aws-s3.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning an AWS S3 Bucket
+## <img alt="GitHub" src="./docs/assets/icons/aws-s3.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning an AWS S3 Bucket
 You can scan S3 objects directly:
 
 ```bash
@@ -415,7 +464,7 @@ Credential resolution happens in this order:
 
 If `--role-arn` is supplied, the credentials from steps 1–2 are used to assume that role.
 
-Examples:
+Examples
 
 ```bash
 # using explicit keys
@@ -452,7 +501,30 @@ docker run --rm \
     scan --s3-bucket bucket-name
 ```
 
-## <img alt="Docker" src="./docs/assets/icons/docker.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Docker Images
+## <img src="./docs/assets/icons/gcs.svg" height="40" width="40" alt="Google Cloud Storage"/> Scanning a Google Cloud Storage Bucket
+
+The `--gcs-bucket` flag streams objects directly from Google Cloud Storage. Authentication uses
+Application Default Credentials, so you can provide a service-account JSON file via the
+`GOOGLE_APPLICATION_CREDENTIALS` environment variable or by passing `--gcs-service-account`. Public
+buckets work without credentials.
+
+```bash
+kingfisher scan --gcs-bucket bucket-name
+
+# scan a sub-tree inside the bucket
+kingfisher scan --gcs-bucket bucket-name --gcs-prefix path/to/data/
+
+# supply a service-account key explicitly
+kingfisher scan --gcs-bucket bucket-name --gcs-service-account /path/to/key.json
+```
+
+Functional example:
+```bash
+kingfisher scan --gcs-bucket cloud-samples-data --gcs-prefix "storage/"
+```
+
+
+## <img alt="Docker" src="./docs/assets/icons/docker.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Docker Images
 
 Kingfisher will first try to use any locally available image, then fall back to pulling via OCI.  
 
@@ -482,7 +554,7 @@ kingfisher scan --docker-image some-private-registry.dkr.ecr.us-east-1.amazonaws
 kingfisher scan --docker-image private.registry.example.com/my-image:tag
 ```
 
-## <img alt="GitHub" src="./docs/assets/icons/github.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning GitHub
+## <img alt="GitHub" src="./docs/assets/icons/github.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning GitHub
 
 ### Scan GitHub organization (requires `KF_GITHUB_TOKEN`)
 
@@ -524,7 +596,7 @@ KF_GITHUB_TOKEN="ghp_…" kingfisher scan --git-url https://github.com/org/priva
 
 ---
 
-## <img alt="GitLab" src="./docs/assets/icons/gitlab.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning GitLab
+## <img alt="GitLab" src="./docs/assets/icons/gitlab.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning GitLab
 
 ### Scan GitLab group (requires `KF_GITLAB_TOKEN`)
 
@@ -580,18 +652,18 @@ kingfisher gitlab repos list --group my-group --include-subgroups
 # skip specific projects when listing or scanning (supports glob patterns)
 kingfisher gitlab repos list --group my-group --gitlab-exclude my-group/**/legacy-*
 ```
-## <img alt="Azure Repos" src="./docs/assets/icons/azure-devops.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Azure Repos
+## <img alt="Azure Repos" src="./docs/assets/icons/azure-devops.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Azure Repos
 
-### Scan Azure DevOps organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)
+### Scan Azure Repos organization or collection (requires `KF_AZURE_TOKEN` or `KF_AZURE_PAT`)
 
 ```bash
 kingfisher scan --azure-organization my-org
 
-# Azure DevOps Server example
+# Azure Repos Server example
 KF_AZURE_PAT="pat" kingfisher scan --azure-organization DefaultCollection --azure-base-url https://ado.internal.example/tfs/
 ```
 
-### Scan specific Azure DevOps projects
+### Scan specific Azure Repos projects
 
 Projects are specified as `ORGANIZATION/PROJECT`. Repeat the flag for multiple projects.
 
@@ -621,7 +693,7 @@ kingfisher azure repos list --project my-org/app --project my-org/api
 # skip specific repositories while listing (supports glob patterns)
 kingfisher azure repos list --organization my-org --azure-exclude my-org/**/experimental-*
 ```
-## <img alt="Gitea" src="./docs/assets/icons/gitea.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Gitea
+## <img alt="Gitea" src="./docs/assets/icons/gitea.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Gitea
 
 ### Scan Gitea organization (requires `KF_GITEA_TOKEN`)
 
@@ -673,7 +745,7 @@ KF_GITEA_TOKEN="gtoken" kingfisher gitea repos list --all-gitea-organizations
 # self-hosted example
 KF_GITEA_TOKEN="gtoken" kingfisher gitea repos list --user johndoe --gitea-api-url https://gitea.internal.example/api/v1/
 ```
-## <img alt="Bitbucket" src="./docs/assets/icons/bitbucket.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Bitbucket
+## <img alt="Bitbucket" src="./docs/assets/icons/bitbucket.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Bitbucket
 ### Scan Bitbucket workspace
 
 ```bash
@@ -745,7 +817,45 @@ Use `--bitbucket-api-url` to point Kingfisher at your server's REST endpoint, fo
 `https://bitbucket.example.com/rest/api/1.0/`. Provide credentials with
 `--bitbucket-username` and `--bitbucket-token`, and pass `--ignore-certs` when
 connecting to HTTP or otherwise insecure instances.
-## <img alt="Jira" src="./docs/assets/icons/jira.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Jira
+## <img src="./docs/assets/icons/huggingface.svg" height="40" width="40" alt="Hugging Face"/> Scanning Hugging Face
+
+Hugging Face hosts git repositories for models, datasets, and Spaces. Kingfisher can enumerate and scan all three resource types.
+
+### Scan Hugging Face user
+
+```bash
+kingfisher scan --huggingface-user <username>
+```
+
+### Scan Hugging Face organization
+
+```bash
+kingfisher scan --huggingface-organization <orgname>
+```
+
+### Scan specific Hugging Face resources
+
+Scan individual repositories by ID (owner/name) or by passing the full HTTPS URL:
+
+```bash
+kingfisher scan --huggingface-model <owner/model>
+kingfisher scan --huggingface-dataset https://huggingface.co/datasets/<owner>/<dataset>
+kingfisher scan --huggingface-space <owner/space>
+```
+
+Use `--huggingface-exclude` to omit results returned by user or organization enumeration. Prefix values with `model:`, `dataset:`, or `space:` when you only want to skip a specific resource type.
+
+### List Hugging Face repositories
+
+```bash
+kingfisher huggingface repos list --huggingface-user <username>
+```
+
+### Authenticate to Hugging Face
+
+Private repositories require an access token provided through the `KF_HUGGINGFACE_TOKEN` environment variable. For git authentication the helper also honours `KF_HUGGINGFACE_USERNAME` (default `hf_user`).
+
+## <img alt="Jira" src="./docs/assets/icons/jira.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Jira
 
 ### Scan Jira issues matching a JQL query
 
@@ -764,7 +874,7 @@ KF_JIRA_TOKEN="token" kingfisher scan \
   --max-results 1000
 ```
 
-## <img alt="Confluence" src="./docs/assets/icons/confluence.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Confluence
+## <img alt="Confluence" src="./docs/assets/icons/confluence.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Confluence
 ### Scan Confluence pages matching a CQL query
 
 ```bash
@@ -789,7 +899,7 @@ Generate a personal access token and set it in the `KF_CONFLUENCE_TOKEN` environ
 
 To use basic authentication instead, also set `KF_CONFLUENCE_USER` to your Confluence email address; Kingfisher will then send the username and `KF_CONFLUENCE_TOKEN` as a Basic auth header. If the server responds with a redirect to a login page, the credentials are invalid or lack the required permissions.
 
-## <img alt="Slack" src="./docs/assets/icons/slack.svg" width="20" height="20" style="vertical-align:text-bottom;"> Scanning Slack
+## <img alt="Slack" src="./docs/assets/icons/slack.svg" width="40" height="40" style="vertical-align:text-bottom;"> Scanning Slack
 ### Scan Slack messages matching a search query
 
 ```bash
@@ -811,11 +921,13 @@ KF_SLACK_TOKEN="xoxp-1234..." kingfisher scan \
 | `KF_GITLAB_TOKEN` | GitLab Personal Access Token |
 | `KF_GITEA_TOKEN` | Gitea Personal Access Token |
 | `KF_GITEA_USERNAME` | Username for private Gitea clones (used with `KF_GITEA_TOKEN`) |
-| `KF_AZURE_TOKEN` / `KF_AZURE_PAT` | Azure DevOps Personal Access Token |
-| `KF_AZURE_USERNAME` | Username to use with Azure DevOps PATs (defaults to `pat` when unset) |
+| `KF_AZURE_TOKEN` / `KF_AZURE_PAT` | Azure Repos Personal Access Token |
+| `KF_AZURE_USERNAME` | Username to use with Azure Repos PATs (defaults to `pat` when unset) |
 | `KF_BITBUCKET_USERNAME` | Bitbucket username for basic authentication |
 | `KF_BITBUCKET_APP_PASSWORD` / `KF_BITBUCKET_TOKEN` | Bitbucket app password or server token |
 | `KF_BITBUCKET_OAUTH_TOKEN` | Bitbucket OAuth or PAT token |
+| `KF_HUGGINGFACE_TOKEN` | Hugging Face access token for API enumeration and git cloning |
+| `KF_HUGGINGFACE_USERNAME` | Optional username for Hugging Face git operations (defaults to `hf_user`) |
 | `KF_JIRA_TOKEN`   | Jira API token               |
 | `KF_CONFLUENCE_TOKEN` | Confluence API token      |
 | `KF_SLACK_TOKEN`  | Slack API token              |
@@ -869,7 +981,7 @@ Kingfisher automatically queries GitHub for a newer release when it starts and t
 
 - **Disable version checks** – Pass `--no-update-check` to skip both the startup and shutdown checks entirely
 
-# Advanced Options
+# 🤓 Advanced Options
 
 ## Build a Baseline / Detect New Secrets
 
@@ -963,6 +1075,8 @@ leaves the default unchanged.
 - `--manage-baseline`: Create or update the baseline file with current findings
 - `--skip-regex <PATTERN>`: Ignore findings whose text matches this regex (repeatable)
 - `--skip-word <WORD>`: Ignore findings containing this case-insensitive word (repeatable)
+- `--skip-aws-account <ACCOUNT_ID>`: Skip live AWS validation for findings tied to the specified AWS account number (repeatable, accepts comma-separated lists)
+- `--skip-aws-account-file <FILE>`: Load AWS account numbers to skip from a file (one account per line; `#` comments allowed)
 - `--ignore-comment <DIRECTIVE>`: Honor additional inline directives from other scanners (repeatable; e.g. `--ignore-comment "gitleaks:allow"`)
 - `--no-ignore`: Disable inline directives entirely so every match is reported
 ## Understanding `--confidence`
@@ -995,6 +1109,66 @@ kingfisher scan \
 ```
 
 If a `--skip-regex` regular expression fails to compile, the scan aborts with an error so that typos are caught early.
+
+### Skip Canary Tokens (AWS)
+
+Canary/honey tokens are intentionally leaked credentials used to catch misuse. Kingfisher can **recognize and skip** known AWS canary accounts so hygiene scans don’t set off alerts.
+
+**How to skip**  
+Pass the 12-digit AWS account IDs for your canaries via `--skip-aws-account` (comma-separated) or `--skip-aws-account-file` (one ID per line; blank lines and `#` comments allowed). Kingfisher also ships with a **pre-seeded (but not exhaustive)** list of Thinkst Canary account IDs used by canarytokens.org, so many are skipped automatically.
+
+```bash
+kingfisher scan /path/to/code \
+  --skip-aws-account "171436882533,534261010715"
+
+# or combine preloaded canary IDs with a just-created decoy account
+printf '999900001111 \n534261010715' > /tmp/canary_accounts.txt
+
+kingfisher scan /path/to/repo \
+  --skip-aws-account-file /tmp/canary_accounts.txt
+
+```
+
+**What you’ll see**  
+Findings tied to a skip-listed account report `Validation: Not Attempted` and note in the `Response:` that the entry came from the skip list:
+
+```bash
+AWS SECRET ACCESS KEY => [KINGFISHER.AWS.2]
+ |Finding.......: <REDACTED>
+ |Fingerprint...: 2141074333616819500
+ |Confidence....: medium
+ |Entropy.......: 5.00
+ |Validation....: Not Attempted
+ |__Response....: (skip list entry) AWS validation not attempted for account 171436882533.
+ |Language......: Unknown
+ |Line Num......: 21
+ |Path..........: /tmp/test_canary_accounts.log
+```
+
+**Why this matters**
+Skipping prevents noisy tripwires in prod telemetry while keeping the status explicit—“Not Attempted” isn’t a pass. If needed, verify these credentials out-of-band or with a safe, non-triggering method.
+
+
+#### Common CLI flows
+
+```bash
+# Skip a few in-house canaries during a filesystem scan
+kingfisher scan repo/ \
+  --skip-aws-account "111122223333,444455556666"
+
+# Read a longer list from disk
+kingfisher scan repo/ \
+  --skip-aws-account-file /tmp/scripts/canary_accounts.txt
+
+# Combine preloaded canary IDs with a just-created decoy account
+printf '999900001111\n534261010715\n' > /tmp/new_canary.txt
+
+kingfisher scan /path/to/repo \
+  --skip-aws-account-file /tmp/new_canary.txt
+
+```
+
+Tip: if you manage multiple canary fleets (Thinkst, self-hosted alternatives, or bespoke decoys), checkpoint the account IDs alongside your infrastructure-as-code so security teams can rotate or expand the skip list without editing pipelines.
 
 ### Inline ignore directives
 

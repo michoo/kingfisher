@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.58.0]
+- Added first-class Hugging Face scanning support, including CLI enumeration, token authentication, and integration with remote scans.
+- Condensed GitError formatting to report the exit status and the first informative lines from stdout/stderr, producing concise git clone failure logs.
+- Added support for scanning Google Cloud Storage buckets via `--gcs-bucket`, including optional prefixes and service-account authentication.
+- Added `--skip-aws-account` (now accepting comma-separated values) and `--skip-aws-account-file` to bypass live AWS validation for known canary/honey-token account IDs without triggering alerts. Kingfisher now ships with several canary AWS account IDs pre-seeded in the skip list and now reports matching findings as "Not Attempted" with the "Response" containing "(skip list entry)" so it's clear that validation was intentionally skipped and why.
+  
 ## [v1.57.0]
 - Added inline ignore directive detection to treat suppression tokens anywhere on surrounding lines, including multi-line handling
 - Added a `--no-ignore` CLI flag to disable inline directives when you need every potential secret reported

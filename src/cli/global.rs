@@ -8,7 +8,7 @@ use tracing::Level;
 
 use crate::cli::commands::{
     azure::AzureArgs, bitbucket::BitbucketArgs, gitea::GiteaArgs, github::GitHubArgs,
-    gitlab::GitLabArgs, rules::RulesArgs, scan::ScanArgs,
+    gitlab::GitLabArgs, huggingface::HuggingFaceArgs, rules::RulesArgs, scan::ScanArgs,
 };
 
 #[deny(missing_docs)]
@@ -80,6 +80,10 @@ pub enum Command {
     /// Interact with the Azure DevOps API
     #[command(name = "azure")]
     Azure(AzureArgs),
+
+    /// Interact with the Hugging Face Hub
+    #[command(name = "huggingface")]
+    HuggingFace(HuggingFaceArgs),
 
     /// Manage rules
     #[command(alias = "rule")]
