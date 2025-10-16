@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use gcloud_storage::{
-    client::{Client, ClientConfig},
+    client::{google_cloud_auth::credentials::CredentialsFile, Client, ClientConfig},
     http::objects::{
         download::Range,
         get::GetObjectRequest,
@@ -25,15 +25,24 @@ pub async fn visit_bucket_objects<F>(
 where
     F: FnMut(String, Vec<u8>) -> Result<()>,
 {
-    if let Some(path) = service_account_path {
-        std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", path);
-    }
+    let config_result = if let Some(path) = service_account_path {
+        let credentials = CredentialsFile::new_from_file(path.to_string_lossy().into_owned())
+            .await
+            .with_context(|| {
+                format!("Failed to read GCS service account credentials from {}", path.display())
+            })?;
 
-    let config = match ClientConfig::default().with_auth().await {
+        ClientConfig::default().with_credentials(credentials).await
+    } else {
+        ClientConfig::default().with_auth().await
+    };
+
+    let config = match config_result {
         Ok(config) => config,
         Err(err) => {
             if service_account_path.is_some()
                 || std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_ok()
+                || std::env::var("GOOGLE_APPLICATION_CREDENTIALS_JSON").is_ok()
             {
                 return Err(err)
                     .context("Failed to authenticate with GCS using provided credentials");
