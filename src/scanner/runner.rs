@@ -88,8 +88,6 @@ pub async fn run_async_scan(
     repo_urls.extend(huggingface_repo_urls);
     repo_urls.extend(bitbucket_repo_urls);
     repo_urls.extend(azure_repo_urls);
-    repo_urls.sort();
-    repo_urls.dedup();
 
     // Add wiki repositories for each URL when requested
     if args.input_specifier_args.repo_artifacts {
@@ -112,9 +110,11 @@ pub async fn run_async_scan(
             }
         }
         repo_urls.extend(wiki_urls);
-        repo_urls.sort();
-        repo_urls.dedup();
     }
+
+    // just sort and dedup once
+    repo_urls.sort();
+    repo_urls.dedup();
 
     let mut input_roots = clone_or_update_git_repos(args, global_args, &repo_urls, &datastore)?;
 
