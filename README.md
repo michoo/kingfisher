@@ -1224,7 +1224,7 @@ Since that initial fork, it has diverged heavily from Nosey Parker:
 - Added support for analyzing compressed files  
 - Added support for building "baselines" to allow for only reporting on newly discovered secrets  
 - Added Tree-Sitter based source code parsing on top of Hyperscan for deeper language-aware detection  
-- Expanded support for new targets (GitLab, BitBucket, Gitea, Jira, Confluence, Slack, S3, Docker, etc.)  
+- Expanded support for new targets (GitLab, BitBucket, Gitea, Jira, Confluence, Slack, S3, GCS, Docker, Hugging Face, etc.)  
 - Replaced the SQLite datastore with an in-memory store + Bloom filter  
 - Collapsed the workflow into a single scan-and-report phase with direct JSON/BSON/SARIF outputs  
 - Delivered cross-platform builds, including native Windows  
