@@ -9,10 +9,10 @@ use crate::{
     cli::{
         commands::{
             azure::AzureRepoSpecifiers,
-            bitbucket::{BitbucketRepoSpecifiers, BitbucketRepoType},
+            bitbucket::BitbucketRepoSpecifiers,
             gitea::GiteaRepoSpecifiers,
-            github::{GitHubRepoSpecifiers, GitHubRepoType},
-            gitlab::{GitLabRepoSpecifiers, GitLabRepoType},
+            github::GitHubRepoSpecifiers,
+            gitlab::GitLabRepoSpecifiers,
             huggingface::HuggingFaceRepoSpecifiers,
             inputs::{ContentFilteringArgs, InputSpecifierArgs},
             output::{OutputArgs, ReportOutputFormat},
@@ -207,7 +207,7 @@ impl ScanCommandArgs {
                     scan_args.input_specifier_args.git_url = args.git_url;
                     None
                 }
-                ScanInputCommand::Github(mut args) => {
+                ScanInputCommand::Github(args) => {
                     if args.specifiers.is_empty() {
                         bail!(
                             "Specify at least one --user, --org, or use --all-orgs when scanning GitHub"
@@ -231,7 +231,7 @@ impl ScanCommandArgs {
                         None
                     }
                 }
-                ScanInputCommand::Gitlab(mut args) => {
+                ScanInputCommand::Gitlab(args) => {
                     if args.specifiers.is_empty() {
                         bail!(
                             "Specify at least one --user, --group, or use --all-groups when scanning GitLab"
@@ -256,7 +256,7 @@ impl ScanCommandArgs {
                         None
                     }
                 }
-                ScanInputCommand::Gitea(mut args) => {
+                ScanInputCommand::Gitea(args) => {
                     if args.specifiers.is_empty() {
                         bail!(
                             "Specify at least one --user, --org, or use --all-orgs when scanning Gitea"
@@ -280,7 +280,7 @@ impl ScanCommandArgs {
                         None
                     }
                 }
-                ScanInputCommand::Bitbucket(mut args) => {
+                ScanInputCommand::Bitbucket(args) => {
                     if args.specifiers.is_empty() {
                         bail!(
                             "Specify at least one --user, --workspace, --project, or use --all-workspaces when scanning Bitbucket"
@@ -306,7 +306,7 @@ impl ScanCommandArgs {
                         None
                     }
                 }
-                ScanInputCommand::Azure(mut args) => {
+                ScanInputCommand::Azure(args) => {
                     if args.specifiers.is_empty() {
                         bail!(
                             "Specify at least one --organization, --project, or use --all-projects when scanning Azure DevOps"
@@ -330,7 +330,7 @@ impl ScanCommandArgs {
                         None
                     }
                 }
-                ScanInputCommand::Huggingface(mut args) => {
+                ScanInputCommand::Huggingface(args) => {
                     if args.specifiers.is_empty() {
                         bail!(
                             "Specify at least one --user, --org, --model, --dataset, or --space when scanning Hugging Face"
