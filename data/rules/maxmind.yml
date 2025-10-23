@@ -41,18 +41,15 @@ rules:
       (?:account|user)
       (?:.|[\n\r]){0,10}?
       (?:id|number)
-      (?:.|[\n\r]){0,10}?
-      [:=\s]+
-      \s*
-      ["']?
+      (?:.|[\n\r]){0,16}?
       \b
       (
         \d{4,8}
       )
       \b
-      ["']?
     min_entropy: 2.0
-    confidence: low
+    confidence: medium
+    visible: false
     examples:
       - MAXMIND_ACCOUNT_ID=123456
       - AccountID 988765
