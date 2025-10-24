@@ -52,7 +52,6 @@ rules:
     visible: false
     examples:
       - MAXMIND_ACCOUNT_ID=123456
-      - AccountID 988765
       - '"maxmind": {"account_id": "654321", "license_key": "..."}'
       - 'geoip_account_number: 456789'
     references:
