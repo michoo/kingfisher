@@ -4,13 +4,17 @@
   <img src="docs/kingfisher_logo.png" alt="Kingfisher Logo" width="126" height="173" style="vertical-align: right;" />
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)<br>
-[![ghcr downloads](https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher)](https://github.com/mongodb/kingfisher/pkgs/container/kingfisher)
+[![ghcr downloads](https://ghcr-badge.elias.eu.org/shield/mongodb/kingfisher/kingfisher)](https://github.com/mongodb/kingfisher/pkgs/container/kingfisher)<br>
 
 
-Kingfisher is a blazingly fast secret‑scanning and live validation tool built in Rust. It combines Intel’s SIMD accelerated regex engine (Hyperscan) with language‑aware source code parsing, and **ships with hundreds of built‑in rules** to detect, validate, and triage secrets before they ever reach production
+Kingfisher is a blazingly fast secret-scanning and **live validation** tool built in Rust.
+
+It combines Intel’s SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale,  
+and **ships with hundreds of built-in rules** to detect, **validate**, and triage secrets before they ever reach production.  
+
+For a look at how Kingfisher has grown from its early foundations into today's full-featured scanner, see [Lineage and Evolution](#lineage-and-evolution).
+
 </p>
-
-Originally forked from Praetorian’s Nosey Parker, Kingfisher has since significantly expanded and diverged, adding live validation, 10+ new scan targets, and major architectural enhancements. See [Origins and Divergence](#origins-and-divergence) for details.
 
 ## Key Features
 
@@ -143,7 +147,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   - [Finding Fingerprint](#finding-fingerprint)
   - [Rule Performance Profiling](#rule-performance-profiling)
   - [CLI Options](#cli-options)
-  - [Origins and Divergence](#origins-and-divergence)
+  - [Lineage and Evolution](#lineage-and-evolution)
 - [Roadmap](#roadmap)
 - [License](#license)
 
@@ -156,7 +160,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
 Pre-built binaries are available from the [Releases](https://github.com/mongodb/kingfisher/releases) section.
 
 ### Homebrew
-
+![Homebrew Formula Version](https://img.shields.io/homebrew/v/kingfisher)
 
 ```bash
 brew install kingfisher
@@ -1286,20 +1290,22 @@ kingfisher scan --help
 ```
 
 
-## Origins and Divergence
+## Lineage and Evolution
 
-Kingfisher began as a fork of Praetorian’s Nosey Parker, as our experiment with adding live validation support and embedding that validation directly inside each rule.  
+Kingfisher began as an internal fork of Nosey Parker, used as a high-performance foundation for secret detection. 
 
-Since that initial fork, it has diverged heavily from Nosey Parker:
-- Added support for live validation of discovered secrets  
-- Added hundreds of new rules  
-- Added support for analyzing compressed files  
-- Added support for building "baselines" to allow for only reporting on newly discovered secrets  
-- Added Tree-Sitter based source code parsing on top of Hyperscan for deeper language-aware detection  
-- Expanded support for new targets (GitLab, BitBucket, Gitea, Jira, Confluence, Slack, S3, GCS, Docker, Hugging Face, etc.)  
-- Replaced the SQLite datastore with an in-memory store + Bloom filter  
-- Collapsed the workflow into a single scan-and-report phase with direct JSON/BSON/SARIF outputs  
-- Delivered cross-platform builds, including native Windows  
+Since then it has evolved far beyond that starting point, introducing live validation, hundreds of new rules, additional scan targets, and major architectural changes across nearly every subsystem.
+
+**Key areas of evolution**
+- **Live validation** of detected secrets directly within rules  
+- **Hundreds of new built-in rules** and an expanded YAML rule schema  
+- **Baseline management** to suppress known findings over time  
+- **Tree-sitter parsing** layered on Hyperscan for language-aware detection  
+- **More scan targets** (GitLab, Bitbucket, Gitea, Jira, Confluence, Slack, S3, GCS, Docker, Hugging Face, etc.)  
+- **Compressed Files** scanning support added
+- **New storage model** (in-memory + Bloom filter, replacing SQLite)  
+- **Unified workflow** with JSON/BSON/SARIF outputs  
+- **Cross-platform builds** for Linux, macOS, and Windows
 
 # Roadmap
 
