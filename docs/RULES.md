@@ -38,12 +38,14 @@ rules:
       - rule_id: kingfisher.aws.id
         variable: AKID              # referenced as {{ AKID }}
 
-    pattern_requirements:         # (optional) character type requirements
+    pattern_requirements:         # (optional) character/word requirements
       min_digits: 1                 # require at least 1 digit
       min_uppercase: 1              # require at least 1 uppercase letter
       min_lowercase: 1              # require at least 1 lowercase letter
       min_special_chars: 1          # require at least 1 special character
       special_chars: "!@#$%^&*()"   # optional: custom special character set
+      exclude_words:                # optional: drop matches containing these words
+        - test
 
     validation:                     # (optional) live validation
       type: Http
@@ -78,7 +80,7 @@ rules:
 | examples                | Good matches; used for testing                                       |
 | visible                 | false to hide non‑secret captures (e.g. IDs)                         |
 | depends_on_rule         | Chain rules: use captures from one rule in another's validation      |
-| pattern_requirements  | Require specific character types (digits, uppercase, lowercase, special) |
+| pattern_requirements  | Require character types and/or exclude placeholder words from matches |
 | validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
 
 
@@ -264,9 +266,14 @@ pattern_requirements:
   min_lowercase: 1           # Require at least 1 lowercase letter (a-z)
   min_special_chars: 1       # Require at least 1 special character
   special_chars: "!@#$%^&*"  # Optional: define which characters are "special"
+  exclude_words:             # Optional: reject matches containing any of these (case-insensitive)
+    - test
+    - demo
 ```
 
 All fields are optional. If `special_chars` is not specified, the default set includes: `!@#$%^&*()_+-=[]{}|;:'",.<>?/\`~`
+
+`exclude_words` performs a case-insensitive substring check. If any entry (after trimming whitespace) appears within the match, the match is discarded. This is helpful for dropping known dummy tokens such as "test" or "demo" that otherwise satisfy the regex.
 
 ### Example: Secure API Key
 
@@ -288,6 +295,8 @@ rules:
       min_uppercase: 1        # Must contain at least 1 uppercase letter
       min_lowercase: 1        # Must contain at least 1 lowercase letter
       min_special_chars: 1    # Must contain at least 1 special character
+      exclude_words:
+        - test
     examples:
       - api_key = "MyS3cur3K3y!2024"
       - api-key: "Abc123!@#Token"
@@ -298,6 +307,25 @@ In this example:
 - The `pattern_requirements` filters out matches that don't have at least one of each required type
 - A match like `"abcdefghijklmnopqrst"` would be rejected (no uppercase, no digit, no special)
 - A match like `"Abc123!SecureToken"` would be accepted (has all required types)
+- A match like `"Test123!SecureToken"` would be rejected because it contains the excluded word `test`
+
+### Example: Excluding Dummy Values
+
+```yaml
+rules:
+  - name: Token without placeholders
+    id: custom.token.2
+    pattern: |-
+      (?i)token[:=]\s*([A-Za-z0-9]{12,})
+    pattern_requirements:
+      exclude_words:
+        - placeholder
+        - sample
+    examples:
+      - token: "REALVALUE1234"
+    negative_examples:
+      - token = "SAMPLETOKEN9999"  # dropped by exclude_words
+```
 
 ### Example: Custom Special Characters
 

@@ -1004,7 +1004,9 @@ mod test {
     use crate::{
         blob::{Blob, BlobIdMap},
         origin::{Origin, OriginSet},
-        rules::rule::{DependsOnRule, HttpRequest, HttpValidation, RuleSyntax, Validation},
+        rules::rule::{
+            DependsOnRule, HttpRequest, HttpValidation, PatternRequirements, RuleSyntax, Validation,
+        },
     };
 
     proptest! {
@@ -1135,6 +1137,51 @@ mod test {
             matcher.user_data.raw_matches_scratch,
             vec![RawMatch { rule_id: 0, start_idx: 0, end_idx: 9 },]
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_pattern_requirements_exclude_words_filters_matches() -> Result<()> {
+        let rules = vec![Rule::new(RuleSyntax {
+            id: "test.exclude".to_string(),
+            name: "exclude words".to_string(),
+            pattern: "(?P<token>prefix[A-Za-z]+)".to_string(),
+            confidence: crate::rules::rule::Confidence::Medium,
+            min_entropy: 0.0,
+            visible: true,
+            examples: vec![],
+            negative_examples: vec![],
+            references: vec![],
+            validation: None,
+            depends_on_rule: vec![],
+            pattern_requirements: Some(PatternRequirements {
+                min_digits: None,
+                min_uppercase: None,
+                min_lowercase: None,
+                min_special_chars: None,
+                special_chars: None,
+                exclude_words: Some(vec!["TEST".to_string()]),
+            }),
+        })];
+
+        let rules_db = RulesDatabase::from_rules(rules)?;
+        let input = b"prefixgood prefixtest";
+        let seen_blobs: BlobIdMap<bool> = BlobIdMap::new();
+        let scanner_pool = Arc::new(ScannerPool::new(Arc::new(rules_db.vsdb.clone())));
+        let mut matcher =
+            Matcher::new(&rules_db, scanner_pool, &seen_blobs, None, false, None, &[], false)?;
+
+        matcher.scan_bytes_raw(input, "fname")?;
+
+        let matches = &matcher.user_data.raw_matches_scratch;
+        assert_eq!(matches.len(), 1, "exclude_words should drop filtered matches");
+        let RawMatch { start_idx, end_idx, .. } = matches[0];
+        assert_eq!(
+            &input[start_idx as usize..end_idx as usize],
+            b"prefixgood",
+            "remaining match should be the non-excluded token",
+        );
+
         Ok(())
     }
 

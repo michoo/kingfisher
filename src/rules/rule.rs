@@ -70,6 +70,9 @@ pub struct PatternRequirements {
     /// Custom set of characters to consider as "special" (defaults to common punctuation)
     #[serde(default)]
     pub special_chars: Option<String>,
+    /// Words that should cause the match to be excluded when present (case-insensitive)
+    #[serde(default)]
+    pub exclude_words: Option<Vec<String>>,
 }
 
 impl PatternRequirements {
@@ -108,9 +111,29 @@ impl PatternRequirements {
 
         // Check special character requirement
         if let Some(min_special) = self.min_special_chars {
-            let special_chars = self.special_chars.as_deref().unwrap_or(Self::DEFAULT_SPECIAL_CHARS);
+            let special_chars =
+                self.special_chars.as_deref().unwrap_or(Self::DEFAULT_SPECIAL_CHARS);
             let special_count = s.chars().filter(|c| special_chars.contains(*c)).count();
             if special_count < min_special {
+                return false;
+            }
+        }
+
+        // Check exclude words requirement
+        if let Some(exclude_words) = self.exclude_words.as_ref() {
+            let lowercase_input = s.to_lowercase();
+            if exclude_words
+                .iter()
+                .filter_map(|word| {
+                    let trimmed = word.trim();
+                    if trimmed.is_empty() {
+                        None
+                    } else {
+                        Some(trimmed.to_lowercase())
+                    }
+                })
+                .any(|word| lowercase_input.contains(&word))
+            {
                 return false;
             }
         }
@@ -526,6 +549,7 @@ mod tests {
             min_lowercase: None,
             min_special_chars: None,
             special_chars: None,
+            exclude_words: None,
         };
 
         // Should pass: has 3 digits
@@ -546,6 +570,7 @@ mod tests {
             min_lowercase: None,
             min_special_chars: None,
             special_chars: None,
+            exclude_words: None,
         };
 
         // Should pass: has 3 uppercase
@@ -566,6 +591,7 @@ mod tests {
             min_lowercase: Some(2),
             min_special_chars: None,
             special_chars: None,
+            exclude_words: None,
         };
 
         // Should pass: has 3 lowercase
@@ -586,6 +612,7 @@ mod tests {
             min_lowercase: None,
             min_special_chars: Some(2),
             special_chars: None, // uses default
+            exclude_words: None,
         };
 
         // Should pass: has 2 special chars
@@ -606,6 +633,7 @@ mod tests {
             min_lowercase: None,
             min_special_chars: Some(2),
             special_chars: Some("$%^".to_string()),
+            exclude_words: None,
         };
 
         // Should pass: has 2 custom special chars
@@ -626,6 +654,7 @@ mod tests {
             min_lowercase: Some(1),
             min_special_chars: Some(1),
             special_chars: None,
+            exclude_words: None,
         };
 
         // Should pass: has all requirements
@@ -645,6 +674,43 @@ mod tests {
     }
 
     #[test]
+    fn test_pattern_requirements_exclude_words() {
+        let reqs = PatternRequirements {
+            min_digits: None,
+            min_uppercase: None,
+            min_lowercase: None,
+            min_special_chars: None,
+            special_chars: None,
+            exclude_words: Some(vec!["test".to_string(), "Demo".to_string()]),
+        };
+
+        // Should fail: contains "test" (case-insensitive)
+        assert!(!reqs.validate(b"MyTestToken"));
+
+        // Should fail: contains "demo" (case-insensitive)
+        assert!(!reqs.validate(b"example-demo-value"));
+
+        // Should pass: does not contain excluded words
+        assert!(reqs.validate(b"example-value"));
+    }
+
+    #[test]
+    fn test_pattern_requirements_exclude_words_ignores_empty_entries() {
+        let reqs = PatternRequirements {
+            min_digits: None,
+            min_uppercase: None,
+            min_lowercase: None,
+            min_special_chars: None,
+            special_chars: None,
+            exclude_words: Some(vec![" ".to_string(), "".to_string(), "BLOCK".to_string()]),
+        };
+
+        // Should fail only when non-empty exclusion matches
+        assert!(!reqs.validate(b"needs-blocking"));
+        assert!(reqs.validate(b"allowed"));
+    }
+
+    #[test]
     fn test_pattern_requirements_none() {
         let reqs = PatternRequirements {
             min_digits: None,
@@ -652,6 +718,7 @@ mod tests {
             min_lowercase: None,
             min_special_chars: None,
             special_chars: None,
+            exclude_words: None,
         };
 
         // Should pass: no requirements
