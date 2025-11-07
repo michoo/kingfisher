@@ -67,6 +67,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [ Run Kingfisher in Docker](#-run-kingfisher-in-docker)
 - [🔐 Detection Rules at a Glance](#-detection-rules-at-a-glance)
   - [📝 Write Custom Rules!](#-write-custom-rules)
+    - [Pattern requirements and placeholder filtering](#pattern-requirements-and-placeholder-filtering)
 - [🎉 Usage](#-usage)
   - [Basic Examples](#basic-examples)
     - [Scan with secret validation](#scan-with-secret-validation)
@@ -331,8 +332,7 @@ is independent:
 - `min_digits`, `min_uppercase`, `min_lowercase`, and `min_special_chars` enforce complexity thresholds.
 - `special_chars` lets you override the set of characters counted as "special" when `min_special_chars` is used.
 - `ignore_if_contains` lists case-insensitive substrings that should cause a match to be discarded (for example, to drop
-  `test`, `demo`, or `localhost` values). Kingfisher still accepts the legacy `exclude_words` key as an alias when loading
-  existing rule files.
+  `test`, `demo`, or `localhost` values).
 
 When a match is skipped because of `ignore_if_contains`, Kingfisher logs the event at the `DEBUG` level alongside the rule that
 was evaluated. If you need to keep those matches for a particular scan, pass `--no-ignore-if-contains` to `kingfisher scan` to

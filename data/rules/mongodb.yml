@@ -81,10 +81,6 @@ rules:
         mongodb(?:\+srv)?://[\S]{3,50}:(?:[\S]{3,88})@[-.%\w/:]+
       )
       \b
-    pattern_requirements:
-      ignore_if_contains:
-        - "@localhost"
-        - "@127.0.0.1"
     min_entropy: 3
     examples:
       - client = mongoc_client_new ("mongodb+srv://someuser:hunter2@my-atlas-rd941.mongodb.net/test?retryWrites=true&w=majority");
