@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [v1.62.0]
+- This release is focused on further improving detection accuracy, before even attempting to validate findings.
 - Added `pattern_requirements` checks to rules, providing lightweight post-regex character-class validation without lookarounds.
 - Added an `ignore_if_contains` option to `PatternRequirements` to drop matches containing case-insensitive placeholder words, with tests covering the new behavior.
 - Updated rules to adopt the new `pattern_requirements` support.

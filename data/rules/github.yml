@@ -1,34 +1,17 @@
 rules:
-  - name: GitHub Personal Access Token
+  - name: GitHub Personal Access Token - fine-grained permissions
     id: kingfisher.github.1
     pattern: |
-      (?xi)                     
-      \b                       
+      (?xi)                 
       (                        
-        (?:                     # for token prefixes
-          ghp|                 # Personal Access Token
-          gho|                 # OAuth Token
-          ghu|                 # GitHub App User-to-Server Token
-          ghs|                 # GitHub App Server-to-Server Token
-          ghr|                 # Refresh Token
-          github_pat           # Alternative format for Personal Access Token
-        )_                     
-        (?:                     # for token body
-          [a-z0-9_]{35,235}    # 35 to 235 lowercase alphanumeric characters or underscores
-        )
-      )                        
-      \b
+        github_pat
+        [A-Z0-9]{80,84}
+      )
     pattern_requirements:
       min_digits: 2
       min_lowercase: 2
     min_entropy: 3.5
     examples:
-      - "GITHUB_KEY=ghp_XIxB7KMNdAr3zqWtQqhE94qglHqOzn1D1stg"
-      - "let g:gh_token='ghp_4U3LSowpDx8XvYE7A8GH56oxU5aWnY2mzIbV'"
-      - |
-        ## git developer settings
-        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
-      - "oauth_token: gho_fq75OMU7UVbS9pTZmoCCzJT6TM5d1w099FgG"
       - "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"
     references:
       - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
@@ -52,8 +35,49 @@ rules:
               type: WordMatch
               words:
                 - '"login"'
-  - name: GitHub OAuth Access Token
+  - name: GitHub Personal Access Token
     id: kingfisher.github.2
+    pattern: |
+      (?xi)                     
+      \b                       
+      (                        
+        ghp_
+        [A-Z0-9]{36}
+      )
+    pattern_requirements:
+      min_digits: 2
+      min_lowercase: 2
+    min_entropy: 3.5
+    examples:
+      - "GITHUB_KEY=ghp_XIxB7KMNdAr3zqWtQqhE94qglHqOzn1D1stg"
+      - "let g:gh_token='ghp_4U3LSowpDx8XvYE7A8GH56oxU5aWnY2mzIbV'"
+      - |
+        ## git developer settings
+        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
+    references:
+      - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.github.com/graphql
+          headers:
+            Authorization: token {{ TOKEN }}
+            Accept: application/vnd.github+json
+            Content-Type: application/json
+          body: |
+            {
+              "query": "{ viewer { login } }"
+            }
+          response_matcher:
+            - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - '"login"'
+  - name: GitHub OAuth Access Token
+    id: kingfisher.github.3
     pattern: |
       (?xi)                     
       \b                       
@@ -90,15 +114,49 @@ rules:
               type: WordMatch
               words:
                 - '"login"'
-  - name: GitHub App Token
-    id: kingfisher.github.3
+  - name: GitHub App User-to-Server Token
+    id: kingfisher.github.4
     pattern: |
       (?xi)
       (
-        (?:ghu|ghs)_[A-Z0-9]{36}
+        ghu_[A-Z0-9]{36}
       )
     examples:
       - '            "token": "ghu_16C7e42F292c69C2E7C10c838347Ae178B4a",'
+      - |
+        Example usage:
+        git clone http://ghu_RguXIkihJjwHAP6eXEYxaPNvywurTr5IOAbg@github.com/username/repo.git
+    references:
+      - https://docs.github.com/en/rest/users?apiVersion=2022-11-28
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://api.github.com/graphql
+          headers:
+            Authorization: token {{ TOKEN }}
+            Accept: application/vnd.github+json
+            Content-Type: application/json
+          body: |
+            {
+              "query": "{ viewer { login } }"
+            }
+          response_matcher:
+            - report_response: true
+            - match_all_words: true
+              type: WordMatch
+              words:
+                - '"login"'
+  - name: GitHub App Server-to-Server Token
+    id: kingfisher.github.5
+    pattern: |
+      (?xi)
+      (
+        ghs_[A-Z0-9]{36}
+      )
+    examples:
+      - '            "token": "ghs_16C7e42F292c69C2E7C10c838347Ae178B4a",'
       - |
         Example usage:
         git clone http://ghs_RguXIkihJjwHAP6eXEYxaPNvywurTr5IOAbg@github.com/username/repo.git
@@ -125,7 +183,7 @@ rules:
               words:
                 - '"login"'
   - name: GitHub Refresh Token
-    id: kingfisher.github.4
+    id: kingfisher.github.6
     pattern: |
       (?xi)
       (
@@ -156,7 +214,7 @@ rules:
               words:
                 - '"login"'
   - name: GitHub Client ID
-    id: kingfisher.github.5
+    id: kingfisher.github.7
     pattern: |
       (?xi)
       (?:github)
@@ -172,7 +230,7 @@ rules:
         GITHUB_CLIENT_ID=ac58d6da7d7a84c039b7
         GITHUB_SECRET=37d02377a3e9d849e18704c3ec883f9c5787d857
   - name: GitHub Secret Key
-    id: kingfisher.github.6
+    id: kingfisher.github.8
     pattern: |
       (?xi)
       github
@@ -209,7 +267,7 @@ rules:
         GITHUB_CLIENT_ID=ac58d6da7d7a84c039b7
         GITHUB_SECRET=37d02377a3e9d849e18704c3ec883f9c5787d857
   - name: GitHub Personal Access Token (fine-grained permissions)
-    id: kingfisher.github.7
+    id: kingfisher.github.9
     pattern: |
       (?xi)
       (
