@@ -7,7 +7,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
 
     let dir = tempfile::tempdir()?;
     let tar_gz = dir.path().join("payload.tar.gz");
-    let github_pat = "ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa";
+    let github_pat = "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";
 
     // --- build a payload.tar.gz -------------------------------------------------
     {
@@ -29,7 +29,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
     let findings_code = 200;
 
     // ── 1) extraction ENABLED -- secret should be found ─────────────────────────
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             tar_gz.to_str().unwrap(),
@@ -43,7 +43,7 @@ fn smoke_scan_tar_gz_archive() -> anyhow::Result<()> {
         .stdout(predicates::str::contains(github_pat));
 
     // ── 2) extraction DISABLED -- secret *not* found ────────────────────────────
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             tar_gz.to_str().unwrap(),

@@ -8,11 +8,11 @@ use tempfile::tempdir;
 fn detects_base64_encoded_secret() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let file_path = dir.path().join("secret.txt");
-    // Base64 for ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa
-    let encoded = "Z2hwXzF3dUhGaWtCS1F0Q2NIM0VCMkZCVWt5bjhrclhoUDJxTHFQYQ==";
+    // Base64 for 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
+    let encoded = "Z2hwXzF3dUhGaWtCS1F0Q2NIM0VCMkZCVWt5bjhrclhoUDBNV0h4cw==";
     fs::write(&file_path, encoded)?;
 
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -26,7 +26,7 @@ fn detects_base64_encoded_secret() -> anyhow::Result<()> {
         .assert()
         .code(200)
         .stdout(
-            predicate::str::contains("ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa")
+            predicate::str::contains("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")
                 .and(predicate::str::contains("\"encoding\": \"base64\"")),
         );
 
@@ -39,10 +39,10 @@ fn detects_base64_encoded_secret() -> anyhow::Result<()> {
 fn skips_base64_when_disabled() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let file_path = dir.path().join("secret.txt");
-    let encoded = "Z2hwXzF3dUhGaWtCS1F0Q2NIM0VCMkZCVWt5bjhrclhoUDJxTHFQYQ==";
+    let encoded = "Z2hwXzF3dUhGaWtCS1F0Q2NIM0VCMkZCVWt5bjhrclhoUDBNV0h4cw==";
     fs::write(&file_path, encoded)?;
 
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -68,7 +68,7 @@ fn no_base64_skips_empty_files() -> anyhow::Result<()> {
     let file_path = dir.path().join("empty.py");
     fs::write(&file_path, "")?;
 
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -92,11 +92,11 @@ fn no_base64_skips_empty_files() -> anyhow::Result<()> {
 fn detects_base64_in_code_with_tree_sitter() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let file_path = dir.path().join("secret.py");
-    // Base64 for ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa
-    let encoded = "Z2hwXzF3dUhGaWtCS1F0Q2NIM0VCMkZCVWt5bjhrclhoUDJxTHFQYQ==";
+    // Base64 for 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
+    let encoded = "Z2hwXzF3dUhGaWtCS1F0Q2NIM0VCMkZCVWt5bjhrclhoUDBNV0h4cw==";
     fs::write(&file_path, format!("token = \"{}\"\n", encoded))?;
 
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -110,7 +110,7 @@ fn detects_base64_in_code_with_tree_sitter() -> anyhow::Result<()> {
         .assert()
         .code(200)
         .stdout(
-            predicate::str::contains("ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa")
+            predicate::str::contains("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")
                 .and(predicate::str::contains("\"encoding\": \"base64\"")),
         );
 

@@ -139,6 +139,7 @@ impl TestContext {
             skip_aws_account_file: None,
             no_base64: false,
             no_inline_ignore: false,
+            no_ignore_if_contains: false,
         };
 
         let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
@@ -158,7 +159,7 @@ async fn test_scan_slack_messages() -> Result<()> {
         "messages": {
             "matches": [{
                 "permalink": "https://example.slack.com/archives/C123/p1234",
-                "text": "This contains a github token ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa",
+                "text": "This contains a github token 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",
                 "ts": "1234.56",
                 "channel": {"id": "C123", "name": "general"}
             }],
@@ -278,6 +279,7 @@ async fn test_scan_slack_messages() -> Result<()> {
         no_base64: false,
         extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,
+        no_ignore_if_contains: false,
     };
 
     let global_args = GlobalArgs {

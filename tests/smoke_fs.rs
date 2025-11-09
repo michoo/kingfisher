@@ -5,7 +5,7 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 use tempfile::tempdir;
 
-const GITHUB_PAT: &str = "ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa";
+const GITHUB_PAT: &str = "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";
 
 #[test]
 fn smoke_scan_filesystem_text_and_binary() -> anyhow::Result<()> {
@@ -18,7 +18,7 @@ fn smoke_scan_filesystem_text_and_binary() -> anyhow::Result<()> {
     fs::write(&bin_path, [0x89, 0x50, 0x4E, 0x47])?; // tiny PNG header
 
     // ── run kingfisher ────────────────────────────────────────────────
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),

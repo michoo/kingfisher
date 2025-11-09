@@ -4,7 +4,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use tempfile::tempdir;
 
-const SECRET: &str = "ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa";
+const SECRET: &str = "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";
 
 #[test]
 fn exclude_pattern_hides_matches() -> anyhow::Result<()> {
@@ -14,7 +14,7 @@ fn exclude_pattern_hides_matches() -> anyhow::Result<()> {
     fs::write(&py, format!("token = \"{}\"\n", SECRET))?;
     fs::write(&txt, format!("token = \"{}\"\n", SECRET))?;
 
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -41,7 +41,7 @@ fn exclude_git_directory_hides_matches() -> anyhow::Result<()> {
     fs::write(git_dir.join("config"), format!("token = \"{}\"\n", SECRET))?;
     fs::write(dir.path().join("bar.txt"), format!("token = \"{}\"\n", SECRET))?;
 
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),

@@ -1,10 +1,44 @@
 use std::fs;
 
 use assert_cmd::Command;
+use clap::Parser;
 use predicates::prelude::*;
 use tempfile::tempdir;
 
-const GH_PAT: &str = "ghp_1wuHFikBKQtCcH3EB2FBUkyn8krXhP2qLqPa";
+const GH_PAT: &str = "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";
+
+#[test]
+fn manage_baseline_enables_no_dedup() -> anyhow::Result<()> {
+    use kingfisher::cli::{
+        commands::scan::ScanOperation,
+        global::{Command, CommandLineArgs},
+    };
+
+    let dir = tempdir()?;
+
+    let args = CommandLineArgs::try_parse_from([
+        "kingfisher",
+        "scan",
+        dir.path().to_str().unwrap(),
+        "--manage-baseline",
+        "--no-update-check",
+    ])?;
+
+    let command = match args.command {
+        Command::Scan(scan_args) => scan_args,
+        other => panic!("unexpected command parsed: {:?}", other),
+    };
+
+    let scan_args = match command.into_operation()? {
+        ScanOperation::Scan(scan_args) => scan_args,
+        op => panic!("expected scan operation, got {:?}", op),
+    };
+
+    assert!(scan_args.manage_baseline);
+    assert!(scan_args.no_dedup);
+
+    Ok(())
+}
 
 #[test]
 fn baseline_create_and_filter() -> anyhow::Result<()> {
@@ -14,7 +48,7 @@ fn baseline_create_and_filter() -> anyhow::Result<()> {
     let baseline = dir.path().join("baseline.yaml");
 
     // Create baseline with manage flag
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -39,7 +73,7 @@ fn baseline_create_and_filter() -> anyhow::Result<()> {
 
     // Scanning with the baseline should suppress the existing finding and leave
     // the baseline untouched.
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -61,7 +95,7 @@ fn baseline_create_and_filter() -> anyhow::Result<()> {
     assert_eq!(initial_baseline, baseline_after_scan, "baseline remains stable after reuse");
 
     // Managing the baseline again should not churn entries or report the secret
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -96,7 +130,7 @@ fn baseline_exclude_prunes_entries() -> anyhow::Result<()> {
     let baseline = dir.path().join("baseline.yaml");
 
     // Initial baseline includes the .git secret
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),
@@ -117,7 +151,7 @@ fn baseline_exclude_prunes_entries() -> anyhow::Result<()> {
     assert!(content.contains(".git/secret.txt"));
 
     // Rescan with exclusion, which should prune the .git entry
-    Command::cargo_bin("kingfisher")?
+    Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
         .args([
             "scan",
             dir.path().to_str().unwrap(),

@@ -180,6 +180,7 @@ mod tests {
             skip_aws_account_file: None,
             no_base64: false,
             no_inline_ignore: false,
+            no_ignore_if_contains: false,
         }
     }
 
@@ -196,6 +197,7 @@ mod tests {
             references: vec![],
             validation: None,
             depends_on_rule: vec![],
+            pattern_requirements: None,
         };
         let rule = Arc::new(Rule::new(syntax));
         Match {

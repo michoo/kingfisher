@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.62.0]
+- Added `pattern_requirements` checks to rules, providing lightweight post-regex character-class validation without lookarounds. See docs/RULES.md for detail
+- Added an `ignore_if_contains` option to `pattern_requirements` to drop matches containing case-insensitive placeholder words, with tests covering the new behavior.
+- Updated rules to adopt the new `pattern_requirements` support.
+- Added checksum comparisons to `pattern_requirements`, new `suffix`, `crc32`, and `base62` Liquid filters, and verbose logging so mismatched checksums are skipped with context rather than reported as findings.
+- Split GitHub token detections into fine-grained/fixed-format variants and enforce checksum validation for modern GitHub token families (PAT, OAuth, App, refresh) while preserving legacy coverage.
+- Added a rule for Zuplo tokens.
+- Added checksum calculation for Confluent, GitHub, and Zuplo tokens, which can drastically reduce false positive reports.
+- Improved OpsGenie validation.
+- Automatically enable `--no-dedup` when `--manage-baseline` is supplied so baseline management keeps every finding.
+- This release is focused on further improving detection accuracy, before even attempting to validate findings.
+
 ## [v1.61.0]
 - Fixed local filesystem scans to keep `open_path_as_is` enabled when opening Git repositories and only disable it for diff-based scans.
 - Created Linux and Windows specific installer script

@@ -1,13 +1,9 @@
 rules:
-  # ---------------------------------------------------------------------
-  # 1. OpenWeather Map API Key (detector unchanged, new validation)
-  # ---------------------------------------------------------------------
   - name: OpenWeather Map API Key
     id: kingfisher.openweather.1
     pattern: |
       (?xi)
-      \b
-      (?:pyowm|openweather|owm\b)
+      (?:pyowm|openweather|\bowm\b)
       (?:.|[\n\r]){0,64}?
       \b
       (
@@ -17,6 +13,8 @@ rules:
         [a-z0-9]{32}
       )
       \b
+    pattern_requirements:
+      min_digits: 2
     min_entropy: 3.5
     confidence: medium
     examples:

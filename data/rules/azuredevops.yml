@@ -21,9 +21,11 @@ rules:
       (?xi)
       \b
       (
-        [a-z0-9]{75,76}AZDO[a-z0-9]{4,5}
+        [a-z0-9]{76}AZDO[a-z0-9]{4,5}
       )
       \b
+    pattern_requirements:
+      min_digits: 2
     min_entropy: 3
     confidence: medium
     examples:

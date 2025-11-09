@@ -144,6 +144,10 @@ pub struct ScanArgs {
     /// Disable inline ignore directives entirely
     #[arg(long = "no-ignore", default_value_t = false)]
     pub no_inline_ignore: bool,
+
+    /// Disable rule-level `ignore_if_contains` filtering for pattern requirements
+    #[arg(long = "no-ignore-if-contains", default_value_t = false)]
+    pub no_ignore_if_contains: bool,
 }
 
 /// Confidence levels for findings
@@ -414,6 +418,10 @@ impl ScanCommandArgs {
 
         if !used_provider_subcommand {
             self.scan_args.input_specifier_args.emit_deprecated_warnings();
+        }
+
+        if self.scan_args.manage_baseline {
+            self.scan_args.no_dedup = true;
         }
 
         Ok(ScanOperation::Scan(self.scan_args))

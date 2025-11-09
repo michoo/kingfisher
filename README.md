@@ -36,6 +36,7 @@ For a look at how Kingfisher has grown from its early foundations into today's f
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
+- **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
 
 **Learn more:** [Introducing Kingfisher: Real‑Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
@@ -67,6 +68,8 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [ Run Kingfisher in Docker](#-run-kingfisher-in-docker)
 - [🔐 Detection Rules at a Glance](#-detection-rules-at-a-glance)
   - [📝 Write Custom Rules!](#-write-custom-rules)
+    - [Pattern requirements and placeholder filtering](#pattern-requirements-and-placeholder-filtering)
+    - [🔍 Checksum Intelligence (New!)](#-checksum-intelligence-new)
 - [🎉 Usage](#-usage)
   - [Basic Examples](#basic-examples)
     - [Scan with secret validation](#scan-with-secret-validation)
@@ -323,7 +326,44 @@ However, you may want to add your own custom rules, or modify a detection to bet
 
 First, review [docs/RULES.md](/docs/RULES.md) to learn how to create custom Kingfisher rules.
 
+### Pattern requirements and placeholder filtering
+
+Every rule can declare optional `pattern_requirements` to enforce additional character checks after a regex matches. Each field
+is independent:
+
+- `min_digits`, `min_uppercase`, `min_lowercase`, and `min_special_chars` enforce complexity thresholds.
+- `special_chars` lets you override the set of characters counted as "special" when `min_special_chars` is used.
+- `ignore_if_contains` lists case-insensitive substrings that should cause a match to be discarded (for example, to drop
+  `test`, `demo`, or `localhost` values).
+- `checksum` lets you compare an extracted portion of the match against a Liquid-rendered expectation. Provide `actual.template`
+  and `expected` Liquid snippets (with access to `{{ MATCH }}`, `{{ FULL_MATCH }}`, and any named capture as both its original
+  case and uppercase alias) and Kingfisher will skip the finding when the rendered values differ. Optional keys such as
+  `requires_capture` and `skip_if_missing` help you guard against legacy formats while onboarding the checksum-aware variant.
+
+When a match is skipped because of `ignore_if_contains` or a checksum mismatch, Kingfisher logs the event at the `DEBUG` level alongside the rule that was evaluated. If you need to keep those matches for a particular scan, pass `--no-ignore-if-contains` to `kingfisher scan` to disable the substring filter without editing any rule files. Verbose mode (`-v`) will also show you the
+checksum mismatch lengths so you can confirm why a finding was suppressed.
+
 Once you've done that, you can provide your custom rules (defined in a YAML file) and provide it to Kingfisher at runtime --- no recompiling required!
+
+### 🔍 Checksum Intelligence (New!)
+
+Modern API tokens increasingly include **built-in checksums**, short internal digests that make each credential self-verifiable. (For background, see [GitHub’s write-up on their newer token formats](https://github.blog/engineering/platform-security/behind-githubs-new-authentication-token-formats/) and why checksums slash false positives.)
+
+Kingfisher supports **checksum-aware matching** in rules, enabling **offline structural verification** of credentials *without* calling third-party APIs.
+
+By validating each token’s internal checksum (for tokens that support checksums), Kingfisher eliminates nearly all false positives—automatically skipping structurally invalid or fake tokens before validation ever runs.
+
+**Why this matters**
+- ✅ **Offline verification** — no API call required  
+- 🧠 **Industry-aligned** — compatible with prefix + checksum token designs (e.g., modern PATs)  
+- ⚡ **Lower false positives** — invalid tokens are filtered out by structure alone
+
+**Learn more**: implementation details and templating are documented in **[docs/RULES.md](docs/RULES.md)**
+
+---
+
+<!-- Optional: add this one-liner to your “Performance, Accuracy, and Hundreds of Rules” bullets -->
+- **Checksum-aware detection**: verifies tokens with embedded checksums (offline) to cut false positives — see [docs/RULES.md](docs/RULES.md)
 
 # 🎉 Usage
 
@@ -1083,6 +1123,8 @@ kingfisher scan /path/to/code \
   --baseline-file ./baseline-file.yml
 ```
 
+`--manage-baseline` automatically enables `--no-dedup` so the baseline captures every individual occurrence.
+
 Use the same YAML file with the `--baseline-file` option on future scans to hide all recorded findings:
 
 ```bash
@@ -1159,13 +1201,15 @@ leaves the default unchanged.
 - `--redact`: Replaces discovered secrets with a one-way hash for secure output
 - `--exclude <PATTERN>`: Skip any file or directory whose path matches this glob pattern (repeatable, uses gitignore-style syntax, case sensitive)
 - `--baseline-file <FILE>`: Ignore matches listed in a baseline YAML file
-- `--manage-baseline`: Create or update the baseline file with current findings
+- `--manage-baseline`: Create or update the baseline file with current findings (automatically enables `--no-dedup`)
 - `--skip-regex <PATTERN>`: Ignore findings whose text matches this regex (repeatable)
 - `--skip-word <WORD>`: Ignore findings containing this case-insensitive word (repeatable)
 - `--skip-aws-account <ACCOUNT_ID>`: Skip live AWS validation for findings tied to the specified AWS account number (repeatable, accepts comma-separated lists)
 - `--skip-aws-account-file <FILE>`: Load AWS account numbers to skip from a file (one account per line; `#` comments allowed)
 - `--ignore-comment <DIRECTIVE>`: Honor additional inline directives from other scanners (repeatable; e.g. `--ignore-comment "gitleaks:allow"`)
 - `--no-ignore`: Disable inline directives entirely so every match is reported
+- `--no-ignore-if-contains`: Ignore the `ignore_if_contains` filter in rules so placeholder words still produce findings
+
 ## Understanding `--confidence`
 
 The `--confidence` flag sets a minimum confidence threshold, not an exact match.

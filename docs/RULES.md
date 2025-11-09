@@ -38,6 +38,15 @@ rules:
       - rule_id: kingfisher.aws.id
         variable: AKID              # referenced as {{ AKID }}
 
+    pattern_requirements:         # (optional) character/word requirements
+      min_digits: 1                 # require at least 1 digit
+      min_uppercase: 1              # require at least 1 uppercase letter
+      min_lowercase: 1              # require at least 1 lowercase letter
+      min_special_chars: 1          # require at least 1 special character
+      special_chars: "!@#$%^&*()"   # optional: custom special character set
+      ignore_if_contains:                # optional: drop matches containing these words
+        - test
+
     validation:                     # (optional) live validation
       type: Http
       content:
@@ -61,17 +70,18 @@ rules:
             - type: JsonValid
 ```
 
-| Field             | What it does                                                         |
-| ----------------- | -------------------------------------------------------------------- |
-| name              | Friendly name shown in reports                                       |
-| id                | Unique text ID (namespace.v#) used internally                        |
-| pattern           | Regex used to spot secrets (free‑spacing & flags allowed)            |
-| min_entropy       | Threshold to guard against low‑complexity false positives            |
-| confidence        | Suggests severity: low → high                                        |
-| examples          | Good matches; used for testing                                       |
-| visible           | false to hide non‑secret captures (e.g. IDs)                         |
-| depends_on_rule   | Chain rules: use captures from one rule in another’s validation      |
-| validation        | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
+| Field                   | What it does                                                         |
+| ----------------------- | -------------------------------------------------------------------- |
+| name                    | Friendly name shown in reports                                       |
+| id                      | Unique text ID (namespace.v#) used internally                        |
+| pattern                 | Regex used to spot secrets (free‑spacing & flags allowed)            |
+| min_entropy             | Threshold to guard against low‑complexity false positives            |
+| confidence              | Suggests severity: low → high                                        |
+| examples                | Good matches; used for testing                                       |
+| visible                 | false to hide non‑secret captures (e.g. IDs)                         |
+| depends_on_rule         | Chain rules: use captures from one rule in another's validation      |
+| pattern_requirements  | Require character types and/or exclude placeholder words from matches |
+| validation              | Configure HTTP, AWS, GCP, etc. checks to verify live validity        |
 
 
 *responser_matcher* variants. Multiple can be used
@@ -107,12 +117,19 @@ Below is the complete list of Liquid filters available in Kingfisher, along with
 | --------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `b64enc`              | –                                            | Base64-encodes the input using the standard alphabet.                                                          | `{{ TOKEN \| b64enc }}`                                              |
 | `b64url_enc`          | –                                            | URL-safe Base64 (no padding). Useful for JWT headers & payloads.                                               | `{{ TOKEN \| b64url_enc }}`                                          |
-| `b64dec`              | –                                            | Decodes a Base64 string.                                                                                       | `{{ "aGVsbG8=" \| b64dec }}`                                          |
+| `b64dec`              | –                                            | Decodes a Base64 string.                                                                                        | `{{ "aGVsbG8=" \| b64dec }}`                                         |
 | `sha256`              | –                                            | Computes the SHA-256 hex digest of the input.                                                                  | `{{ TOKEN \| sha256 }}`                                              |
+| `crc32`               | –                                            | Computes the CRC32 checksum of the input and returns a decimal value. | `{{ TOKEN \| crc32 }}` |
+| `crc32_dec`           | `digits` (integer, optional)                 | Computes the CRC32 checksum and returns the last `digits` decimal characters (zero-padded). Defaults to the full value when omitted. | `{{ TOKEN \| crc32_dec: 6 }}` |
+| `crc32_hex`           | `digits` (integer, optional)                 | Computes the CRC32 checksum and returns the last `digits` hexadecimal characters (zero-padded). Defaults to the full value when omitted. | `{{ TOKEN \| crc32_hex: 8 }}` |
+| `crc32_le_b64`        | `len` (integer, optional)                    | Computes the CRC32 checksum, encodes the little-endian bytes using Base64, and optionally truncates to the first `len` characters. | `{{ TOKEN \| crc32_le_b64: 6 }}` |
 | `hmac_sha1`           | `key` (string)                               | Computes HMAC-SHA1 over the input, returns Base64-encoded result.                                              | `{{ TOKEN \| hmac_sha1: "secret-key" }}`                             |
 | `hmac_sha256`         | `key` (string)                               | Computes HMAC-SHA256 over the input, returns Base64-encoded result.                                            | `{{ TOKEN \| hmac_sha256: "secret-key" }}`                           |
 | `hmac_sha384`         | `key` (string)                               | Computes HMAC-SHA384 over the input, returns Base64-encoded result.                                            | `{{ TOKEN \| hmac_sha384: "secret-key" }}`                           |
 | `random_string`       | `len` (integer, optional)                    | Generates a cryptographically-secure random alphanumeric string of the specified length (default: 32).        | `{{ "" \| random_string: 16 }}`                                      |
+| `prefix`              | `len` (integer, optional)                    | Returns the first `len` characters from the string (default: full).                                            | `{{ TOKEN \| prefix: 6 }}`                                           |
+| `suffix`              | `len` (integer, optional)                    | Returns the last `len` characters from the string (default: full).                                             | `{{ TOKEN \| suffix: 6 }}`                                           |
+| `base62`              | `width` (integer, optional)                  | Encodes the input number as Base62, left-padding with zeros as needed.                                         | `{{ TOKEN \| crc32 \| base62: 6 }}`                                  |
 | `url_encode`          | –                                            | Percent-encodes the input according to RFC 3986.                                                                | `{{ TOKEN \| url_encode }}`                                          |
 | `json_escape`         | –                                            | Escapes special characters so a string can be safely injected into JSON contexts.                              | `{{ TOKEN \| json_escape }}`                                         |
 | `unix_timestamp`      | –                                            | Returns the current Unix epoch time in seconds (UTC).                                                          | `{{ "" \| unix_timestamp }}`                                         |
@@ -236,6 +253,138 @@ The `visible: false` property tells Kingfisher to hide the finding from the fina
 For example, a rule might match a username, an email address, an AWS Access Key ID, or an Application ID. While these pieces of information are captured during scanning, they are not secrets on their own. Instead, they are used by other rules—via the `depends_on_rule` mechanism—to validate an associated secret. By marking such rules as `visible: false`, you prevent these non-secret findings from cluttering your report, yet their values remain available for dependent rules.
 
 `visible: false` helps keep the scan output focused on actual secrets while still capturing important contextual data needed for comprehensive validation.
+
+## Character Requirements
+
+The `pattern_requirements` field allows you to specify data type requirements for matched secrets. This is particularly useful when:
+
+- Your regex pattern must be permissive (due to Hyperscan limitations)
+- You want to enforce password complexity requirements
+- You need to filter out low-quality matches that lack certain character types
+
+Kingfisher's regex engine (Hyperscan) does not support lookahead assertions like `(?=.*\d)` to require specific character types. Instead, use the `pattern_requirements` field to filter matches post-detection.
+
+### Available Requirements
+
+```yaml
+pattern_requirements:
+  min_digits: 1              # Require at least 1 digit (0-9)
+  min_uppercase: 1           # Require at least 1 uppercase letter (A-Z)
+  min_lowercase: 1           # Require at least 1 lowercase letter (a-z)
+  min_special_chars: 1       # Require at least 1 special character
+  special_chars: "!@#$%^&*"  # Optional: define which characters are "special"
+  ignore_if_contains:             # Optional: reject matches containing any of these (case-insensitive)
+    - test
+    - demo
+  checksum:                      # Optional: compare rendered values to drop mismatched formats
+    actual:
+      template: "{{ MATCH | suffix: 6 }}"   # Liquid template for the observed checksum
+      requires_capture: checksum            # (optional) skip unless this capture is present
+    expected: "{{ BODY | crc32 | base62: 6 }}"  # Liquid template to render the expected checksum
+    skip_if_missing: true                   # (optional) treat missing captures as legacy tokens
+```
+
+All fields are optional. If `special_chars` is not specified, the default set includes: `!@#$%^&*()_+-=[]{}|;:'",.<>?/\`~`
+
+`ignore_if_contains` performs a case-insensitive substring check. If any entry (after trimming whitespace) appears within the match, the match is discarded. This is helpful for dropping known dummy tokens such as "test" or "demo" that otherwise satisfy the regex.
+
+The optional `checksum` block renders Liquid templates against the match to determine whether the captured checksum matches your expectation. Both templates gain access to `{{ MATCH }}`, `{{ FULL_MATCH }}`, and every named capture in two forms: the original capture name and its uppercase alias (e.g. `{{ body }}` and `{{ BODY }}`). Use helper filters like `suffix`, `crc32`, and `base62` to mirror provider-specific checksum pipelines. If a required capture is missing or the rendered values differ, Kingfisher skips the finding—logging the reason, including checksum lengths, at the `DEBUG` level. Set `skip_if_missing` to `true` to treat absent captures as legacy matches.
+
+When any of these filters remove a match it is logged at the `DEBUG` level so you can see exactly why the skip occurred. If you need to keep every match even when one of these substrings appears, pass `--no-ignore-if-contains` to `kingfisher scan`. The flag disables this post-processing step without changing the rule definitions.
+
+### Are `requires_capture` and `skip_if_missing` equivalent?
+
+`requires_capture`
+ - Optional field that names a specific regex capture that must be present before the checksum templates are evaluated.
+ - In the engine, Kingfisher checks whether that capture exists in the match context. If it’s missing, the behavior falls back to whatever `skip_if_missing` dictates (fail or treat as a legacy match).
+
+`skip_if_missing`
+ - Boolean switch that controls what happens when Kingfisher can’t render the checksum—because there’s no match context or a required capture is absent.
+  - `true`: silently skip (pass) the match so legacy, non-checksum tokens are still accepted.
+  -  `false`: treat the situation as a validation failure.
+
+In short, `requires_capture` identifies which capture must exist, while `skip_if_missing` determines whether missing data is a hard failure or an allowed legacy case.
+
+### Example: Secure API Key
+
+```yaml
+rules:
+  - name: Secure API Key
+    id: custom.secure_api.1
+    pattern: |
+      (?xi)
+      api[_-]?key
+      (?:.|[\n\r]){0,32}?
+      \b
+      ([A-Za-z0-9!@#$%^&*]{20,})
+      \b
+    min_entropy: 4.0
+    confidence: high
+    pattern_requirements:
+      min_digits: 1           # Must contain at least 1 digit
+      min_uppercase: 1        # Must contain at least 1 uppercase letter
+      min_lowercase: 1        # Must contain at least 1 lowercase letter
+      min_special_chars: 1    # Must contain at least 1 special character
+      ignore_if_contains:
+        - test
+    examples:
+      - api_key = "MyS3cur3K3y!2024"
+      - 'api-key: "Abc123!@#Token"'
+```
+
+In this example:
+- The regex pattern is permissive: `[A-Za-z0-9!@#$%^&*]{20,}` matches any combination of those characters
+- The `pattern_requirements` filters out matches that don't have at least one of each required type
+- A match like `"abcdefghijklmnopqrst"` would be rejected (no uppercase, no digit, no special)
+- A match like `"Abc123!SecureToken"` would be accepted (has all required types)
+- A match like `"Test123!SecureToken"` would be rejected because it contains the `ignore_if_contains` term `test`
+
+### Example: Excluding Dummy Values
+
+```yaml
+rules:
+  - name: Token without placeholders
+    id: custom.token.2
+    pattern: |-
+      (?i)token[:=]\s*([A-Za-z0-9]{12,})
+    pattern_requirements:
+      ignore_if_contains:
+        - placeholder
+        - sample
+    examples:
+      - token: "REALVALUE1234"
+    negative_examples:
+      - token = "SAMPLETOKEN9999"  # dropped by ignore_if_contains
+```
+
+### Example: Custom Special Characters
+
+```yaml
+rules:
+  - name: Token with Custom Special Chars
+    id: custom.token.1
+    pattern: |
+      (?xi)
+      token
+      (?:.|[\n\r]){0,16}?
+      \b([A-Za-z0-9$%^]{16,})\b
+    min_entropy: 3.5
+    confidence: medium
+    pattern_requirements:
+      min_special_chars: 2
+      special_chars: "$%^"    # Only these characters count as "special"
+    examples:
+      - token = "abc$%defgh123456"
+```
+
+### How It Works
+
+1. Hyperscan regex matches a pattern in the input
+2. Entropy check filters low-complexity matches (if `min_entropy` is set)
+3. **Character requirements check filters matches that don't meet the criteria**
+4. Validation checks verify the secret is live (if `validation` is configured)
+
+Matches that fail the character requirements check are silently dropped with a debug log message.
 
 
 ## Writing Custom Rules
