@@ -36,6 +36,7 @@ For a look at how Kingfisher has grown from its early foundations into today's f
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
+- **Checksum-aware detection**: verifies tokens with built-in checksums (e.g., GitHub, Confluent, Zuplo) — no API calls required
 
 **Learn more:** [Introducing Kingfisher: Real‑Time Secret Detection and Validation](https://www.mongodb.com/blog/post/product-release-announcements/introducing-kingfisher-real-time-secret-detection-validation)
 
@@ -68,6 +69,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
 - [🔐 Detection Rules at a Glance](#-detection-rules-at-a-glance)
   - [📝 Write Custom Rules!](#-write-custom-rules)
     - [Pattern requirements and placeholder filtering](#pattern-requirements-and-placeholder-filtering)
+    - [🔍 Checksum Intelligence (New!)](#-checksum-intelligence-new)
 - [🎉 Usage](#-usage)
   - [Basic Examples](#basic-examples)
     - [Scan with secret validation](#scan-with-secret-validation)
@@ -342,6 +344,26 @@ When a match is skipped because of `ignore_if_contains` or a checksum mismatch, 
 checksum mismatch lengths so you can confirm why a finding was suppressed.
 
 Once you've done that, you can provide your custom rules (defined in a YAML file) and provide it to Kingfisher at runtime --- no recompiling required!
+
+### 🔍 Checksum Intelligence (New!)
+
+Modern API tokens increasingly include **built-in checksums**, short internal digests that make each credential self-verifiable. (For background, see [GitHub’s write-up on their newer token formats](https://github.blog/engineering/platform-security/behind-githubs-new-authentication-token-formats/) and why checksums slash false positives.)
+
+Kingfisher supports **checksum-aware matching** in rules, enabling **offline structural verification** of credentials *without* calling third-party APIs.
+
+By validating each token’s internal checksum (for tokens that support checksums), Kingfisher eliminates nearly all false positives—automatically skipping structurally invalid or fake tokens before validation ever runs.
+
+**Why this matters**
+- ✅ **Offline verification** — no API call required  
+- 🧠 **Industry-aligned** — compatible with prefix + checksum token designs (e.g., modern PATs)  
+- ⚡ **Lower false positives** — invalid tokens are filtered out by structure alone
+
+**Learn more**: implementation details and templating are documented in **[docs/RULES.md](docs/RULES.md)**
+
+---
+
+<!-- Optional: add this one-liner to your “Performance, Accuracy, and Hundreds of Rules” bullets -->
+- **Checksum-aware detection**: verifies tokens with embedded checksums (offline) to cut false positives — see [docs/RULES.md](docs/RULES.md)
 
 # 🎉 Usage
 

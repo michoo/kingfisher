@@ -20,3 +20,17 @@ rules:
       - zpka_b3f94d8d3d4d4a6ea5c5b20d0a5bb407_18eb262b
     references:
       - https://zuplo.com/blog/api-key-authentication
+    validation:
+      type: Http
+      content:
+        request:
+          headers:
+            authorization: "Bearer {{ TOKEN }}"
+            x-api-key: "{{ TOKEN }}"
+          method: GET
+          response_matcher:
+            - report_response: true
+            - status:
+                - 200
+              type: StatusMatch
+          url: https://dev.zuplo.com/v1/who-am-i
