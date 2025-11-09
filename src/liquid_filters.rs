@@ -109,6 +109,41 @@ impl Filter for ReplaceFilter {
     }
 }
 
+#[derive(Debug, FilterParameters)]
+struct LstripCharsArgs {
+    #[parameter(
+        description = "Characters to remove from the start of the input.",
+        arg_type = "str"
+    )]
+    chars: Expression,
+}
+
+#[derive(Clone, ParseFilter, FilterReflection, Default)]
+#[filter(
+    name = "lstrip_chars",
+    description = "Removes the provided characters from the beginning of the string.",
+    parameters(LstripCharsArgs),
+    parsed(LstripCharsFilter)
+)]
+pub struct LstripChars;
+
+#[derive(Debug, FromFilterParameters, Display_filter)]
+#[name = "lstrip_chars"]
+struct LstripCharsFilter {
+    #[parameters]
+    args: LstripCharsArgs,
+}
+
+impl Filter for LstripCharsFilter {
+    fn evaluate(&self, input: &dyn ValueView, runtime: &dyn Runtime) -> Result<Value> {
+        let args = self.args.evaluate(runtime)?;
+        let chars = args.chars.to_string();
+        let input_str = input.to_kstr();
+        let trimmed = input_str.trim_start_matches(|c| chars.contains(c)).to_string();
+        Ok(Value::scalar(trimmed))
+    }
+}
+
 // ── HMAC args ─────────────────────────────────────
 #[derive(Debug, FilterParameters)]
 struct HmacArgs {
@@ -803,6 +838,7 @@ pub fn register_all(builder: liquid::ParserBuilder) -> liquid::ParserBuilder {
         .filter(RandomStringFilter::default())
         .filter(SuffixFilter::default())
         .filter(PrefixFilter::default())
+        .filter(LstripChars::default())
         .filter(Crc32Filter::default())
         .filter(Crc32DecFilter::default())
         .filter(Crc32HexFilter::default())
@@ -1011,6 +1047,16 @@ mod tests {
     #[test]
     fn replace_filter() {
         assert_eq!(render(r#"{{ "hello world" | replace: "world", "mars" }}"#), "hello mars");
+    }
+
+    #[test]
+    fn lstrip_chars_single() {
+        assert_eq!(render(r#"{{ "000abc" | lstrip_chars: "0" }}"#), "abc");
+    }
+
+    #[test]
+    fn lstrip_chars_multiple_chars() {
+        assert_eq!(render(r#"{{ "-=--token" | lstrip_chars: "-=" }}"#), "token");
     }
 
     // -------------------------------------------------------------------------
