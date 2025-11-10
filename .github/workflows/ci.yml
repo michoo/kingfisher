@@ -8,9 +8,6 @@ on:
 env:
   RUST_TOOLCHAIN: "1.90"
 
-# This workflow runs on pull requests to the main branch
-# It builds the project for 2 platforms, Linux arm64 and macOS arm64,
-# and runs tests for each platform. All platforms tested on merge to main
 jobs:
   linux-arm64:
     name: Linux arm64
@@ -49,6 +46,14 @@ jobs:
   windows:
     name: Windows x64
     runs-on: windows-latest
+
+    # Windows-only env to keep vcpkg consistent and enable caching
+    env:
+      VCPKG_ROOT: C:\vcpkg
+      VCPKG_DOWNLOADS: C:\vcpkg\downloads
+      VCPKG_FEATURE_FLAGS: binarycaching
+      VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -57,8 +62,9 @@ jobs:
           profile: minimal
           override: true
 
+      # Cache vcpkg artifacts & downloads (so we only fetch PCRE once)
       - name: Cache vcpkg artifacts
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             C:\vcpkg\buildtrees
@@ -71,7 +77,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vcpkg-
 
-      - uses: Swatinem/rust-cache@v2
+      # Ensure downloads dir exists and seed PCRE 8.45 zip from a working mirror
+      - name: Pre-seed PCRE 8.45 for vcpkg (bypass SourceForge redirect)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:VCPKG_DOWNLOADS" | Out-Null
+          $dst = Join-Path $env:VCPKG_DOWNLOADS "pcre-8.45.zip"
+          if (-not (Test-Path $dst)) {
+            Invoke-WebRequest `
+              -Uri "https://versaweb.dl.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.zip" `
+              -OutFile $dst -UseBasicParsing
+          }
+          Get-ChildItem $env:VCPKG_DOWNLOADS
+
+      - uses: swatinem/rust-cache@v2
+
       - name: Build
         run: .\buildwin.bat
         shell: cmd
