@@ -29,7 +29,7 @@ fn jdbc_rule_matches_expected_patterns() -> Result<()> {
 
     let matches: BTreeSet<String> = regex
         .captures_iter(sample.as_bytes())
-        .filter_map(|caps| caps.name("TOKEN"))
+        .filter_map(|caps| caps.get(1))
         .map(|m| String::from_utf8_lossy(m.as_bytes()).into_owned())
         .collect();
 
@@ -60,7 +60,7 @@ fn jdbc_rule_respects_user_skip_regex() -> Result<()> {
 
     let matches: Vec<String> = regex
         .captures_iter(sample.as_bytes())
-        .filter_map(|caps| caps.name("TOKEN"))
+        .filter_map(|caps| caps.get(1))
         .map(|m| String::from_utf8_lossy(m.as_bytes()).into_owned())
         .collect();
 
