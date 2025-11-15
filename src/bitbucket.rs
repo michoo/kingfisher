@@ -51,15 +51,20 @@ impl AuthConfig {
         bearer_token: Option<String>,
     ) -> Self {
         fn normalized(value: Option<String>) -> Option<String> {
-            value.and_then(|v| if v.trim().is_empty() { None } else { Some(v) })
+            value.and_then(|v| {
+                let trimmed = v.trim();
+                if trimmed.is_empty() {
+                    None
+                } else if trimmed.len() == v.len() {
+                    Some(v)
+                } else {
+                    Some(trimmed.to_owned())
+                }
+            })
         }
 
         fn env_var(name: &str) -> Option<String> {
-            match env::var(name) {
-                Ok(value) if value.trim().is_empty() => None,
-                Ok(value) => Some(value),
-                Err(_) => None,
-            }
+            normalized(env::var(name).ok())
         }
 
         let username = normalized(username).or_else(|| env_var("KF_BITBUCKET_USERNAME"));
@@ -765,6 +770,21 @@ mod tests {
                 assert_eq!(auth.username.as_deref(), Some("user"));
                 assert_eq!(auth.password.as_deref(), Some("pass"));
                 assert!(auth.bearer_token.is_none());
+            },
+        );
+    }
+
+    #[test]
+    fn auth_config_trims_environment_whitespace() {
+        temp_env::with_vars(
+            &[
+                ("KF_BITBUCKET_USERNAME", Some("  user  ")),
+                ("KF_BITBUCKET_APP_PASSWORD", Some("  pass\n")),
+            ],
+            || {
+                let auth = AuthConfig::from_env();
+                assert_eq!(auth.username.as_deref(), Some("user"));
+                assert_eq!(auth.password.as_deref(), Some("pass"));
             },
         );
     }
