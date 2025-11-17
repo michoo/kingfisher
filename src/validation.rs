@@ -32,11 +32,27 @@ mod httpvalidation;
 mod jdbc;
 mod jwt;
 mod mongodb;
+mod mysql;
 mod postgres;
+pub use mysql::validate_mysql;
+pub use postgres::validate_postgres;
 mod utils;
 
 const VALIDATION_CACHE_SECONDS: u64 = 1200; // 20 minutes
 const MAX_VALIDATION_BODY_LEN: usize = 2048;
+
+fn truncate_to_char_boundary(s: &mut String, max_len: usize) {
+    if s.len() <= max_len {
+        return;
+    }
+
+    let mut new_len = max_len;
+    while new_len > 0 && !s.is_char_boundary(new_len) {
+        new_len -= 1;
+    }
+
+    s.truncate(new_len);
+}
 
 static USER_AGENT_SUFFIX: OnceCell<String> = OnceCell::new();
 
@@ -102,6 +118,21 @@ where
     S: Into<String>,
 {
     aws::set_aws_skip_account_ids(ids);
+}
+
+/// Returns `true` if the provided string can be parsed as a MongoDB connection URI.
+pub fn is_parseable_mongodb_uri(uri: &str) -> bool {
+    mongodb::looks_like_mongodb_uri(uri)
+}
+
+/// Returns `true` if the provided string can be parsed as a Postgres connection URI.
+pub fn is_parseable_postgres_uri(uri: &str) -> bool {
+    postgres::parse_postgres_url(uri).is_ok()
+}
+
+/// Returns `true` if the provided string can be parsed as a MySQL connection URI.
+pub fn is_parseable_mysql_uri(uri: &str) -> bool {
+    mysql::parse_mysql_url(uri).is_ok()
 }
 
 #[derive(Clone)]
@@ -534,9 +565,7 @@ async fn timed_validate_single_match<'a>(
                             return;
                         }
                     };
-                    if body.len() > MAX_VALIDATION_BODY_LEN {
-                        body.truncate(MAX_VALIDATION_BODY_LEN);
-                    }
+                    truncate_to_char_boundary(&mut body, MAX_VALIDATION_BODY_LEN);
 
                     m.validation_response_status = status;
                     m.validation_response_body = body.clone();
@@ -615,6 +644,63 @@ async fn timed_validate_single_match<'a>(
                     m.validation_response_status = StatusCode::BAD_GATEWAY;
                 }
             }
+        }
+
+        // ---------------------------------------------------- MySQL validator
+        Some(Validation::MySQL) => {
+            let mysql_url = globals
+                .get("TOKEN")
+                .and_then(|v| v.as_scalar())
+                .map(|s| s.into_owned().to_kstr().to_string())
+                .unwrap_or_default();
+
+            if mysql_url.is_empty() {
+                m.validation_success = false;
+                m.validation_response_body = "MySQL URL not found.".to_string();
+                m.validation_response_status = StatusCode::BAD_REQUEST;
+                commit_and_return(m);
+                return;
+            }
+
+            let cache_key = mysql::generate_mysql_cache_key(&mysql_url);
+            if let Some(cached) = cache.get(&cache_key) {
+                let c = cached.value();
+                if c.timestamp.elapsed() < Duration::from_secs(VALIDATION_CACHE_SECONDS) {
+                    m.validation_success = c.is_valid;
+                    m.validation_response_body = c.body.clone();
+                    m.validation_response_status = c.status;
+                    commit_and_return(m);
+                    return;
+                }
+            }
+
+            match mysql::validate_mysql(&mysql_url).await {
+                Ok((ok, meta)) => {
+                    m.validation_success = ok;
+                    m.validation_response_body = if ok {
+                        format!("MySQL connection is valid. Metadata: {:?}", meta)
+                    } else {
+                        "MySQL connection failed.".to_string()
+                    };
+                    m.validation_response_status =
+                        if ok { StatusCode::OK } else { StatusCode::UNAUTHORIZED };
+                }
+                Err(e) => {
+                    m.validation_success = false;
+                    m.validation_response_body = format!("MySQL error: {}", e);
+                    m.validation_response_status = StatusCode::BAD_GATEWAY;
+                }
+            }
+
+            cache.insert(
+                cache_key,
+                CachedResponse {
+                    body: m.validation_response_body.clone(),
+                    status: m.validation_response_status,
+                    is_valid: m.validation_success,
+                    timestamp: Instant::now(),
+                },
+            );
         }
 
         // ------------------------------------------------ Azure Storage validator
@@ -1065,6 +1151,18 @@ mod tests {
 
         assert!(globals.get("TOKEN").is_none());
         assert_eq!(globals.get("CHECKSUM"), Some(Value::scalar("123456")).as_ref());
+    }
+
+    #[test]
+    fn truncate_to_char_boundary_handles_multibyte_characters() {
+        let mut body = "a".repeat(MAX_VALIDATION_BODY_LEN);
+        body.push('é');
+
+        truncate_to_char_boundary(&mut body, MAX_VALIDATION_BODY_LEN);
+
+        assert_eq!(body.len(), MAX_VALIDATION_BODY_LEN);
+        assert!(body.is_char_boundary(body.len()));
+        assert!(body.ends_with('a'));
     }
 }
 
