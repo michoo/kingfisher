@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.67.0]
+- Added checksum to GitLab rule
+
 ## [v1.66.0]
 - Updating to support Bitbucket App Passwords
 - Improved boundaries for several rules

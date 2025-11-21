@@ -20,8 +20,9 @@ rules:
       ignore_if_contains:
         - "*****"
         - "xxxxx"
+        - "username:"
     min_entropy: 4.0
-    confidence: medium
+    confidence: low
     examples:
       - https://username:secret@example.com/path
     validation:
