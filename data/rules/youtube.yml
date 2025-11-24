@@ -24,6 +24,8 @@ rules:
               words:
                 - "API key not valid"
                 - "keyInvalid"
+                - "API_KEY_INVALID"
+                - "forbidden"
               match_all_words: false
               negative: true
             - type: JsonValid
