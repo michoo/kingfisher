@@ -208,11 +208,7 @@ fn dedup_preserves_distinct_rules_with_same_fingerprint() -> Result<()> {
 
     let deduped = reporter.deduplicate_matches(matches, /* no_dedup= */ false);
 
-    assert_eq!(
-        deduped.len(),
-        2,
-        "matches from distinct rules must not be deduplicated"
-    );
+    assert_eq!(deduped.len(), 2, "matches from distinct rules must not be deduplicated");
 
     Ok(())
 }
