@@ -50,6 +50,19 @@ pub struct UpdateStatus {
     pub check_status: UpdateCheckStatus,
 }
 
+impl Default for UpdateStatus {
+    fn default() -> Self {
+        UpdateStatus {
+            message: None,
+            styled_message: None,
+            is_outdated: false,
+            running_version: cargo_crate_version!().to_string(),
+            latest_version: None,
+            check_status: UpdateCheckStatus::Disabled,
+        }
+    }
+}
+
 fn styled_heading(styles: &Styles, text: &str) -> String {
     styles.style_finding_active_heading.apply_to(text).to_string()
 }

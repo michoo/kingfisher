@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use chrono::Local;
 use crossbeam_skiplist::SkipMap;
 use indicatif::ProgressBar;
 use tokio::time::{Duration, Instant};

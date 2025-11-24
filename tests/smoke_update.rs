@@ -44,5 +44,9 @@ async fn detects_new_release() {
     .expect("blocking task panicked");
 
     assert!(status.is_outdated);
-    assert!(status.message.contains("99.999.0"));
+    assert!(status
+        .message
+        .as_deref()
+        .expect("update check should return a message")
+        .contains("99.999.0"));
 }
