@@ -5,7 +5,6 @@ All notable changes to this project will be documented in this file.
 ## [v1.67.0]
 - Added checksum to GitLab rule
 - Fixed deduplication to consider rule identifiers so overlapping patterns are not merged before validation
-- Moved "URI with Username and Secret" to a low-confidence rule
 
 ## [v1.66.0]
 - Updating to support Bitbucket App Passwords

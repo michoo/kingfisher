@@ -21,8 +21,12 @@ rules:
         - "*****"
         - "xxxxx"
         - "username:"
+        - "user:"
+        - ":password"
+        - ":pass"
+        - ">:<"
     min_entropy: 4.0
-    confidence: low
+    confidence: medium
     examples:
       - https://username:secret@example.com/path
     validation:
@@ -32,7 +36,7 @@ rules:
           method: GET
           url: '{{ TOKEN }}'
           response_matcher:
-            - report_response: true
+            - report_response: false
               type: StatusMatch
               status:
                 - 200
