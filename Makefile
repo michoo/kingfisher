@@ -207,6 +207,9 @@ darwin-arm64:
 		fi
 	$(MAKE) list-archives
 
+darwin-dev:
+	cargo build --profile=dev --target aarch64-apple-darwin --features system-alloc
+
 darwin-x64:
 	@echo "Checking Rust for darwin-x64..."
 	@$(MAKE) check-rust || ( \
