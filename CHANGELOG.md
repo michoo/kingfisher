@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.70.0]
 - Added new rules for AWS Bedrock, Voyage.ai, Posthog
+- Added a `kingfisher view` subcommand that serves the bundled access-map HTML viewer from the binary so users can load JSON or JSONL reports passed on the CLI (or upload them in the browser) over a configurable local-only port.
 
 ## [v1.69.0]
 - Reduced per-match memory usage by compacting stored source locations and interning repeated capture names.

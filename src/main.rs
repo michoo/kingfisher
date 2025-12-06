@@ -74,6 +74,7 @@ use crate::cli::commands::{
     gitea::GiteaRepoType,
     gitlab::GitLabRepoType,
     scan::{ListRepositoriesCommand, ScanOperation},
+    view,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -91,6 +92,7 @@ fn main() -> anyhow::Result<()> {
         Command::SelfUpdate => 1, // Self-update doesn't need a thread pool
         Command::Rules(_) => num_cpus::get(), // Default for Rules commands
         Command::AccessMap(_) => 1,
+        Command::View(_) => 1,
     };
 
     // Set up the Tokio runtime with the specified number of threads
@@ -192,6 +194,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
             let _ = check_for_update_async(&g, None).await;
             Ok(())
         }
+        Command::View(view_args) => view::run(view_args).await,
         Command::AccessMap(identity_args) => access_map::run(identity_args).await,
         command => {
             let temp_dir = TempDir::new().context("Failed to create temporary directory")?;
@@ -335,6 +338,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         run_rules_list(&list_args)?;
                     }
                 },
+                Command::View(_) => {                    anyhow::bail!("View command should not reach this branch")                },
                 Command::AccessMap(_) => {
                     anyhow::bail!("AccessMap command should not reach this branch")
                 }

@@ -79,6 +79,7 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Output JSON and capture to a file](#output-json-and-capture-to-a-file)
     - [Output SARIF directly to disk](#output-sarif-directly-to-disk)
     - [Access map outputs and viewer](#access-map-outputs-and-viewer)
+    - [View access-map reports locally](#view-access-map-reports-locally)
     - [Pipe any text directly into Kingfisher by passing `-`](#pipe-any-text-directly-into-kingfisher-by-passing--)
     - [Limit maximum file size scanned (`--max-file-size`)](#limit-maximum-file-size-scanned---max-file-size)
     - [Scan using a rule _family_ with one flag](#scan-using-a-rule-family-with-one-flag)
@@ -419,7 +420,16 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 - Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with an `access_map` array containing providers, accounts/projects, resources, and the permissions available for each resource (grouped when identical).
 - If you validated cloud credentials without `--access-map`, Kingfisher will remind you on stderr to rerun with the flag so the access map appears in the output.
-- Open `docs/access-map-viewer/index.html` in a browser to explore a report locally; the viewer accepts the same JSON/JSONL payloads and includes a bundled sample (`sample-report.json`).
+- Run `kingfisher view ./kingfisher.json` to explore a report locally in a local web UI
+
+### View access-map reports locally
+
+```bash
+kingfisher view kingfisher.json
+```
+
+The `view` subcommand starts a local-only server (default port `7890`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically, or open the page and upload a report in the browser. If port 7890 is already in use, Kingfisher will exit and tell you to re-run with `--port <PORT>`.
+
 
 ### Pipe any text directly into Kingfisher by passing `-`
 

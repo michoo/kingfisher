@@ -573,7 +573,7 @@
       <div class="panel__header">
         <div class="panel__title">
           <h3>Upload Report</h3>
-          <p>Analyze Kingfisher JSON / JSONL output</p>
+          <p>Analyze Kingfisher JSON / JSONL output (auto-loads if provided on the CLI)</p>
         </div>
       </div>
       <div style="padding:22px;">
@@ -581,6 +581,7 @@
           <div class="upload-icon">📄</div>
           <div class="upload-text">Drag &amp; drop a report here</div>
           <div class="upload-sub">…or click to choose a file</div>
+            <div class="upload-sub">Your file stays in the browser—load JSON or JSONL reports locally.</div>
           <input type="file" id="file-input" hidden accept=".json,.jsonl">
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
