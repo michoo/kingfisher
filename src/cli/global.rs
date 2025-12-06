@@ -68,7 +68,7 @@ pub enum Command {
     #[command(name = "access-map", alias = "access_map")]
     AccessMap(AccessMapArgs),
 
-    /// View an access-map report locally
+    /// View Kingfisher JSON/JSONL reports in a local web UI
     View(ViewArgs),
 
     /// Update the Kingfisher binary
