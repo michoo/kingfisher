@@ -338,7 +338,9 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         run_rules_list(&list_args)?;
                     }
                 },
-                Command::View(_) => {                    anyhow::bail!("View command should not reach this branch")                },
+                Command::View(_) => {
+                    anyhow::bail!("View command should not reach this branch")
+                }
                 Command::AccessMap(_) => {
                     anyhow::bail!("AccessMap command should not reach this branch")
                 }

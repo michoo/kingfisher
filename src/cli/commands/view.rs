@@ -1,4 +1,8 @@
-use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use anyhow::{anyhow, Context, Result};
 use axum::{
@@ -37,6 +41,7 @@ struct AppState {
 /// Run the `kingfisher view` subcommand.
 pub async fn run(args: ViewArgs) -> Result<()> {
     let report = if let Some(path) = args.report.as_ref() {
+        let expanded_path = expand_tilde(path)?;
         let ext = path
             .extension()
             .and_then(|ext| ext.to_str())
@@ -48,9 +53,9 @@ pub async fn run(args: ViewArgs) -> Result<()> {
         }
 
         Some(
-            tokio::fs::read(path)
+            tokio::fs::read(&expanded_path)
                 .await
-                .with_context(|| format!("Failed to read report at {}", path.display()))?,
+                .with_context(|| format!("Failed to read report at {}", expanded_path.display()))?,
         )
     } else {
         None
@@ -188,4 +193,16 @@ fn apply_security_headers(response: Response) -> Response {
         ),
     );
     response
+}
+
+fn expand_tilde(path: &Path) -> Result<PathBuf> {
+    let path_str = path.to_string_lossy();
+    if path_str == "~" || path_str.starts_with("~/") {
+        let home = std::env::var("HOME")
+            .context("Could not resolve home directory for tilde-expanded path")?;
+        let trimmed = path_str.trim_start_matches("~/");
+        return Ok(PathBuf::from(home).join(trimmed));
+    }
+
+    Ok(path.to_path_buf())
 }
