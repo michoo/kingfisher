@@ -1,6 +1,7 @@
 use std::{
     marker::PhantomData,
     path::Path,
+    process::Command,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -63,10 +64,12 @@ pub fn enumerate_filesystem_inputs(
     let branch_root_enabled = args.input_specifier_args.branch_root
         || args.input_specifier_args.branch_root_commit.is_some();
 
-    let diff_config = if args.input_specifier_args.since_commit.is_some()
+    let wants_git_diff = args.input_specifier_args.staged
+        || args.input_specifier_args.since_commit.is_some()
         || args.input_specifier_args.branch.is_some()
-        || branch_root_enabled
-    {
+        || branch_root_enabled;
+
+    let diff_config = if wants_git_diff {
         let branch_arg = args.input_specifier_args.branch.clone();
         let branch_root_commit = args.input_specifier_args.branch_root_commit.clone();
         let (branch_ref, branch_root) = if branch_root_enabled {
@@ -83,6 +86,7 @@ pub fn enumerate_filesystem_inputs(
             since_ref: args.input_specifier_args.since_commit.clone(),
             branch_ref,
             branch_root,
+            staged: args.input_specifier_args.staged,
         })
     } else {
         None
@@ -737,7 +741,26 @@ fn enumerate_git_diff_repo(
     exclude_globset: Option<std::sync::Arc<globset::GlobSet>>,
     collect_commit_metadata: bool,
 ) -> Result<GitRepoResult> {
-    let GitDiffConfig { since_ref, branch_ref, branch_root } = diff_cfg;
+    let GitDiffConfig { since_ref, branch_ref, branch_root, staged } = diff_cfg;
+
+    let (branch_ref, since_ref, branch_root) = if staged {
+        if branch_root.is_some() {
+            bail!("--staged cannot be combined with --branch-root options");
+        }
+
+        let base_ref = match since_ref {
+            Some(explicit) => explicit,
+            None => detect_staged_base_ref(path)?,
+        };
+
+        let parent_ref = resolve_optional_diff_ref(&repository, path, &branch_ref)
+            .unwrap_or_else(|_| branch_ref.clone());
+        let staged_commit = synthesize_staged_commit(path, parent_ref.as_str())?;
+
+        (staged_commit, Some(base_ref), None)
+    } else {
+        (branch_ref, since_ref, branch_root)
+    };
 
     let blobs = {
         let head_id = resolve_diff_ref(&repository, path, &branch_ref).with_context(|| {
@@ -890,6 +913,64 @@ fn enumerate_git_diff_repo(
     };
 
     Ok(GitRepoResult { repository, path: path.to_owned(), blobs })
+}
+
+fn synthesize_staged_commit(path: &Path, parent_ref: &str) -> Result<String> {
+    let parent_arg: Vec<&str> =
+        if parent_ref.is_empty() { Vec::new() } else { vec!["-p", parent_ref] };
+
+    let staged_tree =
+        run_git_command(path, &["write-tree"], true)?.context("Failed to snapshot staged index")?;
+
+    let mut args = vec!["commit-tree", &staged_tree, "-m", "kingfisher staged snapshot"];
+    args.extend(parent_arg.iter().copied());
+
+    run_git_command(path, &args, true)?.context("Failed to create staged snapshot commit")
+}
+
+fn detect_staged_base_ref(path: &Path) -> Result<String> {
+    if let Some(head) = run_git_command(path, &["rev-parse", "--verify", "HEAD"], false)? {
+        return Ok(head);
+    }
+
+    run_git_command(path, &["hash-object", "-t", "tree", "/dev/null"], true)?
+        .context("Failed to resolve an empty tree when no base ref was available")
+}
+
+fn resolve_optional_diff_ref(
+    repository: &gix::Repository,
+    path: &Path,
+    reference: &str,
+) -> Result<String> {
+    resolve_diff_ref(repository, path, reference).map(|id| id.to_hex().to_string())
+}
+
+fn run_git_command(path: &Path, args: &[&str], bubble_up_error: bool) -> Result<Option<String>> {
+    let output = Command::new("git").arg("-C").arg(path).args(args).output()?;
+
+    if !output.status.success() {
+        if bubble_up_error {
+            bail!(
+                "Git command failed ({}): git -C {} {}",
+                output.status,
+                path.display(),
+                args.join(" ")
+            );
+        }
+        return Ok(None);
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if stdout.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(stdout))
+    }
+}
+
+fn command_succeeds(path: &Path, args: &[&str]) -> Result<bool> {
+    let status = Command::new("git").arg("-C").arg(path).args(args).status()?;
+    Ok(status.success())
 }
 
 fn resolve_diff_ref<'repo>(
@@ -1064,6 +1145,7 @@ mod tests {
                 since_ref: None,
                 branch_ref: "featurefake".to_string(),
                 branch_root: None,
+                staged: false,
             },
             None,
             false,

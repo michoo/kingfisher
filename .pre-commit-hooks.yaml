@@ -1,0 +1,18 @@
+- id: kingfisher-docker
+  name: kingfisher (docker)
+  description: Run Kingfisher in Docker against staged changes at the repository root. No local install required.
+  entry: ghcr.io/kingfisher-sec/kingfisher:latest
+  language: docker
+  args: ["scan", ".", "--staged", "--quiet", "--redact", "--only-valid", "--no-update-check"]
+  pass_filenames: false
+  stages: [commit]
+
+- id: kingfisher
+  name: kingfisher
+  description: Scan staged changes with the locally installed Kingfisher binary.
+  entry: kingfisher
+  language: system
+  args: ["scan", ".", "--staged", "--quiet", "--redact", "--only-valid", "--no-update-check"]
+  pass_filenames: false
+  types: [file]
+  stages: [commit]

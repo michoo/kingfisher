@@ -123,6 +123,7 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
             branch: None,
             branch_root: false,
             branch_root_commit: None,
+            staged: false,
         },
         extra_ignore_comments: Vec::new(),
         content_filtering_args: ContentFilteringArgs {

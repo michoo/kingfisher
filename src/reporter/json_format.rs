@@ -162,6 +162,7 @@ mod tests {
                 branch: None,
                 branch_root: false,
                 branch_root_commit: None,
+                staged: false,
             },
             extra_ignore_comments: Vec::new(),
             content_filtering_args: ContentFilteringArgs {

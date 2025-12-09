@@ -128,6 +128,7 @@ fn test_gitlab_remote_scan() -> Result<()> {
             branch: None,
             branch_root: false,
             branch_root_commit: None,
+            staged: false,
         },
         extra_ignore_comments: Vec::new(),
         content_filtering_args: ContentFilteringArgs {
@@ -283,6 +284,7 @@ fn test_gitlab_remote_scan_no_history() -> Result<()> {
             gcs_bucket: None,
             gcs_prefix: None,
             gcs_service_account: None,
+            staged: false,
         },
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 25.0,

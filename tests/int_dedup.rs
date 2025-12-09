@@ -143,6 +143,7 @@ rules:
             branch: None,
             branch_root: false,
             branch_root_commit: None,
+            staged: false,
         },
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 5.0,

@@ -186,6 +186,7 @@ async fn test_validation_cache_and_depvars() -> Result<()> {
             branch: None,
             branch_root: false,
             branch_root_commit: None,
+            staged: false,
         },
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 25.0,

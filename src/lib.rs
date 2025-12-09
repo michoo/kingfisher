@@ -65,6 +65,7 @@ pub struct GitDiffConfig {
     pub since_ref: Option<String>,
     pub branch_ref: String,
     pub branch_root: Option<String>,
+    pub staged: bool,
 }
 
 struct EnumeratorConfig {

@@ -533,10 +533,7 @@ mod tests {
     #[test]
     fn test_body_looks_like_html_trims_whitespace() {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("text/html; charset=utf-8"),
-        );
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"));
 
         let body = "\n\n   \n<!DOCTYPE html>\n<html lang=\"en\"><body>page</body></html>";
 
@@ -547,16 +544,13 @@ mod tests {
     fn test_html_response_rejected_when_not_allowed() {
         let matchers = vec![ResponseMatcher::StatusMatch {
             r#type: "status-match".to_string(),
-            status: vec![StatusCode::OK],
+            status: vec![StatusCode::OK.into()],
             match_all_status: false,
             negative: false,
         }];
 
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("text/html; charset=utf-8"),
-        );
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"));
 
         let body = "\n<html><body>Sign in</body></html>";
 
