@@ -968,11 +968,6 @@ fn run_git_command(path: &Path, args: &[&str], bubble_up_error: bool) -> Result<
     }
 }
 
-fn command_succeeds(path: &Path, args: &[&str]) -> Result<bool> {
-    let status = Command::new("git").arg("-C").arg(path).args(args).status()?;
-    Ok(status.success())
-}
-
 fn resolve_diff_ref<'repo>(
     repository: &'repo gix::Repository,
     path: &Path,
