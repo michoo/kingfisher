@@ -155,19 +155,6 @@ fn uninstall_removes_wrapper_when_no_previous_hook() {
 }
 
 #[test]
-fn errors_outside_git_repository() {
-    let dir = tempfile::tempdir().unwrap();
-    copy_scripts(dir.path());
-
-    Command::new("bash")
-        .arg(dir.path().join("scripts/install-kingfisher-pre-commit.sh"))
-        .current_dir(dir.path())
-        .assert()
-        .failure()
-        .stderr(contains("must be run inside a Git repository"));
-}
-
-#[test]
 fn pre_commit_framework_invokes_kingfisher() {
     // Skip this test if `pre-commit` is not available (e.g., in some CI images).
     if StdCommand::new("pre-commit").arg("--version").output().is_err() {

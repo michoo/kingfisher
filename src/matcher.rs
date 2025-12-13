@@ -654,11 +654,23 @@ fn filter_match<'b>(
                 full_match: full_bytes,
             };
 
-            // --- FIX IS HERE ---
-            //
-            // The `validate` function (and thus `{{ MATCH }}`) should *always*
-            // operate on the *match* (group 1), not the full match (group 0).
-            match char_reqs.validate(entropy_bytes, Some(context), respect_ignore_if_contains) {
+            // Decide which bytes to validate:
+            // - If there are multiple capture groups OR any named captures → use full match
+            // - Otherwise → use entropy_bytes (the actual secret)
+            let use_full_match = {
+                let has_named_captures = re.capture_names().any(|n| n.is_some());
+                let capture_count = captures.len(); // includes group 0
+                has_named_captures || capture_count > 2
+            };
+
+            let validation_bytes = if use_full_match {
+                full_bytes
+            } else {
+                entropy_bytes
+            };
+
+            match char_reqs.validate(validation_bytes, Some(context), respect_ignore_if_contains) {
+
                 //
                 // --- END FIX ---
                 PatternValidationResult::Passed => {}
