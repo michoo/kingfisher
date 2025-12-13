@@ -135,7 +135,6 @@ fn test_bitbucket_remote_scan() -> Result<()> {
         confidence: ConfidenceLevel::Medium,
         no_validate: false,
         access_map: false,
-        access_map_html: None,
         rule_stats: false,
         only_valid: false,
         min_entropy: None,
@@ -168,7 +167,8 @@ fn test_bitbucket_remote_scan() -> Result<()> {
 
     let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
     let runtime = Runtime::new()?;
-    let rules_db = Arc::new(load_and_record_rules(&scan_args, &datastore)?);
+    let rules_db =
+        Arc::new(load_and_record_rules(&scan_args, &datastore, global_args.use_progress())?);
     let update_status = UpdateStatus::default();
 
     runtime.block_on(async {

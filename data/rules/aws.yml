@@ -28,9 +28,9 @@ rules:
         \b
         (?:AWS|AMAZON|AMZN|A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)
         (?:.|[\n\r]){0,64}?
-        \b
+        [^A-Za-z0-9_+!@\#$%^&*()\]./]
         ([A-Za-z0-9/+]{40})
-        \b
+        [^A-Za-z0-9_+!@\#$%^&*()\]./]
       |
         \b(?:AWS|AMAZON|AMZN|A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)
         (?:.|[\n\r]){0,96}?
@@ -43,7 +43,7 @@ rules:
         \b
       )
     pattern_requirements:
-      min_digits: 2
+      min_digits: 3
       ignore_if_contains:
         - "EXAMPLE"
         - "TEST"

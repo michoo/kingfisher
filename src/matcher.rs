@@ -657,9 +657,8 @@ fn filter_match<'b>(
             // --- FIX IS HERE ---
             //
             // The `validate` function (and thus `{{ MATCH }}`) should *always*
-            // operate on the *full match* (group 0), not just the entropy bytes.
-            // This aligns the scan logic with the unit test's logic.
-            match char_reqs.validate(full_bytes, Some(context), respect_ignore_if_contains) {
+            // operate on the *match* (group 1), not the full match (group 0).
+            match char_reqs.validate(entropy_bytes, Some(context), respect_ignore_if_contains) {
                 //
                 // --- END FIX ---
                 PatternValidationResult::Passed => {}

@@ -930,7 +930,6 @@ mod tests {
             confidence: ConfidenceLevel::Medium,
             no_validate: false,
             access_map: false,
-            access_map_html: None,
             only_valid: false,
             min_entropy: None,
             rule_stats: false,

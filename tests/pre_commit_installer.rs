@@ -65,8 +65,7 @@ fn installs_wrapper_without_existing_hook() {
 
     assert!(wrapper.contains("# Kingfisher pre-commit wrapper"));
     assert!(wrapper.contains("kingfisher-pre-commit"));
-    assert!(kf_script
-        .contains("kingfisher scan . --staged --quiet --redact --only-valid --no-update-check"));
+    assert!(kf_script.contains("kingfisher scan . --staged --quiet --no-update-check"));
     assert!(!legacy.exists());
 }
 
@@ -103,8 +102,7 @@ fn preserves_existing_hook_and_runs_it_first() {
     let log_contents = fs::read_to_string(&log).unwrap();
     let lines: Vec<_> = log_contents.lines().collect();
     assert_eq!(lines[0], "legacy");
-    assert!(lines[1]
-        .contains("kingfisher scan . --staged --quiet --redact --only-valid --no-update-check"));
+    assert!(lines[1].contains("kingfisher scan . --staged --quiet --no-update-check"));
 
     assert!(hooks_path.join("pre-commit.legacy.kingfisher").exists());
 }
@@ -171,17 +169,27 @@ fn errors_outside_git_repository() {
 
 #[test]
 fn pre_commit_framework_invokes_kingfisher() {
-    let (_tmp, repo, hooks_path) = init_repo();
+    // Skip this test if `pre-commit` is not available (e.g., in some CI images).
+    if StdCommand::new("pre-commit").arg("--version").output().is_err() {
+        eprintln!(
+            "skipping pre_commit_framework_invokes_kingfisher: `pre-commit` not found in PATH"
+        );
+        return;
+    }
+
+    let (_tmp, repo, _hooks_path) = init_repo();
 
     let log = repo.join("hook.log");
     let bin_dir = repo.join("bin");
     fs::create_dir_all(&bin_dir).unwrap();
 
+    // Fake kingfisher binary that just logs its argv to hook.log
     let fake_kingfisher = bin_dir.join("kingfisher");
     fs::write(&fake_kingfisher, format!("#!/usr/bin/env bash\necho \"$@\" > {}\n", log.display()))
         .unwrap();
     StdCommand::new("chmod").args(["+x", fake_kingfisher.to_str().unwrap()]).assert().success();
 
+    // Local pre-commit config that uses `kingfisher` as the entry
     fs::write(
         repo.join(".pre-commit-config.yaml"),
         r#"repos:
@@ -198,10 +206,12 @@ fn pre_commit_framework_invokes_kingfisher() {
     )
     .unwrap();
 
+    // Something for pre-commit to see as a tracked file
     fs::write(repo.join("README.md"), "demo").unwrap();
 
-    StdCommand::new("uv")
-        .args(["run", "--no-config", "--with", "pre-commit", "pre-commit", "run", "--all-files"])
+    // Run pre-commit directly, with our fake kingfisher at the front of PATH
+    Command::new("pre-commit")
+        .args(["run", "--all-files"])
         .current_dir(&repo)
         .env("PATH", format!("{}:{}", bin_dir.display(), std::env::var("PATH").unwrap()))
         .assert()
@@ -244,8 +254,7 @@ fn installer_hook_executes_kingfisher_command() {
         .success();
 
     let log_contents = fs::read_to_string(&log).unwrap();
-    assert!(log_contents
-        .contains("kingfisher scan . --staged --quiet --redact --only-valid --no-update-check"));
+    assert!(log_contents.contains("kingfisher scan . --staged --quiet --no-update-check"));
 }
 
 //

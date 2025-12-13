@@ -276,7 +276,7 @@ Install a **per-repository** hook from the root of the target repo:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.ps1' -OutFile install-kingfisher-pre-commit.ps1
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/development/scripts/install-kingfisher-pre-commit.ps1' -OutFile install-kingfisher-pre-commit.ps1
 ./install-kingfisher-pre-commit.ps1
 ```
 
@@ -298,7 +298,7 @@ Uninstall the **global** hook:
 ```
 
 > The installer automatically runs any existing `pre-commit` hook first, then
-> executes `kingfisher scan . --staged --quiet --redact --only-valid --no-update-check`
+> executes `kingfisher scan . --staged --quiet --no-update-check`
 > against the staged diff (anchored to `HEAD` when no commits exist yet).
 
 </details>
@@ -325,7 +325,7 @@ Then install the hook via `pre-commit install`. Every hook now drives Kingfisher
 directly with the built-in `--staged` flag:
 
 ```bash
-kingfisher scan . --staged --quiet --redact --only-valid --no-update-check
+kingfisher scan . --staged --quiet --no-update-check
 ```
 
 When `--staged` is set, Kingfisher snapshots the staged index into a temporary
@@ -551,6 +551,7 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 - Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with an `access_map` array containing providers, accounts/projects, resources, and the permissions available for each resource (grouped when identical).
 - If you validated cloud credentials without `--access-map`, Kingfisher will remind you on stderr to rerun with the flag so the access map appears in the output.
+- Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants.
 - Run `kingfisher view ./kingfisher.json` to explore a report locally in a local web UI
 
 ### View access-map reports locally

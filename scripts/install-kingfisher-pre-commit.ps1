@@ -1,17 +1,17 @@
 <#!
 .SYNOPSIS
-  Install or remove Kingfisher Git pre-commit hooks (local or global).
+  Install or remove Kingfisher Git pre-commit hooks (POSIX-safe).
 
 .DESCRIPTION
-  Supports repo installs, global installs (via core.hooksPath), and
-  custom hook directories. Preserves existing hooks safely and provides
-  uninstall behavior mirroring the Bash installer.
+  Writes POSIX-compliant shell hooks that work on macOS, Linux,
+  and Windows (Git for Windows / sh).
+  Safely bootstraps ~/.git/hooks if needed.
 
 .PARAMETER Global
   Install into the global Git hooks directory.
 
 .PARAMETER HooksPath
-  Manually override the hooks directory.
+  Manually override the hooks directory (repo only).
 
 .PARAMETER Uninstall
   Remove the Kingfisher hook and restore a legacy hook if present.
@@ -24,135 +24,152 @@ param(
     [switch]$Global
 )
 
-function Ensure-InRepo {
-    if (-not $Global -and -not (git rev-parse --is-inside-work-tree 2>$null)) {
-        throw "This installer must be run inside a Git repository unless --Global is specified."
+function Ensure-GlobalHooksPath {
+    $existing = git config --global --get core.hooksPath 2>$null
+    if ($existing) {
+        return $existing
     }
+
+    # Git expands ~, PowerShell should not
+    $gitHooksPath = "~/.git/hooks"
+    $fsHooksPath  = Join-Path $HOME ".git\hooks"
+
+    if (-not (Test-Path $fsHooksPath)) {
+        New-Item -ItemType Directory -Force -Path $fsHooksPath | Out-Null
+    }
+
+    git config --global core.hooksPath $gitHooksPath
+    Write-Host "Configured global Git hooks at $gitHooksPath"
+
+    return $gitHooksPath
 }
 
 function Resolve-HooksPath {
     param([string]$Override, [switch]$Global)
 
-    # Explicit override wins
     if ($Override) {
-        return (Resolve-Path $Override).Path
-    }
-
-    # Global mode
-    if ($Global) {
-        $p = git config --global core.hooksPath 2>$null
-        if (-not $p) {
-            # Default global hooks directory
-            $p = Join-Path $HOME ".git-hooks"
-            git config --global core.hooksPath $p
-            Write-Host "Configured global Git hooks at $p"
+        $resolved = Resolve-Path -LiteralPath $Override -ErrorAction SilentlyContinue
+        if ($resolved) {
+            return $resolved.Path
         }
-        return $p
+        return [IO.Path]::GetFullPath($Override)
     }
 
-    # Repo mode
+    if ($Global) {
+        $configured = git config --global --get core.hooksPath 2>$null
+        if ($configured) {
+            return $configured
+        }
+        return Ensure-GlobalHooksPath
+    }
+
     $repoHooks = git rev-parse --git-path hooks 2>$null
-    if (-not $repoHooks) { throw "Unable to resolve repository hooks path." }
-    return $repoHooks.Trim()
+    if ($repoHooks) {
+        return $repoHooks.Trim()
+    }
+
+    $fallback = Join-Path (Get-Location) ".git\hooks"
+    Write-Host "Git repository not detected; using fallback hooks path $fallback"
+    return $fallback
 }
 
 function Uninstall-Kingfisher {
-    param(
-        [string]$PreCommit,
-        [string]$Legacy,
-        [string]$KFHook,
-        [string]$Marker
-    )
+    param($PreCommit, $Legacy, $KFHook, $Marker)
 
-    # Only try to inspect hook if it exists
     if (Test-Path $PreCommit) {
-        # Only restore if this is our wrapper
         if (Select-String -Quiet -SimpleMatch -Path $PreCommit -Pattern $Marker) {
             if (Test-Path $Legacy) {
                 Move-Item -Force $Legacy $PreCommit
-                & chmod +x $PreCommit 2>$null | Out-Null
                 Write-Host "Restored previous pre-commit hook from $Legacy"
-            }
-            else {
+            } else {
                 Remove-Item -Force $PreCommit
                 Write-Host "Removed Kingfisher pre-commit wrapper."
             }
         }
     }
 
-    # Always clean up wrapper + legacy
     Remove-Item -Force -ErrorAction SilentlyContinue $KFHook, $Legacy
     Write-Host "Kingfisher pre-commit hook uninstalled."
 }
 
-Ensure-InRepo
-
-# Determine hooks directory safely
+# ------------------------------
+# Resolve hooks directory
+# ------------------------------
 $hooksDir = Resolve-HooksPath -Override $HooksPath -Global:$Global
 
-if (-not (Test-Path $hooksDir)) {
-    New-Item -ItemType Directory -Force -Path $hooksDir | Out-Null
+# Convert ~/.git/hooks to filesystem path if needed
+if ($hooksDir -eq "~/.git/hooks") {
+    $fsHooksDir = Join-Path $HOME ".git\hooks"
+} else {
+    $fsHooksDir = $hooksDir
 }
 
-$preCommit = Join-Path $hooksDir "pre-commit"
-$legacy    = Join-Path $hooksDir "pre-commit.legacy.kingfisher"
-$kfHook    = Join-Path $hooksDir "kingfisher-pre-commit"
+if (-not (Test-Path $fsHooksDir)) {
+    New-Item -ItemType Directory -Force -Path $fsHooksDir | Out-Null
+}
+
+$preCommit = Join-Path $fsHooksDir "pre-commit"
+$legacy    = Join-Path $fsHooksDir "pre-commit.legacy.kingfisher"
+$kfHook    = Join-Path $fsHooksDir "kingfisher-pre-commit"
 $marker    = "# Kingfisher pre-commit wrapper"
 
+# ------------------------------
+# Uninstall
+# ------------------------------
 if ($Uninstall) {
-    Uninstall-Kingfisher -PreCommit $preCommit -Legacy $legacy -KFHook $kfHook -Marker $marker
+    Uninstall-Kingfisher $preCommit $legacy $kfHook $marker
     return
 }
 
-# ---- Kingfisher hook ----
-$kfContent = @"
-#!/usr/bin/env bash
-set -euo pipefail
+# ------------------------------
+# Kingfisher hook (POSIX sh)
+# ------------------------------
+$kfContent = @'
+#!/usr/bin/env sh
+set -eu
 
-if ! command -v kingfisher >/dev/null 2>&1; then
-  echo "Kingfisher is not on PATH; skipping scan." >&2
-  exit 0
-fi
+command -v kingfisher >/dev/null 2>&1 || exit 0
 
-repo_root="\$(git rev-parse --show-toplevel)"
-cd "\$repo_root"
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
 
-kingfisher scan . --staged --quiet --redact --only-valid --no-update-check
-"@
+kingfisher scan . --staged --quiet --no-update-check
+'@
 
-# ---- Wrapper ----
-# Note: No dirname logic here — absolute paths only
-$wrapper = @"
-#!/usr/bin/env bash
-$marker
-set -euo pipefail
-
-legacy_hook="$legacy"
-kingfisher_hook="$kfHook"
-
-if [[ -f "\$legacy_hook" && -x "\$legacy_hook" ]]; then
-  "\$legacy_hook" "\$@"
-fi
-
-"\$kingfisher_hook" "\$@"
-"@
-
-# Write inner Kingfisher hook
-Set-Content -Path $kfHook -Value $kfContent -NoNewline
+Set-Content -Path $kfHook -Value $kfContent -NoNewline -Encoding ASCII
 & chmod +x $kfHook 2>$null | Out-Null
 
-# Preserve existing hook ONLY if it exists
+# ------------------------------
+# Preserve existing hook
+# ------------------------------
 if (Test-Path $preCommit) {
-    # And if it's not our wrapper
     if (-not (Select-String -Quiet -SimpleMatch -Path $preCommit -Pattern $marker)) {
         Move-Item -Force $preCommit $legacy
-        & chmod +x $legacy 2>$null
+        & chmod +x $legacy 2>$null | Out-Null
         Write-Host "Existing pre-commit hook preserved at $legacy"
     }
 }
 
-# Write wrapper
-Set-Content -Path $preCommit -Value $wrapper -NoNewline
+# ------------------------------
+# Wrapper (POSIX-safe)
+# ------------------------------
+$wrapper = @'
+#!/usr/bin/env sh
+# Kingfisher pre-commit wrapper
+set -eu
+
+hooks_dir="$(git rev-parse --git-path hooks)"
+legacy_hook="$hooks_dir/pre-commit.legacy.kingfisher"
+kf_hook="$hooks_dir/kingfisher-pre-commit"
+
+if [ -f "$legacy_hook" ] && [ -x "$legacy_hook" ]; then
+  "$legacy_hook" "$@"
+fi
+
+"$kf_hook" "$@"
+'@
+
+Set-Content -Path $preCommit -Value $wrapper -NoNewline -Encoding ASCII
 & chmod +x $preCommit 2>$null | Out-Null
 
 Write-Host "Kingfisher pre-commit hook installed at $preCommit"

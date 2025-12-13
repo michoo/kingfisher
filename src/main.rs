@@ -219,7 +219,11 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                             scan_args.input_specifier_args.path_inputs = vec![stdin_file.into()];
                         }
 
-                        let rules_db = Arc::new(load_and_record_rules(&scan_args, &datastore)?);
+                        let rules_db = Arc::new(load_and_record_rules(
+                            &scan_args,
+                            &datastore,
+                            global_args.use_progress(),
+                        )?);
                         run_scan(
                             &global_args,
                             &scan_args,
@@ -457,7 +461,6 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         confidence: ConfidenceLevel::Medium,
         no_validate: true,
         access_map: false,
-        access_map_html: None,
         rule_stats: false,
         only_valid: false,
         min_entropy: None,

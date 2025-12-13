@@ -175,7 +175,6 @@ mod tests {
             confidence: ConfidenceLevel::Medium,
             no_validate: false,
             access_map: false,
-            access_map_html: None,
             rule_stats: false,
             only_valid: false,
             min_entropy: None,

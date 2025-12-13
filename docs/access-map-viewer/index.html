@@ -1,16 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kingfisher Access Map Viewer</title>
   <style>
     :root {
+      color-scheme: dark;
+      --brand: #0e7c56;
+      --brand-dark: #0a5d40;
+      --brand-soft: #123025;
+      --bg: #0b1220;
+      --surface: #111827;
+      --surface-muted: #0f172a;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border: #1f2937;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+      --critical: #fca5a5;
+      --success: #34d399;
+      --radius: 8px;
+      --hover: #1f2937;
+      --table-header: #0f172a;
+      --code-bg: #0f172a;
+      --code-border: #1f2937;
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
       --brand: #0e7c56;
       --brand-dark: #07402c;
       --brand-soft: #e6f4ed;
       --bg: #f3f4f6;
       --surface: #ffffff;
+      --surface-muted: #f9fafb;
       --text-main: #111827;
       --text-muted: #6b7280;
       --border: #e5e7eb;
@@ -18,7 +42,10 @@
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
       --critical: #dc2626;
       --success: #059669;
-      --radius: 8px;
+      --hover: #e5e7eb;
+      --table-header: #f9fafb;
+      --code-bg: #0f172a;
+      --code-border: #1f2937;
     }
 
     * { box-sizing: border-box; }
@@ -103,7 +130,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #ffffff;
+      background: var(--surface);
     }
 
     .panel__title h3 { margin: 0; font-size: 16px; font-weight: 600; }
@@ -113,7 +140,7 @@
     .upload-area {
       padding: 32px;
       text-align: center;
-      background: #f9fafb;
+      background: var(--surface-muted);
       cursor: pointer;
       transition: all 0.2s ease;
       border-bottom: 1px solid var(--border);
@@ -169,7 +196,7 @@
 
     .am-sidebar {
       border-right: 1px solid var(--border);
-      background: #f9fafb;
+      background: var(--surface-muted);
       overflow-y: auto;
       padding: 16px;
     }
@@ -177,13 +204,13 @@
     .am-main {
       padding: 24px;
       overflow-y: auto;
-      background: #ffffff;
+      background: var(--surface);
     }
 
     .am-search {
       position: sticky;
       top: 0;
-      background: #f9fafb;
+      background: var(--surface-muted);
       padding-bottom: 10px;
       margin-bottom: 8px;
       border-bottom: 1px solid var(--border);
@@ -196,6 +223,8 @@
       border-radius: 6px;
       border: 1px solid var(--border);
       font-size: 13px;
+      background: var(--surface);
+      color: var(--text-main);
     }
 
     .am-search input:focus {
@@ -237,7 +266,7 @@
     }
 
     .node-content:hover {
-      background: #e5e7eb;
+      background: var(--hover);
     }
 
     .node-icon {
@@ -286,7 +315,7 @@
       border-radius: 8px;
       display: grid;
       place-items: center;
-      background: var(--bg);
+      background: var(--surface-muted);
       border: 1px solid var(--border);
       font-size: 20px;
     }
@@ -341,7 +370,7 @@
     .table th {
       text-align: left;
       padding: 12px 16px;
-      background: #f9fafb;
+      background: var(--table-header);
       border-bottom: 1px solid var(--border);
       color: var(--text-muted);
       font-weight: 600;
@@ -352,7 +381,7 @@
       vertical-align: top;
     }
     .table tr:last-child td { border-bottom: none; }
-    .table tr:hover td { background: #f9fafb; cursor: pointer; }
+    .table tr:hover td { background: var(--surface-muted); cursor: pointer; }
 
     .sortable {
       cursor: pointer;
@@ -375,11 +404,11 @@
     }
     .status-badge.active { background: #ecfdf5; color: #15803d; }
     .status-badge.inactive { background: #fef2f2; color: #b91c1c; }
-    .status-badge.unknown { background: #f3f4f6; color: #6b7280; }
+    .status-badge.unknown { background: var(--surface-muted); color: var(--text-muted); }
 
     /* Finding detail snippet */
     .snippet-box {
-      background: #0f172a;
+      background: var(--code-bg);
       color: #e5e7eb;
       padding: 16px;
       border-radius: 6px;
@@ -387,7 +416,7 @@
       font-size: 12px;
       overflow-x: auto;
       white-space: pre;
-      border: 1px solid #1f2937;
+      border: 1px solid var(--code-border);
     }
 
     #fd-validation-box {
@@ -416,7 +445,7 @@
     .path-mono {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
-      background: #f3f4f6;
+      background: var(--surface-muted);
       padding: 4px 8px;
       border-radius: 4px;
       display: inline-block;
@@ -444,6 +473,8 @@
       border-radius: 6px;
       width: 220px;
       font-size: 13px;
+      background: var(--surface);
+      color: var(--text-main);
     }
 
     .rows-label {
@@ -455,8 +486,9 @@
       padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--surface);
       font-size: 13px;
+      color: var(--text-main);
     }
 
     .pager {
@@ -472,11 +504,12 @@
       height: 28px;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--surface);
       display: grid;
       place-items: center;
       cursor: pointer;
       padding: 0;
+      color: var(--text-main);
     }
 
     .pager-btn:disabled {
@@ -486,7 +519,7 @@
 
     /* Buttons & loader */
     .btn {
-      background: #ffffff;
+      background: var(--surface);
       border: 1px solid var(--border);
       padding: 8px 16px;
       border-radius: 6px;
@@ -496,8 +529,8 @@
       transition: background 0.1s, border-color 0.1s;
     }
     .btn:hover {
-      background: #f3f4f6;
-      border-color: #cbd5e1;
+      background: var(--surface-muted);
+      border-color: var(--border);
     }
 
     .hidden { display: none !important; }
@@ -516,7 +549,7 @@
       width: 40px;
       height: 40px;
       border-radius: 999px;
-      border: 3px solid #e5e7eb;
+      border: 3px solid var(--border);
       border-top-color: #0e7c56;
       animation: spin 0.8s linear infinite;
     }
@@ -525,7 +558,7 @@
       width: 220px;
       height: 6px;
       border-radius: 999px;
-      background: #e5e7eb;
+      background: var(--border);
       overflow: hidden;
       margin: 12px auto 0;
     }
@@ -548,7 +581,7 @@
 <body>
 
   <div id="loader" class="loading-overlay hidden">
-    <div style="background:#ffffff; padding:18px 22px; border-radius:10px; border:1px solid var(--border); box-shadow:var(--shadow-md); text-align:center; min-width:260px;">
+    <div style="background:var(--surface); padding:18px 22px; border-radius:10px; border:1px solid var(--border); box-shadow:var(--shadow-md); text-align:center; min-width:260px; color:var(--text-main);">
       <div class="spinner" style="margin:0 auto 12px;"></div>
       <div class="progress-track"><div class="progress-inner"></div></div>
       <div id="loader-text" style="margin-top:10px; font-size:13px; color:var(--text-muted);">
@@ -565,7 +598,8 @@
         <span class="hero__subtitle">Access Map &amp; Findings</span>
       </div>
     </div>
-    <div style="display:flex; gap:10px;">
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn" id="theme-toggle" type="button">Light Mode</button>
       <button class="btn" id="reset-btn">Load New Report</button>
     </div>
   </header>
@@ -811,6 +845,19 @@
     const amContainer = document.getElementById("am-container");
     const amToggle = document.getElementById("am-toggle");
     const copyAccessMapButton = document.getElementById("copy-access-map");
+    const themeToggle = document.getElementById("theme-toggle");
+
+    const THEME_KEY = "access-map-viewer-theme";
+
+    function setTheme(theme) {
+      const normalized = theme === "light" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", normalized);
+      if (themeToggle) {
+        themeToggle.textContent = normalized === "dark" ? "Light Mode" : "Dark Mode";
+      }
+    }
+
+    setTheme(localStorage.getItem(THEME_KEY));
 
     dropZone.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", (e) => {
@@ -893,6 +940,14 @@
     downloadJsonBtn.addEventListener("click", downloadFindingsJson);
     downloadCsvBtn.addEventListener("click", downloadFindingsCsv);
     copyAccessMapButton.addEventListener("click", copyFilteredAccessMap);
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+        const next = current === "dark" ? "light" : "dark";
+        localStorage.setItem(THEME_KEY, next);
+        setTheme(next);
+      });
+    }
 
     loadCliReport();
 

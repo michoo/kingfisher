@@ -58,12 +58,13 @@ if $GLOBAL; then
   fi
   HOOKS_PATH="$GLOBAL_PATH"
 else
-  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "Error: must be run inside a Git repository unless using --global." >&2
-    exit 1
-  fi
   if [[ -z "$HOOKS_PATH" ]]; then
-    HOOKS_PATH="$(git rev-parse --git-path hooks)"
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      HOOKS_PATH="$(git rev-parse --git-path hooks)"
+    else
+      HOOKS_PATH="$PWD/.git/hooks"
+      echo "Git repository not detected; using fallback hooks path $HOOKS_PATH"
+    fi
   fi
 fi
 
@@ -113,7 +114,7 @@ fi
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
-kingfisher scan . --staged --quiet --redact --only-valid --no-update-check
+kingfisher scan . --staged --quiet --no-update-check
 EOF
 chmod +x "$KF_HOOK"
 
