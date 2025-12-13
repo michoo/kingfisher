@@ -276,7 +276,7 @@ Install a **per-repository** hook from the root of the target repo:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/development/scripts/install-kingfisher-pre-commit.ps1' -OutFile install-kingfisher-pre-commit.ps1
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.ps1' -OutFile install-kingfisher-pre-commit.ps1
 ./install-kingfisher-pre-commit.ps1
 ```
 
