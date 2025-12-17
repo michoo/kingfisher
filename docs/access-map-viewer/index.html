@@ -8,14 +8,16 @@
     :root {
       color-scheme: dark;
       --brand: #0e7c56;
-      --brand-dark: #0a5d40;
-      --brand-soft: #123025;
-      --bg: #0b1220;
-      --surface: #111827;
-      --surface-muted: #0f172a;
-      --text-main: #e5e7eb;
-      --text-muted: #9ca3af;
-      --border: #1f2937;
+      --brand-dark: #0c6d4d;
+      --brand-soft: #10241c;
+      --bg: #060b16;
+      --surface: #0d1424;
+      --surface-muted: #111a2b;
+      --surface-strong: #0f192c;
+      --text-main: #f3f4f6;
+      --text-muted: #c7d2e2;
+      --border: #1f2a3f;
+      --border-strong: #2c3a55;
       --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
       --critical: #fca5a5;
@@ -40,6 +42,7 @@
       --brand-soft: #e6f4ed;
       --bg: #f3f4f6;
       --surface: #ffffff;
+      --surface-strong: #f4f6fb;
       --surface-muted: #f9fafb;
       --text-main: #111827;
       --text-muted: #6b7280;
@@ -119,6 +122,87 @@
       border-left: 1px solid rgba(255, 255, 255, 0.25);
     }
 
+    .layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 14px;
+      position: sticky;
+      top: 82px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-button {
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--surface-muted);
+      color: var(--text-main);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: border 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+
+    .nav-button:hover {
+      background: var(--hover);
+      border-color: var(--border);
+    }
+
+    .nav-button.active {
+      background: var(--brand-soft);
+      border-color: var(--brand);
+      color: var(--brand-dark);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-icon {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .view {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .view-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: relative;
+        top: auto;
+      }
+    }
+
     .info-banner {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -151,7 +235,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: var(--surface);
+      background: var(--surface-strong);
     }
 
     .panel__title h3 { margin: 0; font-size: 16px; font-weight: 600; }
@@ -251,6 +335,15 @@
     .am-search input:focus {
       outline: none;
       border-color: var(--brand);
+    }
+
+    .am-empty-hint {
+      padding: 12px 16px;
+      background: var(--surface-muted);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      margin: 12px 20px 0;
     }
 
     /* Tree */
@@ -385,6 +478,55 @@
       word-break: break-all;
     }
 
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      padding: 0 20px 20px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      min-height: 220px;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+
+    .chart-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #status-chart {
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
     /* Findings table */
     .table-container { width: 100%; overflow-x: auto; }
     .table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -436,8 +578,10 @@
       border-radius: 8px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
-      overflow-x: auto;
-      white-space: pre;
+      max-width: 100%;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
       border: 1px solid var(--code-border);
       box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--code-border-strong);
     }
@@ -474,17 +618,19 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
 
-    .path-mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 12px;
+    .path-area {
+      width: 100%;
+      min-height: 48px;
       background: var(--surface-muted);
-      padding: 4px 8px;
-      border-radius: 4px;
-      display: inline-block;
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      resize: vertical;
+      overflow: auto;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
     }
 
     .link-mono a {
@@ -567,6 +713,31 @@
     .btn:hover {
       background: var(--surface-muted);
       border-color: var(--border);
+    }
+
+    #theme-toggle {
+      background: #f9fafb;
+      color: var(--brand);
+      border-color: rgba(255, 255, 255, 0.7);
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+
+    #theme-toggle:hover {
+      background: #ffffff;
+      border-color: rgba(255, 255, 255, 0.9);
+      color: var(--brand-dark);
+    }
+
+    :root[data-theme="light"] #theme-toggle {
+      background: #0e7c56;
+      color: #ffffff;
+      border-color: #0c6d4d;
+    }
+
+    :root[data-theme="light"] #theme-toggle:hover {
+      background: #0c6d4d;
+      border-color: #0a5d40;
     }
 
     .hidden { display: none !important; }
@@ -662,190 +833,238 @@
       </div>
     </section>
 
-    <div id="dashboard" class="hidden" style="display:flex; flex-direction:column; gap:24px;">
-      <section class="panel">
-        <div class="metrics-grid">
-          <div class="metric">
-            <div class="metric__label">Total Findings</div>
-            <div class="metric__value" id="stat-total">0</div>
+    <div id="dashboard" class="hidden">
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="nav-group">
+            <button class="nav-button active" data-view-target="view-dashboard">
+              <span class="nav-icon">📊</span>
+              Dashboard
+            </button>
+            <button class="nav-button" data-view-target="view-access">
+              <span class="nav-icon">🗺️</span>
+              Access Map
+            </button>
+            <button class="nav-button" data-view-target="view-findings">
+              <span class="nav-icon">📄</span>
+              Findings
+            </button>
           </div>
-          <div class="metric critical">
-            <div class="metric__label">High Confidence</div>
-            <div class="metric__value" id="stat-high">0</div>
+          <div class="nav-group">
+            <button class="btn" id="download-pdf" type="button" style="width:100%;">Download PDF report</button>
           </div>
-          <div class="metric success">
-            <div class="metric__label">Active Credentials</div>
-            <div class="metric__value" id="stat-active">0</div>
-          </div>
-          <div class="metric">
-            <div class="metric__label">Identities Mapped</div>
-            <div class="metric__value" id="stat-identities">0</div>
-          </div>
-          <div class="metric">
-            <div class="metric__label">Scan Duration</div>
-            <div class="metric__value" id="stat-duration" style="font-size:20px; margin-top:8px;">-</div>
-          </div>
-        </div>
-      </section>
+        </aside>
 
-      <section class="panel" id="am-section">
-        <div class="panel__header">
-          <div class="panel__title">
-            <h3>Access Map</h3>
-            <p>Identity hierarchy: Identity &gt; Resources &gt; Resource &gt; Permissions</p>
-          </div>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <button class="btn" id="copy-access-map" type="button">Copy Access Map</button>
-            <button class="btn" id="am-toggle" type="button">Collapse</button>
-          </div>
-        </div>
-        <div class="am-container" id="am-container">
-          <div class="am-sidebar">
-            <div class="am-search">
-              <input id="tree-search" type="text" placeholder="Filter identities or resources…">
-            </div>
-            <div id="am-tree-root" style="padding-top:8px;">
-              <div style="color:var(--text-muted); font-size:13px; text-align:center; margin-top:32px;">
-                No access map data found in report.
+        <div class="view-stack">
+          <section id="view-dashboard" class="view">
+            <section class="panel">
+              <div class="metrics-grid">
+                <div class="metric">
+                  <div class="metric__label">Total Findings</div>
+                  <div class="metric__value" id="stat-total">0</div>
+                </div>
+                <div class="metric critical">
+                  <div class="metric__label">High Confidence</div>
+                  <div class="metric__value" id="stat-high">0</div>
+                </div>
+                <div class="metric success">
+                  <div class="metric__label">Active Credentials</div>
+                  <div class="metric__value" id="stat-active">0</div>
+                </div>
+                <div class="metric">
+                  <div class="metric__label">Identities Mapped</div>
+                  <div class="metric__value" id="stat-identities">0</div>
+                </div>
+                <div class="metric">
+                  <div class="metric__label">Scan Duration</div>
+                  <div class="metric__value" id="stat-duration" style="font-size:20px; margin-top:8px;">-</div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div class="am-main">
-            <div id="am-empty-state" style="display:grid; place-items:center; height:100%; color:var(--text-muted);">
-              Select an item in the tree to view details.
-            </div>
-            <div id="am-detail-view" class="hidden">
-              <div class="am-card-header">
-                <div class="am-card-title">
-                  <div id="am-detail-icon" class="detail-icon-lg">👤</div>
-                  <div>
-                    <div id="am-detail-name">Identity</div>
-                    <div class="am-card-meta" id="am-detail-meta"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Finding Status Distribution</h3>
+                  <p>Active vs Inactive vs Not Attempted</p>
+                </div>
+              </div>
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <canvas id="status-chart" width="260" height="220"></canvas>
+                  <div class="chart-legend" id="status-legend">
+                    <!-- filled by JS -->
                   </div>
                 </div>
               </div>
-              <div class="detail-grid">
-                <div class="detail-field">
-                  <label>Type</label>
-                  <div id="am-detail-type">Identity</div>
+            </section>
+          </section>
+
+          <section id="view-access" class="view hidden">
+            <section class="panel" id="am-section">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Access Map</h3>
+                  <p>Identity hierarchy: Identity &gt; Resources &gt; Resource &gt; Permissions</p>
                 </div>
-                <div class="detail-field">
-                  <label>Cloud Provider</label>
-                  <div id="am-detail-cloud">-</div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <button class="btn" id="copy-access-map" type="button">Copy Access Map</button>
+                  <button class="btn" id="am-toggle" type="button">Collapse</button>
                 </div>
               </div>
-              <div id="am-perms-container" class="hidden">
-                <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px;">Permissions</h4>
-                <div id="am-perms-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+              <div id="am-empty-notice" class="am-empty-hint hidden">No Access Map entries in this report.</div>
+              <div class="am-container" id="am-container">
+                <div class="am-sidebar">
+                  <div class="am-search">
+                    <input id="tree-search" type="text" placeholder="Filter identities or resources…">
+                  </div>
+                  <div id="am-tree-root" style="padding-top:8px;">
+                    <div style="color:var(--text-muted); font-size:13px; text-align:center; margin-top:32px;">
+                      No access map data found in report.
+                    </div>
+                  </div>
+                </div>
+                <div class="am-main">
+                  <div id="am-empty-state" style="display:grid; place-items:center; height:100%; color:var(--text-muted);">
+                    Select an item in the tree to view details.
+                  </div>
+                  <div id="am-detail-view" class="hidden">
+                    <div class="am-card-header">
+                      <div class="am-card-title">
+                        <div id="am-detail-icon" class="detail-icon-lg">👤</div>
+                        <div>
+                          <div id="am-detail-name">Identity</div>
+                          <div class="am-card-meta" id="am-detail-meta"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="detail-grid">
+                      <div class="detail-field">
+                        <label>Type</label>
+                        <div id="am-detail-type">Identity</div>
+                      </div>
+                      <div class="detail-field">
+                        <label>Cloud Provider</label>
+                        <div id="am-detail-cloud">-</div>
+                      </div>
+                    </div>
+                    <div id="am-perms-container" class="hidden">
+                      <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px;">Permissions</h4>
+                      <div id="am-perms-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </section>
+          </section>
 
-      <section class="panel">
-        <div class="panel__header">
-          <div class="panel__title">
-            <h3>Findings</h3>
-            <p>Detailed list of detected secrets</p>
-          </div>
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <button class="btn" id="download-json" type="button">Download JSON</button>
-            <button class="btn" id="download-csv" type="button">Export CSV</button>
-            <input type="text" id="search-input" class="search-input" placeholder="Search rule, path, snippet">
-            <select id="validation-filter" class="rows-select">
-              <option value="all" selected>All validation states</option>
-              <option value="active">Active Credential</option>
-              <option value="inactive">Inactive Credential</option>
-              <option value="not_attempted">Not Attempted</option>
-            </select>
-            <span class="rows-label">Rows</span>
-            <select id="rows-select" class="rows-select">
-              <option value="10" selected>10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="250">250</option>
-            </select>
-            <div class="pager">
-              <button id="page-prev" class="pager-btn" type="button">&lsaquo;</button>
-              <span id="page-info">0 of 0</span>
-              <button id="page-next" class="pager-btn" type="button">&rsaquo;</button>
-            </div>
-          </div>
-        </div>
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th class="sortable" data-field="rule">
-                  Rule <span class="sort-indicator"></span>
-                </th>
-                <th class="sortable" data-field="location">
-                  Location <span class="sort-indicator"></span>
-                </th>
-                <th class="sortable" data-field="validation">
-                  Validation <span class="sort-indicator"></span>
-                </th>
-                <th class="sortable" data-field="confidence">
-                  Confidence <span class="sort-indicator"></span>
-                </th>
-                <th class="sortable" data-field="line">
-                  Line <span class="sort-indicator"></span>
-                </th>
-              </tr>
-            </thead>
-            <tbody id="findings-body"></tbody>
-          </table>
-        </div>
-      </section>
+          <section id="view-findings" class="view hidden">
+            <section class="panel">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Findings</h3>
+                  <p>Detailed list of detected secrets</p>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <button class="btn" id="download-json" type="button">Download JSON</button>
+                  <button class="btn" id="download-csv" type="button">Export CSV</button>
+                  <input type="text" id="search-input" class="search-input" placeholder="Search rule, path, snippet">
+                  <select id="validation-filter" class="rows-select">
+                    <option value="all" selected>All validation states</option>
+                    <option value="active">Active Credential</option>
+                    <option value="inactive">Inactive Credential</option>
+                    <option value="not_attempted">Not Attempted</option>
+                  </select>
+                  <span class="rows-label">Rows</span>
+                  <select id="rows-select" class="rows-select">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="250">250</option>
+                  </select>
+                  <div class="pager">
+                    <button id="page-prev" class="pager-btn" type="button">&lsaquo;</button>
+                    <span id="page-info">0 of 0</span>
+                    <button id="page-next" class="pager-btn" type="button">&rsaquo;</button>
+                  </div>
+                </div>
+              </div>
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th class="sortable" data-field="rule">
+                        Rule <span class="sort-indicator"></span>
+                      </th>
+                      <th class="sortable" data-field="location">
+                        Location <span class="sort-indicator"></span>
+                      </th>
+                      <th class="sortable" data-field="validation">
+                        Validation <span class="sort-indicator"></span>
+                      </th>
+                      <th class="sortable" data-field="confidence">
+                        Confidence <span class="sort-indicator"></span>
+                      </th>
+                      <th class="sortable" data-field="line">
+                        Line <span class="sort-indicator"></span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody id="findings-body"></tbody>
+                </table>
+              </div>
+            </section>
 
-      <section id="finding-detail" class="panel hidden">
-        <div class="panel__header">
-          <div class="panel__title">
-            <h3>Finding Details</h3>
-          </div>
-          <button class="btn" onclick="document.getElementById('finding-detail').classList.add('hidden')">Close</button>
-        </div>
-        <div style="padding:20px 22px 22px;">
-          <div class="detail-grid">
-            <div class="detail-field">
-              <label>Rule ID</label>
-              <div id="fd-rule-id"></div>
-            </div>
-            <div class="detail-field">
-              <label>Fingerprint</label>
-              <div id="fd-fingerprint"></div>
-            </div>
-            <div class="detail-field">
-              <label>Entropy</label>
-              <div id="fd-entropy"></div>
-            </div>
-            <div class="detail-field">
-              <label>Git Commit</label>
-              <div id="fd-commit"></div>
-            </div>
-            <div class="detail-field">
-              <label>File Path</label>
-              <div id="fd-path" class="path-mono"></div>
-            </div>
-            <div class="detail-field" id="fd-git-url-wrapper">
-              <label>Git URL</label>
-              <div id="fd-git-url" class="link-mono"></div>
-            </div>
-          </div>
+            <section id="finding-detail" class="panel hidden">
+              <div class="panel__header">
+                <div class="panel__title">
+                  <h3>Finding Details</h3>
+                </div>
+                <button class="btn" onclick="document.getElementById('finding-detail').classList.add('hidden')">Close</button>
+              </div>
+              <div style="padding:20px 22px 22px;">
+                <div class="detail-grid">
+                  <div class="detail-field">
+                    <label>Rule ID</label>
+                    <div id="fd-rule-id"></div>
+                  </div>
+                  <div class="detail-field">
+                    <label>Fingerprint</label>
+                    <div id="fd-fingerprint"></div>
+                  </div>
+                  <div class="detail-field">
+                    <label>Entropy</label>
+                    <div id="fd-entropy"></div>
+                  </div>
+                  <div class="detail-field">
+                    <label>Git Commit</label>
+                    <div id="fd-commit"></div>
+                  </div>
+                  <div class="detail-field">
+                    <label>File Path</label>
+                    <textarea id="fd-path" class="path-area" readonly></textarea>
+                  </div>
+                  <div class="detail-field" id="fd-git-url-wrapper">
+                    <label>Git URL</label>
+                    <div id="fd-git-url" class="link-mono"></div>
+                  </div>
+                </div>
 
-          <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
-            Match Snippet
-          </label>
-          <div class="snippet-box" id="fd-snippet"></div>
+                <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em; font-weight:600;">
+                  Match Snippet
+                </label>
+                <div class="snippet-box" id="fd-snippet"></div>
 
-          <div id="fd-validation-box" class="hidden">
-            <label>Live Validation Response</label>
-            <pre id="fd-validation-res"></pre>
-          </div>
+                <div id="fd-validation-box" class="hidden">
+                  <label>Live Validation Response</label>
+                  <pre id="fd-validation-res"></pre>
+                </div>
+              </div>
+            </section>
+          </section>
         </div>
-      </section>
+      </div>
     </div>
   </main>
 
@@ -860,6 +1079,7 @@
     let currentPage = 1;
     let sortField = "rule";
     let sortDirection = "asc";
+    let autoCollapsedAccessMap = false;
 
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
@@ -868,6 +1088,7 @@
     const errorMsg = document.getElementById("error-msg");
     const uploadSection = document.getElementById("upload-section");
     const dashboard = document.getElementById("dashboard");
+    const downloadPdfBtn = document.getElementById("download-pdf");
 
     const searchInput = document.getElementById("search-input");
     const validationSelect = document.getElementById("validation-filter");
@@ -883,7 +1104,17 @@
     const amContainer = document.getElementById("am-container");
     const amToggle = document.getElementById("am-toggle");
     const copyAccessMapButton = document.getElementById("copy-access-map");
+    const amEmptyNotice = document.getElementById("am-empty-notice");
     const themeToggle = document.getElementById("theme-toggle");
+    const fdPathInput = document.getElementById("fd-path");
+    const navButtons = document.querySelectorAll("[data-view-target]");
+    const statusChartCanvas = document.getElementById("status-chart");
+    const statusLegend = document.getElementById("status-legend");
+    const viewRegistry = {
+      "view-dashboard": document.getElementById("view-dashboard"),
+      "view-access": document.getElementById("view-access"),
+      "view-findings": document.getElementById("view-findings"),
+    };
 
     const THEME_KEY = "access-map-viewer-theme";
 
@@ -913,6 +1144,10 @@
       e.preventDefault();
       dropZone.classList.remove("active");
       if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+    });
+
+    navButtons.forEach((btn) => {
+      btn.addEventListener("click", () => setActiveView(btn.dataset.viewTarget));
     });
 
     const resetButton = document.getElementById("reset-btn");
@@ -966,18 +1201,16 @@
     });
 
     amToggle.addEventListener("click", () => {
-      if (amContainer.classList.contains("hidden")) {
-        amContainer.classList.remove("hidden");
-        amToggle.textContent = "Collapse";
-      } else {
-        amContainer.classList.add("hidden");
-        amToggle.textContent = "Expand";
-      }
+      const willCollapse = !amContainer.classList.contains("hidden");
+      setAccessMapCollapsed(willCollapse);
     });
 
     downloadJsonBtn.addEventListener("click", downloadFindingsJson);
     downloadCsvBtn.addEventListener("click", downloadFindingsCsv);
     copyAccessMapButton.addEventListener("click", copyFilteredAccessMap);
+    if (downloadPdfBtn) {
+      downloadPdfBtn.addEventListener("click", generatePdfReport);
+    }
     if (themeToggle) {
       themeToggle.addEventListener("click", () => {
         const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
@@ -1003,6 +1236,51 @@
         renderFindingsTable();
       });
     });
+
+    function setActiveView(targetId) {
+      const fallback = "view-dashboard";
+      const viewId = targetId && viewRegistry[targetId] ? targetId : fallback;
+
+      Object.entries(viewRegistry).forEach(([id, el]) => {
+        if (!el) return;
+        if (id === viewId) el.classList.remove("hidden");
+        else el.classList.add("hidden");
+      });
+
+      navButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.viewTarget === viewId);
+      });
+    }
+
+    function setAccessMapCollapsed(collapsed, { auto = false } = {}) {
+      if (!amContainer) return;
+      if (collapsed) {
+        amContainer.classList.add("hidden");
+        amToggle.textContent = "Expand";
+        autoCollapsedAccessMap = auto;
+      } else {
+        amContainer.classList.remove("hidden");
+        amToggle.textContent = "Collapse";
+        autoCollapsedAccessMap = false;
+      }
+    }
+
+    function syncAccessMapUi(hasAccess) {
+      const previouslyAutoCollapsed = autoCollapsedAccessMap;
+      if (amToggle) amToggle.disabled = !hasAccess;
+      if (amEmptyNotice) {
+        amEmptyNotice.classList.toggle("hidden", hasAccess);
+      }
+
+      if (!hasAccess) {
+        setAccessMapCollapsed(true, { auto: true });
+        return;
+      }
+
+      if (previouslyAutoCollapsed) {
+        setAccessMapCollapsed(false);
+      }
+    }
 
     function escapeHtml(unsafe) {
       if (unsafe === undefined || unsafe === null) return "";
@@ -1096,13 +1374,15 @@
 
       document.getElementById("am-empty-state").classList.remove("hidden");
       document.getElementById("am-detail-view").classList.add("hidden");
-      amContainer.classList.remove("hidden");
-      amToggle.textContent = "Collapse";
+      setAccessMapCollapsed(true, { auto: true });
+      if (amToggle) amToggle.disabled = true;
+      if (amEmptyNotice) amEmptyNotice.classList.add("hidden");
 
       renderAccessMapTree();
       renderFindingsTable();
       updateMetrics();
 
+      setActiveView("view-dashboard");
       dashboard.classList.add("hidden");
       uploadSection.classList.remove("hidden");
 
@@ -1194,6 +1474,7 @@
       searchInput.value = "";
       validationSelect.value = "all";
 
+      setActiveView("view-dashboard");
       updateMetrics();
       renderAccessMapTree();
       renderFindingsTable();
@@ -1207,7 +1488,8 @@
     }
 
     function updateMetrics() {
-      document.getElementById("stat-total").textContent = findings.length.toString();
+      const totalFindings = findings.length;
+      document.getElementById("stat-total").textContent = totalFindings.toString();
 
       const highSev = findings.filter((f) => {
         const conf = f.finding && f.finding.confidence ? String(f.finding.confidence) : "";
@@ -1215,24 +1497,16 @@
       }).length;
       document.getElementById("stat-high").textContent = highSev.toString();
 
-      const active = findings.filter((f) => {
-        const status =
-          f.finding && f.finding.validation && f.finding.validation.status
-            ? String(f.finding.validation.status)
-            : "";
-        return normalizeValidationStatus(status) === "active";
-      }).length;
-      document.getElementById("stat-active").textContent = active.toString();
+      const validationCounts = calculateValidationCounts();
+      document.getElementById("stat-active").textContent = (validationCounts.active || 0).toString();
 
       document.getElementById("stat-identities").textContent = (accessMap || []).length.toString();
 
       const durEl = document.getElementById("stat-duration");
-      if (rawData && typeof rawData.scan_duration !== "undefined") {
-        const d = Number(rawData.scan_duration);
-        durEl.textContent = Number.isFinite(d) ? d.toFixed(2) + "s" : "-";
-      } else {
-        durEl.textContent = "-";
-      }
+      const scanSeconds = resolveScanDurationSeconds(rawData);
+      durEl.textContent = formatDurationText(scanSeconds);
+
+      renderStatusChart(validationCounts);
     }
 
     function getFilteredSortedFindings() {
@@ -1358,6 +1632,155 @@
       return "unknown";
     }
 
+    function calculateValidationCounts() {
+      const counts = { active: 0, inactive: 0, not_attempted: 0, unknown: 0 };
+      findings.forEach((f) => {
+        const status =
+          f.finding && f.finding.validation && f.finding.validation.status
+            ? f.finding.validation.status
+            : "";
+        const key = normalizeValidationStatus(status);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      return counts;
+    }
+
+    function resolveScanDurationSeconds(data) {
+      if (!data) return null;
+      const candidates = [
+        data.scan_duration,
+        data.scanDuration,
+        data.duration_seconds,
+        data.duration,
+        data.stats && data.stats.scan_duration,
+        data.stats && data.stats.scanDuration,
+        data.summary && data.summary.scan_duration,
+      ];
+
+      for (const candidate of candidates) {
+        const parsed = parseDuration(candidate);
+        if (parsed != null) return parsed;
+      }
+      return null;
+    }
+
+    function parseDuration(value) {
+      if (value === undefined || value === null) return null;
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) return numeric;
+
+      if (typeof value === "string") {
+        const match = value.match(/([\d.]+)\s*s/i);
+        if (match) {
+          const parsed = Number(match[1]);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+      }
+      return null;
+    }
+
+    function formatDurationText(seconds) {
+      if (seconds === null || seconds === undefined) return "-";
+      const value = Number(seconds);
+      if (!Number.isFinite(value)) return "-";
+      if (value < 1) return value.toFixed(3) + "s";
+      return value.toFixed(2) + "s";
+    }
+
+    function renderStatusChart(counts) {
+      if (!statusChartCanvas) return;
+      const ctx = statusChartCanvas.getContext("2d");
+      if (!ctx) return;
+
+      const palette = {
+        active: "#22c55e",
+        inactive: "#f97316",
+        not_attempted: "#38bdf8",
+        unknown: "#9ca3af",
+      };
+
+      const dataPoints = [
+        { key: "active", label: "Active", color: palette.active },
+        { key: "inactive", label: "Inactive", color: palette.inactive },
+        { key: "not_attempted", label: "Not Attempted", color: palette.not_attempted },
+        { key: "unknown", label: "Unknown", color: palette.unknown },
+      ];
+
+      const total = dataPoints.reduce((sum, entry) => sum + (counts[entry.key] || 0), 0);
+      ctx.clearRect(0, 0, statusChartCanvas.width, statusChartCanvas.height);
+
+      const style = getComputedStyle(document.documentElement);
+      const surfaceColor = style.getPropertyValue("--surface") || "#0d1424";
+      const textColor = style.getPropertyValue("--text-main") || "#e5e7eb";
+
+      const radius = Math.min(statusChartCanvas.width, statusChartCanvas.height) / 2 - 10;
+      const centerX = statusChartCanvas.width / 2;
+      const centerY = statusChartCanvas.height / 2;
+
+      ctx.save();
+      ctx.fillStyle = surfaceColor;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (total === 0) {
+        ctx.fillStyle = textColor;
+        ctx.font = "600 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("No validation data yet", centerX, centerY);
+      } else {
+        let startAngle = -Math.PI / 2;
+        dataPoints.forEach((entry) => {
+          const value = counts[entry.key] || 0;
+          if (!value) return;
+          const slice = (value / total) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.fillStyle = entry.color;
+          ctx.arc(centerX, centerY, radius, startAngle, startAngle + slice);
+          ctx.closePath();
+          ctx.fill();
+          startAngle += slice;
+        });
+      }
+
+      const innerRadius = radius * 0.55;
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = textColor;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "700 16px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      ctx.fillText(total + " findings", centerX, centerY);
+      ctx.restore();
+
+      if (statusLegend) {
+        statusLegend.innerHTML = "";
+        dataPoints.forEach((entry) => {
+          const row = document.createElement("div");
+          row.className = "chart-legend-item";
+          const swatch = document.createElement("span");
+          swatch.className = "legend-swatch";
+          swatch.style.background = entry.color;
+          const text = document.createElement("span");
+          text.textContent = `${entry.label}: ${counts[entry.key] || 0}`;
+          row.appendChild(swatch);
+          row.appendChild(text);
+          statusLegend.appendChild(row);
+        });
+      }
+    }
+
     function triggerDownload(filename, content, type) {
       const blob = new Blob([content], { type });
       const url = URL.createObjectURL(blob);
@@ -1423,6 +1846,185 @@
 
       const csv = [headers.join(",")].concat(rows.map((r) => r.map(csvEscape).join(","))).join("\n");
       triggerDownload("kingfisher-findings.csv", csv, "text/csv");
+    }
+
+    function generatePdfReport() {
+      if (!rawData) {
+        alert("Load a report before downloading a PDF report.");
+        return;
+      }
+
+      const statusOrder = { active: 0, inactive: 1, not_attempted: 2, unknown: 3 };
+      const findingsForReport = Array.isArray(findings) ? findings.slice() : [];
+      findingsForReport.sort((a, b) => {
+        const fa = a.finding || {};
+        const fb = b.finding || {};
+        const keyA = normalizeValidationStatus(fa.validation && fa.validation.status ? fa.validation.status : "");
+        const keyB = normalizeValidationStatus(fb.validation && fb.validation.status ? fb.validation.status : "");
+        const sa = statusOrder.hasOwnProperty(keyA) ? statusOrder[keyA] : 4;
+        const sb = statusOrder.hasOwnProperty(keyB) ? statusOrder[keyB] : 4;
+        if (sa !== sb) return sa - sb;
+
+        const ra = (a.rule && (a.rule.name || a.rule.id)) || "";
+        const rb = (b.rule && (b.rule.name || b.rule.id)) || "";
+        return ra.localeCompare(rb);
+      });
+
+      const counts = calculateValidationCounts();
+      const durationSeconds = resolveScanDurationSeconds(rawData);
+      const durationText = formatDurationText(durationSeconds);
+      const hasAccess = Array.isArray(accessMap) && accessMap.length > 0;
+      const statusImage = statusChartCanvas ? statusChartCanvas.toDataURL("image/png") : "";
+      const highConfidence = findings.filter((f) => {
+        const conf = f.finding && f.finding.confidence ? String(f.finding.confidence) : "";
+        return conf.toLowerCase() === "high";
+      }).length;
+
+      const findingsHtml = findingsForReport.length
+        ? findingsForReport
+            .map((entry) => {
+              const rule = entry.rule || {};
+              const finding = entry.finding || {};
+              const statusRaw = finding.validation && finding.validation.status ? finding.validation.status : "Unknown";
+              const status = normalizeValidationStatus(statusRaw);
+              const snippet = (finding.snippet || "").toString().replace(/\s+/g, " ").trim();
+              return `
+                <tr>
+                  <td>${escapeHtml(rule.name || rule.id || "")}</td>
+                  <td>${escapeHtml(finding.path || "")}</td>
+                  <td>${escapeHtml(statusRaw)}</td>
+                  <td>${escapeHtml(finding.confidence || "")}</td>
+                  <td>${finding.line != null ? escapeHtml(finding.line) : ""}</td>
+                  <td>${escapeHtml(snippet.slice(0, 200))}</td>
+                </tr>
+              `;
+            })
+            .join("")
+        : '<tr><td colspan="6">No findings available.</td></tr>';
+
+      const accessListHtml = hasAccess
+        ? accessMap
+            .map((entry) => {
+              const groups = Array.isArray(entry.groups) ? entry.groups : [];
+              const groupList = groups
+                .map((g) => {
+                  const resList = Array.isArray(g.resources) && g.resources.length
+                    ? g.resources.map((r) => escapeHtml(String(r))).join(", ")
+                    : "No resources listed";
+                  const permList = Array.isArray(g.permissions) && g.permissions.length
+                    ? g.permissions.map((p) => escapeHtml(String(p))).join(", ")
+                    : "No permissions listed";
+                  return `<li><strong>Resources:</strong> ${resList}<br><strong>Permissions:</strong> ${permList}</li>`;
+                })
+                .join("");
+              return `
+                <li class="access-entry">
+                  <div class="access-head">
+                    ${escapeHtml(entry.account || "(identity)")}
+                    <span class="tag">${escapeHtml((entry.provider || "Unknown").toUpperCase())}</span>
+                  </div>
+                  <ul class="access-groups">
+                    ${groupList || "<li>No resources recorded.</li>"}
+                  </ul>
+                </li>
+              `;
+            })
+            .join("")
+        : "";
+
+      const accessSectionContent = hasAccess
+        ? `<ul class="access-list">${accessListHtml}</ul>`
+        : "<p>No Access Map entries were found for this report.</p>";
+
+      const pdfHtml = `
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Kingfisher Report</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #0f172a; }
+            h1, h2, h3 { margin: 0 0 12px; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+            .stat { padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc; }
+            .stat .label { font-size: 12px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em; }
+            .stat .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            th, td { border: 1px solid #d1d5db; padding: 8px 10px; font-size: 13px; text-align: left; }
+            th { background: #e5e7eb; }
+            .section { margin-bottom: 28px; }
+            .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-weight: 700; font-size: 12px; margin-left: 8px; }
+            .access-list { list-style: none; padding-left: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+            .access-entry { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; background: #f8fafc; }
+            .access-head { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+            .access-groups { margin: 0; padding-left: 16px; color: #1f2937; }
+            .meta { color: #4b5563; font-size: 13px; margin-bottom: 14px; }
+            .chart-wrapper { display: flex; gap: 14px; align-items: center; }
+            .legend { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+            .legend span { display: inline-flex; align-items: center; gap: 6px; }
+            .legend .dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+          </style>
+        </head>
+        <body>
+          <h1>Kingfisher Report</h1>
+          <div class="meta">Generated ${escapeHtml(new Date().toLocaleString())}</div>
+
+          <div class="section">
+            <h2>Dashboard</h2>
+            <div class="grid">
+              <div class="stat"><div class="label">Total Findings</div><div class="value">${findings.length}</div></div>
+              <div class="stat"><div class="label">High Confidence</div><div class="value">${highConfidence}</div></div>
+              <div class="stat"><div class="label">Active Credentials</div><div class="value">${counts.active || 0}</div></div>
+              <div class="stat"><div class="label">Identities Mapped</div><div class="value">${accessMap.length}</div></div>
+              <div class="stat"><div class="label">Scan Duration</div><div class="value">${durationText}</div></div>
+            </div>
+            <div class="chart-wrapper">
+              ${statusImage ? `<img src="${statusImage}" alt="Status chart" style="max-width:280px; border:1px solid #d1d5db; border-radius:10px;">` : ""}
+              <div class="legend">
+                <span><span class="dot" style="background:#22c55e"></span> Active: ${counts.active || 0}</span>
+                <span><span class="dot" style="background:#f97316"></span> Inactive: ${counts.inactive || 0}</span>
+                <span><span class="dot" style="background:#38bdf8"></span> Not Attempted: ${counts.not_attempted || 0}</span>
+                <span><span class="dot" style="background:#9ca3af"></span> Unknown: ${counts.unknown || 0}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2>Access Map</h2>
+            ${accessSectionContent}
+          </div>
+
+          <div class="section">
+            <h2>Findings (Active first)</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Rule</th>
+                  <th>File Path</th>
+                  <th>Status</th>
+                  <th>Confidence</th>
+                  <th>Line</th>
+                  <th>Snippet</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${findingsHtml}
+              </tbody>
+            </table>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const win = window.open("", "_blank", "width=1200,height=900");
+      if (!win) {
+        alert("Please allow pop-ups to download the PDF report.");
+        return;
+      }
+      win.document.write(pdfHtml);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 400);
     }
 
     function renderFindingsTable() {
@@ -1518,7 +2120,11 @@
       document.getElementById("fd-commit").textContent = commit;
 
       const path = finding.path || "";
-      document.getElementById("fd-path").textContent = path || "—";
+      if (fdPathInput) {
+        fdPathInput.value = path || "—";
+        fdPathInput.style.height = "auto";
+        fdPathInput.style.height = Math.min(fdPathInput.scrollHeight, 260) + "px";
+      }
 
       const gitUrlWrapper = document.getElementById("fd-git-url-wrapper");
       const gitUrlEl = document.getElementById("fd-git-url");
@@ -1563,6 +2169,8 @@
       const filterLower = (filter || "").toLowerCase();
 
       filteredAccessMapView = buildRenderableAccessMap(filterLower);
+      const hasAccess = Array.isArray(accessMap) && accessMap.length > 0;
+      syncAccessMapUi(hasAccess);
 
       if (!filteredAccessMapView || filteredAccessMapView.length === 0) {
         root.innerHTML =

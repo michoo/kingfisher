@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.71.0]
+- Improved Report Viewer layout
+- Improved Salesforce rule
+
 ## [v1.70.0]
 - Added `--staged` argument to support new `pre-commit` behavior and added integration coverage to ensure validated secrets block commits when used as pre-commit hook
 - Added new rules for AWS Bedrock, Voyage.ai, Posthog, Atlassian
