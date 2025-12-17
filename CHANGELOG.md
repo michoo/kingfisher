@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 - Added `--staged` argument to support new `pre-commit` behavior and added integration coverage to ensure validated secrets block commits when used as pre-commit hook
 - Added new rules for AWS Bedrock, Voyage.ai, Posthog, Atlassian
 - Added an embedded web-based report and access-map viewer via `kingfisher view` subcommand that can load JSON or JSONL reports passed on the CLI (or upload them in the browser) 
-- Added a check for network connectivity via `online` crate before attempting validation.
+- Updated Jira create to gouqi, which supports Jira api v2 and v3
 
 ## [v1.69.0]
 - Reduced per-match memory usage by compacting stored source locations and interning repeated capture names.

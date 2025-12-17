@@ -49,21 +49,20 @@ rules:
     id: kingfisher.salesforce.2
     pattern: |
       (?xi)
-      \b
+      \b                     
       (?:https?://)?
       (
         [0-9A-Z-]{5,128}
       )
-      \\
+      \.
       my\.salesforce\.com
-      \b
+      \b    
     min_entropy: 2.5
     confidence: medium
     visible: false
     examples:
       - https://example123.my.salesforce.com
       - mydomainname.my.salesforce.com
-
   - name: Salesforce Consumer Key and Secret with Token URL
     id: kingfisher.salesforce.3
     pattern: |
@@ -138,7 +137,6 @@ rules:
             <sendSecretInApis>true</sendSecretInApis>
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
-
     validation:
       type: Http
       content:
@@ -155,10 +153,10 @@ rules:
             - type: StatusMatch
               status: [400, 401, 403]
               negative: true
-            - type: JsonValid
             - type: WordMatch
-              words: ["access_token", "token_type"]
-              match_all_words: true
+              words: ["invalid_", "authentication failed"]
+              match_all_words: false
+              negative: true
   - name: Salesforce Consumer Key and Secret
     id: kingfisher.salesforce.4
     pattern: |
@@ -240,7 +238,7 @@ rules:
             - type: StatusMatch
               status: [400, 401, 403]
               negative: true
-            - type: JsonValid
             - type: WordMatch
-              words: ["access_token", "token_type"]
-              match_all_words: true
+              words: ["invalid_", "authentication failed"]
+              match_all_words: false
+              negative: true
