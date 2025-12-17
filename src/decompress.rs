@@ -11,6 +11,7 @@ use flate2::read::{GzDecoder, ZlibDecoder};
 use memmap2::Mmap;
 use tar::Archive;
 use tempfile::{tempdir, TempDir};
+use uuid::Uuid;
 use xz2::read::XzDecoder;
 use zip::ZipArchive;
 
@@ -271,7 +272,12 @@ fn make_output_path(path: &Path, base: Option<&Path>, extension: &str) -> PathBu
         let stem = path.file_stem().unwrap_or_default();
         b.join(stem).with_extension(extension)
     } else {
-        tempfile::NamedTempFile::new().unwrap().into_temp_path().to_path_buf()
+        std::env::temp_dir().join(format!(
+            "kingfisher-{}-{}-{}",
+            std::process::id(),
+            Uuid::new_v4(),
+            extension
+        ))
     }
 }
 
