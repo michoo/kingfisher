@@ -67,8 +67,6 @@ rules:
     id: kingfisher.salesforce.3
     pattern: |
       (?x)(?s)
-        (?:salesforce|sforce)
-        (?:.|[\n\r]){0,256}?
         \bconsumerKey\b
         (?:.|[\n\r]){0,32}?
         \b
@@ -181,7 +179,7 @@ rules:
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
   - name: Salesforce Consumer Key and Secret
-    id: kingfisher.salesforce.4
+    id: kingfisher.salesforce.5
     pattern: |
       (?xi)(?s)
         (?:salesforce|sforce)
