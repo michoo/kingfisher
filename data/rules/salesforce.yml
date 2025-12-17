@@ -63,36 +63,22 @@ rules:
     examples:
       - https://example123.my.salesforce.com
       - mydomainname.my.salesforce.com
-  - name: Salesforce Consumer Key and Secret with Token URL
+  - name: Salesforce Consumer Key
     id: kingfisher.salesforce.3
     pattern: |
-      (?xi)(?s)
+      (?x)(?s)
         (?:salesforce|sforce)
         (?:.|[\n\r]){0,256}?
-        \bconsumer\s{0,8}key\b
+        \bconsumerKey\b
         (?:.|[\n\r]){0,32}?
         \b
-        (?P<CONSUMER_KEY>
-          [A-Z0-9+/=._-]{16,256}
-        )
-        \b.*?
-        (?:.|[\n\r]){0,256}?
-        \bconsumer\s{0,8}secret\b
-        (?:.|[\n\r]){0,32}?
-        \b
-        (?P<CONSUMER_SECRET>
+        (
           [A-Za-z0-9+/=._-]{16,256}
         )
-        .*?
-        \btoken\s{0,8}url\b
-        (?:.|[\n\r]){0,16}?
-          (?P<TOKEN_URL>
-            https?://
-            [A-Za-z0-9.-]{3,253}
-            /
-            (?:services/oauth2/token|oauth/login/[\w-]+/token|oauth2/(?:v1/)?token|oauth/token|[\w]{1,10}/oauth/token)
-          )
+        \b
     min_entropy: 3.3
+    pattern_requirements:
+      min_digits: 3
     confidence: medium
     examples:
       - |
@@ -100,7 +86,7 @@ rules:
         <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
             <authorizeUrl>https://login.example.com/oauth/login/v2/authorize?authHint=SALESFORCE_OAUTH2&amp;authType=oauth2&amp;prompt=login</authorizeUrl>
             <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
-            <consumerSecret>REDACTED_CONSUMER_SECRET_1</consumerSecret>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
             <friendlyName>ExampleProviderOne</friendlyName>
             <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
             <providerType>OpenIdConnect</providerType>
@@ -113,8 +99,8 @@ rules:
         <?xml version="1.0" encoding="UTF-8"?>
         <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
             <authorizeUrl>https://api.example.net/oauth/authorize</authorizeUrl>
-            <consumerKey>REDACTED_CONSUMER_KEY_2</consumerKey>
-            <consumerSecret>REDACTED_CONSUMER_SECRET_2</consumerSecret>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
             <friendlyName>ExampleBatchConnect</friendlyName>
             <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
             <providerType>OpenIdConnect</providerType>
@@ -127,8 +113,8 @@ rules:
         <?xml version="1.0" encoding="UTF-8"?>
         <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
             <authorizeUrl>https://api.example.net/oauth/authorize</authorizeUrl>
-            <consumerKey>REDACTED_CONSUMER_KEY_3</consumerKey>
-            <consumerSecret>REDACTED_CONSUMER_SECRET_3</consumerSecret>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
             <friendlyName>ExampleConnect</friendlyName>
             <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
             <providerType>OpenIdConnect</providerType>
@@ -137,33 +123,70 @@ rules:
             <sendSecretInApis>true</sendSecretInApis>
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
-    validation:
-      type: Http
-      content:
-        request:
-          method: POST
-          url: "{{ TOKEN_URL | default: 'https://login.salesforce.com/services/oauth2/token' }}"
-          headers:
-            Content-Type: application/x-www-form-urlencoded
-          body: grant_type=client_credentials&client_id={{ CONSUMER_KEY | url_encode }}&client_secret={{ CONSUMER_SECRET | url_encode }}
-          response_matcher:
-            - report_response: true
-            - type: StatusMatch
-              status: [200]
-            - type: StatusMatch
-              status: [400, 401, 403]
-              negative: true
-            - type: WordMatch
-              words: ["invalid_", "authentication failed"]
-              match_all_words: false
-              negative: true
+  - name: Salesforce Consumer Secret
+    id: kingfisher.salesforce.4
+    pattern: |
+      (?x)(?s)
+        \bconsumerSecret\b
+        (?:.|[\n\r]){0,32}?
+        \b
+        (
+          [A-Za-z0-9+/=._-]{16,256}
+        )
+    min_entropy: 3.3
+    pattern_requirements:
+      min_digits: 6
+    confidence: medium
+    examples:
+      - |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+            <authorizeUrl>https://login.example.com/oauth/login/v2/authorize?authHint=SALESFORCE_OAUTH2&amp;authType=oauth2&amp;prompt=login</authorizeUrl>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
+            <friendlyName>ExampleProviderOne</friendlyName>
+            <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
+            <providerType>OpenIdConnect</providerType>
+            <sendAccessTokenInHeader>true</sendAccessTokenInHeader>
+            <sendClientCredentialsInHeader>false</sendClientCredentialsInHeader>
+            <sendSecretInApis>true</sendSecretInApis>
+            <tokenUrl>https://login.example.com/oauth/login/v2/token</tokenUrl>
+        </AuthProvider>
+      - |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+            <authorizeUrl>https://api.example.net/oauth/authorize</authorizeUrl>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
+            <friendlyName>ExampleBatchConnect</friendlyName>
+            <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
+            <providerType>OpenIdConnect</providerType>
+            <sendAccessTokenInHeader>true</sendAccessTokenInHeader>
+            <sendClientCredentialsInHeader>false</sendClientCredentialsInHeader>
+            <sendSecretInApis>true</sendSecretInApis>
+            <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
+        </AuthProvider>
+      - |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+            <authorizeUrl>https://api.example.net/oauth/authorize</authorizeUrl>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
+            <friendlyName>ExampleConnect</friendlyName>
+            <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
+            <providerType>OpenIdConnect</providerType>
+            <sendAccessTokenInHeader>true</sendAccessTokenInHeader>
+            <sendClientCredentialsInHeader>false</sendClientCredentialsInHeader>
+            <sendSecretInApis>true</sendSecretInApis>
+            <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
+        </AuthProvider>
   - name: Salesforce Consumer Key and Secret
     id: kingfisher.salesforce.4
     pattern: |
       (?xi)(?s)
         (?:salesforce|sforce)
         (?:.|[\n\r]){0,256}?
-        \bconsumer\s{0,8}key\b
+        \bconsumerKey\b
         (?:.|[\n\r]){0,32}?
         \b
         (?P<CONSUMER_KEY>
@@ -177,7 +200,9 @@ rules:
         (?P<CONSUMER_SECRET>
           [A-Za-z0-9+/=._-]{16,256}
         )
-    min_entropy: 3.3
+    min_entropy: 3.5
+    pattern_requirements:
+      min_digits: 3
     confidence: medium
     examples:
       - |
@@ -185,7 +210,7 @@ rules:
         <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
             <authorizeUrl>https://login.example.com/oauth/login/v2/authorize?authHint=SALESFORCE_OAUTH2&amp;authType=oauth2&amp;prompt=login</authorizeUrl>
             <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
-            <consumerSecret>REDACTED_CONSUMER_SECRET_1</consumerSecret>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
             <friendlyName>ExampleProviderOne</friendlyName>
             <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
             <providerType>OpenIdConnect</providerType>
@@ -198,8 +223,8 @@ rules:
         <?xml version="1.0" encoding="UTF-8"?>
         <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
             <authorizeUrl>https://api.example.net/oauth/authorize</authorizeUrl>
-            <consumerKey>REDACTED_CONSUMER_KEY_2</consumerKey>
-            <consumerSecret>REDACTED_CONSUMER_SECRET_2</consumerSecret>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
             <friendlyName>ExampleBatchConnect</friendlyName>
             <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
             <providerType>OpenIdConnect</providerType>
@@ -212,8 +237,8 @@ rules:
         <?xml version="1.0" encoding="UTF-8"?>
         <AuthProvider xmlns="http://soap.sforce.com/2006/04/metadata">
             <authorizeUrl>https://api.example.net/oauth/authorize</authorizeUrl>
-            <consumerKey>REDACTED_CONSUMER_KEY_3</consumerKey>
-            <consumerSecret>REDACTED_CONSUMER_SECRET_3</consumerSecret>
+            <consumerKey>012cbddfa6b05ec1941143c0d37a036291492be9f2df0b42c5c0c220198185de</consumerKey>
+            <consumerSecret>7TVG9nQ8gW5RaRxV8i1SaI7vwa0xtQQoejTa48AR5QR6HBYV9YBKPnAzPU7bs6QxOgdjJy9TPabQYVTZtgT83</consumerSecret>
             <friendlyName>ExampleConnect</friendlyName>
             <includeOrgIdInIdentifier>false</includeOrgIdInIdentifier>
             <providerType>OpenIdConnect</providerType>
@@ -222,23 +247,3 @@ rules:
             <sendSecretInApis>true</sendSecretInApis>
             <tokenUrl>https://api.example.net/oauth/token</tokenUrl>
         </AuthProvider>
-    validation:
-      type: Http
-      content:
-        request:
-          method: POST
-          url: "https://login.salesforce.com/services/oauth2/token"
-          headers:
-            Content-Type: application/x-www-form-urlencoded
-          body: grant_type=client_credentials&client_id={{ CONSUMER_KEY | url_encode }}&client_secret={{ CONSUMER_SECRET | url_encode }}
-          response_matcher:
-            - report_response: true
-            - type: StatusMatch
-              status: [200]
-            - type: StatusMatch
-              status: [400, 401, 403]
-              negative: true
-            - type: WordMatch
-              words: ["invalid_", "authentication failed"]
-              match_all_words: false
-              negative: true
