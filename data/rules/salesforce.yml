@@ -124,8 +124,8 @@ rules:
   - name: Salesforce Consumer Secret
     id: kingfisher.salesforce.4
     pattern: |
-      (?x)(?s)
-        \bconsumerSecret\b
+      (?xi)(?s)
+        consumerSecret\b
         (?:.|[\n\r]){0,32}?
         \b
         (
