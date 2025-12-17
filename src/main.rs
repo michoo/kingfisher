@@ -74,6 +74,7 @@ use crate::cli::commands::{
     gitea::GiteaRepoType,
     gitlab::GitLabRepoType,
     scan::{ListRepositoriesCommand, ScanOperation},
+    view,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -91,6 +92,7 @@ fn main() -> anyhow::Result<()> {
         Command::SelfUpdate => 1, // Self-update doesn't need a thread pool
         Command::Rules(_) => num_cpus::get(), // Default for Rules commands
         Command::AccessMap(_) => 1,
+        Command::View(_) => 1,
     };
 
     // Set up the Tokio runtime with the specified number of threads
@@ -192,6 +194,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
             let _ = check_for_update_async(&g, None).await;
             Ok(())
         }
+        Command::View(view_args) => view::run(view_args).await,
         Command::AccessMap(identity_args) => access_map::run(identity_args).await,
         command => {
             let temp_dir = TempDir::new().context("Failed to create temporary directory")?;
@@ -216,7 +219,11 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                             scan_args.input_specifier_args.path_inputs = vec![stdin_file.into()];
                         }
 
-                        let rules_db = Arc::new(load_and_record_rules(&scan_args, &datastore)?);
+                        let rules_db = Arc::new(load_and_record_rules(
+                            &scan_args,
+                            &datastore,
+                            global_args.use_progress(),
+                        )?);
                         run_scan(
                             &global_args,
                             &scan_args,
@@ -335,6 +342,9 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         run_rules_list(&list_args)?;
                     }
                 },
+                Command::View(_) => {
+                    anyhow::bail!("View command should not reach this branch")
+                }
                 Command::AccessMap(_) => {
                     anyhow::bail!("AccessMap command should not reach this branch")
                 }
@@ -438,6 +448,7 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
             branch: None,
             branch_root: false,
             branch_root_commit: None,
+            staged: false,
         },
         extra_ignore_comments: Vec::new(),
         content_filtering_args: ContentFilteringArgs {
@@ -450,7 +461,6 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         confidence: ConfidenceLevel::Medium,
         no_validate: true,
         access_map: false,
-        access_map_html: None,
         rule_stats: false,
         only_valid: false,
         min_entropy: None,

@@ -62,7 +62,7 @@ fn default_scan_jobs() -> usize {
 #[derive(Args, Debug, Clone)]
 pub struct ScanArgs {
     /// Number of parallel scanning threads
-    #[arg(long = "jobs", short = 'j', default_value_t = default_scan_jobs())]
+    #[arg(global = true, long = "jobs", short = 'j', default_value_t = default_scan_jobs())]
     pub num_jobs: usize,
 
     #[command(flatten)]
@@ -75,21 +75,22 @@ pub struct ScanArgs {
     pub content_filtering_args: ContentFilteringArgs,
 
     /// Minimum confidence level for reporting findings
-    #[arg(long, short = 'c', default_value = "medium")]
+    #[arg(global = true, long, short = 'c', default_value = "medium")]
     pub confidence: ConfidenceLevel,
 
     /// Disable secret validation
-    #[arg(long, short = 'n', default_value_t = false)]
+    #[arg(global = true, long, short = 'n', default_value_t = false)]
     pub no_validate: bool,
 
-    /// Map validated cloud credentials to their effective identities
-    #[arg(long, default_value_t = false)]
+    /// Map validated cloud credentials to their effective identities; use only when
+    /// authorized for the target account because this triggers additional network
+    /// requests to determine granted access
+    #[arg(global = true, long, default_value_t = false)]
     pub access_map: bool,
 
-    /// Optional path to write a consolidated access-map HTML report
-    #[arg(long, value_name = "PATH")]
-    pub access_map_html: Option<PathBuf>,
-
+    // /// Optional path to write a consolidated access-map HTML report
+    // #[arg(long, value_name = "PATH")]
+    // pub access_map_html: Option<PathBuf>,
     /// Display only validated findings
     #[arg(long, default_value_t = false)]
     pub only_valid: bool,
@@ -103,58 +104,63 @@ pub struct ScanArgs {
     pub rule_stats: bool,
 
     /// Display every occurrence of a finding
-    #[arg(long, default_value_t = false)]
+    #[arg(global = true, long, default_value_t = false)]
     pub no_dedup: bool,
 
     /// Redact findings values using a secure hash
-    #[arg(long, short = 'r', default_value_t = false)]
+    #[arg(global = true, long, short = 'r', default_value_t = false)]
     pub redact: bool,
 
     /// Skip decoding Base64 blobs before scanning
-    #[arg(long, default_value_t = false)]
+    #[arg(global = true, long, default_value_t = false)]
     pub no_base64: bool,
 
     /// Timeout for Git repository scanning in seconds
-    #[arg(long, default_value_t = 1800, value_name = "SECONDS")]
+    #[arg(global = true, long, default_value_t = 1800, value_name = "SECONDS")]
     pub git_repo_timeout: u64,
 
     #[command(flatten)]
     pub output_args: OutputArgs<ReportOutputFormat>,
 
     /// Baseline file to filter known secrets
-    #[arg(long, value_name = "FILE")]
+    #[arg(global = true, long, value_name = "FILE")]
     pub baseline_file: Option<std::path::PathBuf>,
 
     /// Create or update the baseline file with current findings
-    #[arg(long, default_value_t = false)]
+    #[arg(global = true, long, default_value_t = false)]
     pub manage_baseline: bool,
 
     /// Regex patterns to allow-list secret matches (repeatable)
-    #[arg(long = "skip-regex", value_name = "PATTERN")]
+    #[arg(global = true, long = "skip-regex", value_name = "PATTERN")]
     pub skip_regex: Vec<String>,
 
     /// Skipwords to allow-list secret matches (case-insensitive, repeatable)
-    #[arg(long = "skip-word", value_name = "WORD")]
+    #[arg(global = true, long = "skip-word", value_name = "WORD")]
     pub skip_word: Vec<String>,
 
     /// AWS account IDs whose findings should skip live credential validation (repeatable)
-    #[arg(long = "skip-aws-account", value_name = "ACCOUNT_ID", value_delimiter = ',')]
+    #[arg(
+        global = true,
+        long = "skip-aws-account",
+        value_name = "ACCOUNT_ID",
+        value_delimiter = ','
+    )]
     pub skip_aws_account: Vec<String>,
 
     /// File containing AWS account IDs to skip (one per line, `#` comments ignored)
-    #[arg(long = "skip-aws-account-file", value_name = "FILE")]
+    #[arg(global = true, long = "skip-aws-account-file", value_name = "FILE")]
     pub skip_aws_account_file: Option<PathBuf>,
 
     /// Additional inline ignore directives to recognise (repeatable)
-    #[arg(long = "ignore-comment", value_name = "DIRECTIVE")]
+    #[arg(global = true, long = "ignore-comment", value_name = "DIRECTIVE")]
     pub extra_ignore_comments: Vec<String>,
 
     /// Disable inline ignore directives entirely
-    #[arg(long = "no-ignore", default_value_t = false)]
+    #[arg(global = true, long = "no-ignore", default_value_t = false)]
     pub no_inline_ignore: bool,
 
     /// Disable rule-level `ignore_if_contains` filtering for pattern requirements
-    #[arg(long = "no-ignore-if-contains", default_value_t = false)]
+    #[arg(global = true, long = "no-ignore-if-contains", default_value_t = false)]
     pub no_ignore_if_contains: bool,
 }
 
@@ -430,10 +436,6 @@ impl ScanCommandArgs {
 
         if self.scan_args.manage_baseline {
             self.scan_args.no_dedup = true;
-        }
-
-        if self.scan_args.access_map_html.is_some() {
-            self.scan_args.access_map = true;
         }
 
         if self.scan_args.access_map && self.scan_args.no_validate {

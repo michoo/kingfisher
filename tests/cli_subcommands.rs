@@ -293,6 +293,27 @@ mod gitlab {
     }
 
     #[test]
+    fn scan_gitlab_accepts_global_flags_after_subcommand() {
+        Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
+            .args([
+                "scan",
+                "gitlab",
+                "--group",
+                "testgroup",
+                "--include-subgroups",
+                "--list-only",
+                "--quiet",
+                "--access-map",
+                "--no-update-check",
+                "--user-agent-suffix",
+                "cli-test",
+                "--verbose",
+            ])
+            .assert()
+            .code(predicates::function::function(|code: &i32| *code != 2));
+    }
+
+    #[test]
     fn scan_gitlab_with_exclude() {
         Command::new(assert_cmd::cargo::cargo_bin!("kingfisher"))
             .args([

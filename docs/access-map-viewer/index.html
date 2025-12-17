@@ -1,16 +1,46 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kingfisher Access Map Viewer</title>
   <style>
     :root {
+      color-scheme: dark;
+      --brand: #0e7c56;
+      --brand-dark: #0a5d40;
+      --brand-soft: #123025;
+      --bg: #0b1220;
+      --surface: #111827;
+      --surface-muted: #0f172a;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border: #1f2937;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+      --critical: #fca5a5;
+      --success: #34d399;
+      --radius: 8px;
+      --hover: #1f2937;
+      --table-header: #0f172a;
+      --code-bg: #0d1526;
+      --code-border: #1f2937;
+      --code-border-strong: rgba(56, 189, 248, 0.4);
+      --code-text: #e2e8f0;
+      --code-accent: rgba(56, 189, 248, 0.08);
+      --link-strong: #a5f3fc;
+      --link-strong-hover: #e0f2fe;
+      --link-underline: rgba(255, 255, 255, 0.35);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
       --brand: #0e7c56;
       --brand-dark: #07402c;
       --brand-soft: #e6f4ed;
       --bg: #f3f4f6;
       --surface: #ffffff;
+      --surface-muted: #f9fafb;
       --text-main: #111827;
       --text-muted: #6b7280;
       --border: #e5e7eb;
@@ -18,7 +48,16 @@
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
       --critical: #dc2626;
       --success: #059669;
-      --radius: 8px;
+      --hover: #e5e7eb;
+      --table-header: #f9fafb;
+      --code-bg: #f8fafc;
+      --code-border: #e5e7eb;
+      --code-border-strong: rgba(14, 124, 86, 0.2);
+      --code-text: #0f172a;
+      --code-accent: rgba(14, 124, 86, 0.08);
+      --link-strong: #1d4ed8;
+      --link-strong-hover: #1e3a8a;
+      --link-underline: rgba(30, 64, 175, 0.35);
     }
 
     * { box-sizing: border-box; }
@@ -80,6 +119,15 @@
       border-left: 1px solid rgba(255, 255, 255, 0.25);
     }
 
+    .info-banner {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 13px;
+    }
+
     .page {
       max-width: 1600px;
       margin: 24px auto;
@@ -103,7 +151,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #ffffff;
+      background: var(--surface);
     }
 
     .panel__title h3 { margin: 0; font-size: 16px; font-weight: 600; }
@@ -113,7 +161,7 @@
     .upload-area {
       padding: 32px;
       text-align: center;
-      background: #f9fafb;
+      background: var(--surface-muted);
       cursor: pointer;
       transition: all 0.2s ease;
       border-bottom: 1px solid var(--border);
@@ -169,7 +217,7 @@
 
     .am-sidebar {
       border-right: 1px solid var(--border);
-      background: #f9fafb;
+      background: var(--surface-muted);
       overflow-y: auto;
       padding: 16px;
     }
@@ -177,13 +225,13 @@
     .am-main {
       padding: 24px;
       overflow-y: auto;
-      background: #ffffff;
+      background: var(--surface);
     }
 
     .am-search {
       position: sticky;
       top: 0;
-      background: #f9fafb;
+      background: var(--surface-muted);
       padding-bottom: 10px;
       margin-bottom: 8px;
       border-bottom: 1px solid var(--border);
@@ -196,6 +244,8 @@
       border-radius: 6px;
       border: 1px solid var(--border);
       font-size: 13px;
+      background: var(--surface);
+      color: var(--text-main);
     }
 
     .am-search input:focus {
@@ -237,7 +287,7 @@
     }
 
     .node-content:hover {
-      background: #e5e7eb;
+      background: var(--hover);
     }
 
     .node-icon {
@@ -286,7 +336,7 @@
       border-radius: 8px;
       display: grid;
       place-items: center;
-      background: var(--bg);
+      background: var(--surface-muted);
       border: 1px solid var(--border);
       font-size: 20px;
     }
@@ -341,7 +391,7 @@
     .table th {
       text-align: left;
       padding: 12px 16px;
-      background: #f9fafb;
+      background: var(--table-header);
       border-bottom: 1px solid var(--border);
       color: var(--text-muted);
       font-weight: 600;
@@ -352,7 +402,7 @@
       vertical-align: top;
     }
     .table tr:last-child td { border-bottom: none; }
-    .table tr:hover td { background: #f9fafb; cursor: pointer; }
+    .table tr:hover td { background: var(--surface-muted); cursor: pointer; }
 
     .sortable {
       cursor: pointer;
@@ -375,19 +425,30 @@
     }
     .status-badge.active { background: #ecfdf5; color: #15803d; }
     .status-badge.inactive { background: #fef2f2; color: #b91c1c; }
-    .status-badge.unknown { background: #f3f4f6; color: #6b7280; }
+    .status-badge.unknown { background: var(--surface-muted); color: var(--text-muted); }
 
     /* Finding detail snippet */
     .snippet-box {
-      background: #0f172a;
-      color: #e5e7eb;
+      position: relative;
+      background: linear-gradient(90deg, var(--code-accent), transparent), var(--code-bg);
+      color: var(--code-text);
       padding: 16px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
       overflow-x: auto;
       white-space: pre;
-      border: 1px solid #1f2937;
+      border: 1px solid var(--code-border);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--code-border-strong);
+    }
+
+    .snippet-box::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 8px;
+      pointer-events: none;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
     }
 
     #fd-validation-box {
@@ -416,7 +477,7 @@
     .path-mono {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
-      background: #f3f4f6;
+      background: var(--surface-muted);
       padding: 4px 8px;
       border-radius: 4px;
       display: inline-block;
@@ -429,12 +490,16 @@
     .link-mono a {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
-      color: #1d4ed8;
-      text-decoration: none;
+      color: var(--link-strong);
+      text-decoration: underline;
+      text-decoration-color: var(--link-underline);
+      text-decoration-thickness: 2px;
+      font-weight: 600;
       word-break: break-all;
     }
     .link-mono a:hover {
-      text-decoration: underline;
+      color: var(--link-strong-hover);
+      text-decoration-color: currentColor;
     }
 
     /* Search & pagination */
@@ -444,6 +509,8 @@
       border-radius: 6px;
       width: 220px;
       font-size: 13px;
+      background: var(--surface);
+      color: var(--text-main);
     }
 
     .rows-label {
@@ -455,8 +522,9 @@
       padding: 6px 10px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--surface);
       font-size: 13px;
+      color: var(--text-main);
     }
 
     .pager {
@@ -472,11 +540,12 @@
       height: 28px;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--surface);
       display: grid;
       place-items: center;
       cursor: pointer;
       padding: 0;
+      color: var(--text-main);
     }
 
     .pager-btn:disabled {
@@ -486,7 +555,7 @@
 
     /* Buttons & loader */
     .btn {
-      background: #ffffff;
+      background: var(--surface);
       border: 1px solid var(--border);
       padding: 8px 16px;
       border-radius: 6px;
@@ -496,8 +565,8 @@
       transition: background 0.1s, border-color 0.1s;
     }
     .btn:hover {
-      background: #f3f4f6;
-      border-color: #cbd5e1;
+      background: var(--surface-muted);
+      border-color: var(--border);
     }
 
     .hidden { display: none !important; }
@@ -516,7 +585,7 @@
       width: 40px;
       height: 40px;
       border-radius: 999px;
-      border: 3px solid #e5e7eb;
+      border: 3px solid var(--border);
       border-top-color: #0e7c56;
       animation: spin 0.8s linear infinite;
     }
@@ -525,7 +594,7 @@
       width: 220px;
       height: 6px;
       border-radius: 999px;
-      background: #e5e7eb;
+      background: var(--border);
       overflow: hidden;
       margin: 12px auto 0;
     }
@@ -548,7 +617,7 @@
 <body>
 
   <div id="loader" class="loading-overlay hidden">
-    <div style="background:#ffffff; padding:18px 22px; border-radius:10px; border:1px solid var(--border); box-shadow:var(--shadow-md); text-align:center; min-width:260px;">
+    <div style="background:var(--surface); padding:18px 22px; border-radius:10px; border:1px solid var(--border); box-shadow:var(--shadow-md); text-align:center; min-width:260px; color:var(--text-main);">
       <div class="spinner" style="margin:0 auto 12px;"></div>
       <div class="progress-track"><div class="progress-inner"></div></div>
       <div id="loader-text" style="margin-top:10px; font-size:13px; color:var(--text-muted);">
@@ -565,15 +634,20 @@
         <span class="hero__subtitle">Access Map &amp; Findings</span>
       </div>
     </div>
-    <button class="btn" id="reset-btn">Reset</button>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn" id="theme-toggle" type="button">Light Mode</button>
+      <button class="btn" id="reset-btn">Load New Report</button>
+    </div>
   </header>
+
+  <div class="info-banner">Client-Side Only. No data is uploaded anywhere.</div>
 
   <main class="page">
     <section id="upload-section" class="panel" style="max-width: 640px; margin: 0 auto;">
       <div class="panel__header">
         <div class="panel__title">
           <h3>Upload Report</h3>
-          <p>Analyze Kingfisher JSON / JSONL output</p>
+          <p>Analyze Kingfisher JSON / JSONL output (auto-loads if provided on the CLI)</p>
         </div>
       </div>
       <div style="padding:22px;">
@@ -581,6 +655,7 @@
           <div class="upload-icon">📄</div>
           <div class="upload-text">Drag &amp; drop a report here</div>
           <div class="upload-sub">…or click to choose a file</div>
+            <div class="upload-sub">Your file stays in the browser—load JSON or JSONL reports locally.</div>
           <input type="file" id="file-input" hidden accept=".json,.jsonl">
         </div>
         <div id="error-msg" class="hidden" style="margin-top:16px; padding:10px 12px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:13px;"></div>
@@ -619,7 +694,10 @@
             <h3>Access Map</h3>
             <p>Identity hierarchy: Identity &gt; Resources &gt; Resource &gt; Permissions</p>
           </div>
-          <button class="btn" id="am-toggle" type="button">Collapse</button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn" id="copy-access-map" type="button">Copy Access Map</button>
+            <button class="btn" id="am-toggle" type="button">Collapse</button>
+          </div>
         </div>
         <div class="am-container" id="am-container">
           <div class="am-sidebar">
@@ -672,6 +750,8 @@
             <p>Detailed list of detected secrets</p>
           </div>
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn" id="download-json" type="button">Download JSON</button>
+            <button class="btn" id="download-csv" type="button">Export CSV</button>
             <input type="text" id="search-input" class="search-input" placeholder="Search rule, path, snippet">
             <select id="validation-filter" class="rows-select">
               <option value="all" selected>All validation states</option>
@@ -773,6 +853,7 @@
     let rawData = null;
     let findings = [];
     let accessMap = [];
+    let filteredAccessMapView = [];
     let currentFilter = "";
     let validationFilter = "all";
     let pageSize = 10;
@@ -795,10 +876,26 @@
     const pageNext = document.getElementById("page-next");
     const pageInfo = document.getElementById("page-info");
     const findingsBody = document.getElementById("findings-body");
+    const downloadJsonBtn = document.getElementById("download-json");
+    const downloadCsvBtn = document.getElementById("download-csv");
 
     const treeSearch = document.getElementById("tree-search");
     const amContainer = document.getElementById("am-container");
     const amToggle = document.getElementById("am-toggle");
+    const copyAccessMapButton = document.getElementById("copy-access-map");
+    const themeToggle = document.getElementById("theme-toggle");
+
+    const THEME_KEY = "access-map-viewer-theme";
+
+    function setTheme(theme) {
+      const normalized = theme === "light" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", normalized);
+      if (themeToggle) {
+        themeToggle.textContent = normalized === "dark" ? "Light Mode" : "Dark Mode";
+      }
+    }
+
+    setTheme(localStorage.getItem(THEME_KEY));
 
     dropZone.addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", (e) => {
@@ -818,7 +915,17 @@
       if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
     });
 
-    document.getElementById("reset-btn").addEventListener("click", () => location.reload());
+    const resetButton = document.getElementById("reset-btn");
+
+    resetButton.addEventListener("click", () => {
+      const confirmReset = confirm(
+        "Loading a new report will clear the currently loaded data (your file stays on disk). Continue?",
+      );
+
+      if (confirmReset) {
+        resetViewer(true);
+      }
+    });
 
     searchInput.addEventListener("input", (e) => {
       currentFilter = e.target.value || "";
@@ -867,6 +974,20 @@
         amToggle.textContent = "Expand";
       }
     });
+
+    downloadJsonBtn.addEventListener("click", downloadFindingsJson);
+    downloadCsvBtn.addEventListener("click", downloadFindingsCsv);
+    copyAccessMapButton.addEventListener("click", copyFilteredAccessMap);
+    if (themeToggle) {
+      themeToggle.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+        const next = current === "dark" ? "light" : "dark";
+        localStorage.setItem(THEME_KEY, next);
+        setTheme(next);
+      });
+    }
+
+    loadCliReport();
 
     document.querySelectorAll("th.sortable").forEach((th) => {
       th.addEventListener("click", () => {
@@ -929,6 +1050,73 @@
         };
         reader.readAsText(file);
       }, 30);
+    }
+
+    async function loadCliReport() {
+      try {
+        loaderText.textContent = "Loading report from CLI…";
+        loader.classList.remove("hidden");
+        const response = await fetch("/report", { cache: "no-store" });
+
+        if (response.status === 404) {
+          loader.classList.add("hidden");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Server returned status " + response.status);
+        }
+
+        const text = await response.text();
+        parseAndRender(text);
+      } catch (err) {
+        loader.classList.add("hidden");
+        errorMsg.textContent = "Failed to load report from CLI: " + err.message;
+        errorMsg.classList.remove("hidden");
+      }
+    }
+
+    function resetViewer(promptFilePicker = false) {
+      findings = [];
+      accessMap = [];
+      filteredAccessMapView = [];
+      rawData = null;
+
+      currentFilter = "";
+      validationFilter = "all";
+      pageSize = 10;
+      currentPage = 1;
+      sortField = "rule";
+      sortDirection = "asc";
+
+      searchInput.value = "";
+      validationSelect.value = "all";
+      rowsSelect.value = "10";
+      treeSearch.value = "";
+
+      document.getElementById("am-empty-state").classList.remove("hidden");
+      document.getElementById("am-detail-view").classList.add("hidden");
+      amContainer.classList.remove("hidden");
+      amToggle.textContent = "Collapse";
+
+      renderAccessMapTree();
+      renderFindingsTable();
+      updateMetrics();
+
+      dashboard.classList.add("hidden");
+      uploadSection.classList.remove("hidden");
+
+      errorMsg.classList.add("hidden");
+      errorMsg.textContent = "";
+
+      loader.classList.add("hidden");
+      loaderText.textContent = "Processing report...";
+
+      fileInput.value = "";
+
+      if (promptFilePicker) {
+        fileInput.click();
+      }
     }
 
     function parseAndRender(text) {
@@ -1170,6 +1358,73 @@
       return "unknown";
     }
 
+    function triggerDownload(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadFindingsJson() {
+      const filtered = getFilteredSortedFindings();
+      if (!filtered.length) {
+        alert("No findings are available for the current filters.");
+        return;
+      }
+
+      const json = JSON.stringify(filtered, null, 2);
+      triggerDownload("kingfisher-findings.json", json, "application/json");
+    }
+
+    function csvEscape(value) {
+      const str = String(value ?? "");
+      if (/[",\n]/.test(str)) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    function downloadFindingsCsv() {
+      const filtered = getFilteredSortedFindings();
+      if (!filtered.length) {
+        alert("No findings are available for the current filters.");
+        return;
+      }
+
+      const headers = [
+        "rule_id",
+        "rule_name",
+        "file_path",
+        "line",
+        "validation_status",
+        "confidence",
+        "snippet",
+      ];
+
+      const rows = filtered.map((entry) => {
+        const rule = entry.rule || {};
+        const finding = entry.finding || {};
+        const status =
+          finding.validation && finding.validation.status ? finding.validation.status : "";
+
+        return [
+          rule.id || "",
+          rule.name || "",
+          finding.path || "",
+          finding.line != null ? finding.line : "",
+          status,
+          finding.confidence || "",
+          (finding.snippet || "").replace(/\s+/g, " ").trim(),
+        ];
+      });
+
+      const csv = [headers.join(",")].concat(rows.map((r) => r.map(csvEscape).join(","))).join("\n");
+      triggerDownload("kingfisher-findings.csv", csv, "text/csv");
+    }
+
     function renderFindingsTable() {
       const all = getFilteredSortedFindings();
       const total = all.length;
@@ -1307,49 +1562,18 @@
       root.innerHTML = "";
       const filterLower = (filter || "").toLowerCase();
 
-      if (!accessMap || accessMap.length === 0) {
+      filteredAccessMapView = buildRenderableAccessMap(filterLower);
+
+      if (!filteredAccessMapView || filteredAccessMapView.length === 0) {
         root.innerHTML =
           '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:13px;">No access map data available</div>';
         return;
       }
 
-      accessMap.forEach((identity) => {
+      filteredAccessMapView.forEach((entry) => {
+        const identity = entry.identity;
         const account = identity.account || "unknown-identity";
-        const accountLower = account.toLowerCase();
-        const groups = Array.isArray(identity.groups) ? identity.groups : [];
-
-        const identityNameMatches = filterLower && accountLower.includes(filterLower);
-        let anyResourceMatches = false;
-
-        const preparedGroups = groups.map((group) => {
-          const resources = Array.isArray(group.resources) ? group.resources : [];
-          const perms = Array.isArray(group.permissions) ? group.permissions : [];
-          const filteredResources = [];
-
-          resources.forEach((resName) => {
-            const resLower = String(resName).toLowerCase();
-            const matches =
-              !filterLower || resLower.includes(filterLower) || identityNameMatches;
-            if (matches) {
-              filteredResources.push(resName);
-              if (!identityNameMatches && filterLower && resLower.includes(filterLower)) {
-                anyResourceMatches = true;
-              }
-            }
-          });
-
-          return { resources: filteredResources, permissions: perms, originalResources: resources };
-        });
-
-        let hasMatch;
-        if (!filterLower) {
-          hasMatch = true;
-        } else {
-          hasMatch = identityNameMatches || anyResourceMatches;
-        }
-
-        if (!hasMatch) return;
-
+        const identityNameMatches = entry.identityNameMatches;
         const idNode = createTreeNode(account, "identity", true);
         idNode.container.style.borderLeft = "none";
         idNode.container.style.marginLeft = "0";
@@ -1367,10 +1591,9 @@
         });
         idNode.childrenContainer.appendChild(resGroup.container);
 
-        preparedGroups.forEach((group) => {
-          const resourcesToShow =
-            !filterLower || identityNameMatches ? group.originalResources : group.resources;
-          const perms = group.permissions;
+        entry.groups.forEach((group) => {
+          const resourcesToShow = Array.isArray(group.resources) ? group.resources : [];
+          const perms = Array.isArray(group.permissions) ? group.permissions : [];
 
           if (resourcesToShow && resourcesToShow.length > 0) {
             resourcesToShow.forEach((resName) => {
@@ -1410,6 +1633,78 @@
           }
         });
       });
+    }
+
+    function buildRenderableAccessMap(filterLower) {
+      if (!accessMap || accessMap.length === 0) return [];
+
+      const identities = [];
+      accessMap.forEach((identity) => {
+        const account = identity.account || "unknown-identity";
+        const groups = Array.isArray(identity.groups) ? identity.groups : [];
+
+        const identityNameMatches = Boolean(filterLower) && account.toLowerCase().includes(filterLower);
+        let anyResourceMatches = false;
+
+        const preparedGroups = groups.map((group) => {
+          const resources = Array.isArray(group.resources) ? group.resources : [];
+          const perms = Array.isArray(group.permissions) ? group.permissions : [];
+          const filteredResources = resources.filter((resName) => {
+            const resLower = String(resName).toLowerCase();
+            const matches = !filterLower || resLower.includes(filterLower) || identityNameMatches;
+            if (!identityNameMatches && filterLower && resLower.includes(filterLower)) {
+              anyResourceMatches = true;
+            }
+            return matches;
+          });
+
+          return { resources, filteredResources, permissions: perms };
+        });
+
+        const hasMatch = !filterLower || identityNameMatches || anyResourceMatches;
+        if (!hasMatch) return;
+
+        const viewGroups = preparedGroups.map((group) => ({
+          resources: !filterLower || identityNameMatches ? group.resources : group.filteredResources,
+          permissions: group.permissions,
+        }));
+
+        identities.push({ identity, groups: viewGroups, identityNameMatches });
+      });
+
+      return identities;
+    }
+
+    function copyFilteredAccessMap() {
+      if (!filteredAccessMapView || filteredAccessMapView.length === 0) {
+        alert("No access map entries are available for the current filter.");
+        return;
+      }
+
+      const payload = filteredAccessMapView.map((entry) => {
+        return Object.assign({}, entry.identity, { groups: entry.groups });
+      });
+
+      const text = JSON.stringify(payload, null, 2);
+
+      const fallbackCopy = () => {
+        const area = document.createElement("textarea");
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        document.body.removeChild(area);
+        alert("Copied access map for " + payload.length + " identities.");
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => alert("Copied access map for " + payload.length + " identities."))
+          .catch(fallbackCopy);
+      } else {
+        fallbackCopy();
+      }
     }
 
     function createTreeNode(label, type, isOpen) {
@@ -1492,13 +1787,159 @@
       container.appendChild(span);
     }
 
+    function setDetailName(text, link) {
+      const nameEl = document.getElementById("am-detail-name");
+      nameEl.innerHTML = "";
+
+      if (link) {
+        const anchor = document.createElement("a");
+        anchor.href = link;
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+        anchor.textContent = text;
+        nameEl.appendChild(anchor);
+      } else {
+        nameEl.textContent = text;
+      }
+    }
+
+    function extractResourceParts(label) {
+      if (!label) return { resourceType: "", resourceName: "" };
+      const idx = label.indexOf(":");
+      if (idx === -1) return { resourceType: "", resourceName: label };
+      return { resourceType: label.slice(0, idx), resourceName: label.slice(idx + 1) };
+    }
+
+    function buildResourceConsoleLink(provider, resourceType, resourceName) {
+      if (!provider || !resourceName) return null;
+      const normalizedProvider = provider.toLowerCase();
+      if (normalizedProvider === "aws") return awsResourceConsoleLink(resourceName);
+      if (normalizedProvider === "gcp") return gcpResourceConsoleLink(resourceName);
+      return null;
+    }
+
+    function awsResourceConsoleLink(resource) {
+      if (!resource || !resource.startsWith("arn:")) return null;
+      const parts = resource.split(":");
+      if (parts.length < 6) return null;
+      const service = parts[2];
+      const region = parts[3];
+      const resourcePart = parts[5] || "";
+
+      if (service === "s3") {
+        const bucket = resourcePart.replace(/^\/*/, "");
+        return `https://console.aws.amazon.com/s3/buckets/${encodeURIComponent(bucket)}`;
+      }
+
+      if (service === "iam") {
+        const match = resource.match(/^arn:aws:iam::\d+:([^/]+)\/(.+)$/);
+        const kind = match ? match[1] : null;
+        const res = match ? match[2] : null;
+        if (kind === "role") {
+          return `https://console.aws.amazon.com/iam/home?#/roles/${encodeURIComponent(res)}`;
+        }
+        if (kind === "user") {
+          return `https://console.aws.amazon.com/iam/home?#/users/${encodeURIComponent(res)}`;
+        }
+        return null;
+      }
+
+      if (service === "lambda") {
+        const match = resourcePart.match(/^function[:\/](.+)$/);
+        if (match && match[1]) {
+          const fnName = match[1];
+          const regionQuery = region ? `?region=${encodeURIComponent(region)}` : "";
+          return `https://console.aws.amazon.com/lambda/home${regionQuery}#/functions/${encodeURIComponent(fnName)}`;
+        }
+        return null;
+      }
+
+      if (service === "ec2") {
+        const match = resourcePart.match(/^instance\/(.+)$/);
+        if (match && match[1]) {
+          const instanceId = match[1];
+          return `https://console.aws.amazon.com/ec2/v2/home?#InstanceDetails:instanceId=${encodeURIComponent(instanceId)}`;
+        }
+        return null;
+      }
+
+      if (service === "kms") {
+        const match = resourcePart.match(/^(?:key|alias)\/(.+)$/);
+        if (match && match[1]) {
+          return `https://console.aws.amazon.com/kms/home?#/kms/keys/${encodeURIComponent(match[1])}`;
+        }
+        return null;
+      }
+
+      if (service === "secretsmanager") {
+        return `https://console.aws.amazon.com/secretsmanager/home?#/secret?name=${encodeURIComponent(resource)}`;
+      }
+
+      if (service === "dynamodb") {
+        const match = resourcePart.match(/^(?:table\/(.+)|table:(.+))/);
+        const tableRaw = match ? match[1] || match[2] : null;
+        const table = tableRaw ? tableRaw.split("/")[0] : null;
+        if (table) {
+          const regionQuery = region ? `?region=${encodeURIComponent(region)}` : "";
+          return `https://console.aws.amazon.com/dynamodbv2/home${regionQuery}#/table/${encodeURIComponent(table)}/items`;
+        }
+        return null;
+      }
+
+      return null;
+    }
+
+    function gcpResourceConsoleLink(resource) {
+      if (!resource) return null;
+      const projectMatch = resource.match(/^projects\/([^/]+)/);
+      const project = projectMatch ? projectMatch[1] : null;
+
+      if (resource.includes("/buckets/")) {
+        const bucketMatch = resource.match(/\/buckets\/([^/]+)/);
+        const bucket = bucketMatch ? bucketMatch[1] : null;
+        if (bucket && project) {
+          return `https://console.cloud.google.com/storage/browser/${encodeURIComponent(bucket)}?project=${encodeURIComponent(project)}`;
+        }
+      }
+
+      if (resource.includes("/datasets/")) {
+        const datasetMatch = resource.match(/\/datasets\/([^/]+)/);
+        const dataset = datasetMatch ? datasetMatch[1] : null;
+        if (dataset && project) {
+          return `https://console.cloud.google.com/bigquery?project=${encodeURIComponent(project)}&p=${encodeURIComponent(project)}&d=${encodeURIComponent(dataset)}&page=dataset`;
+        }
+      }
+
+      if (resource.includes("/secrets/")) {
+        const secretMatch = resource.match(/\/secrets\/([^/:]+)/);
+        const secret = secretMatch ? secretMatch[1] : null;
+        if (secret && project) {
+          return `https://console.cloud.google.com/security/secret-manager/secret/${encodeURIComponent(secret)}/versions?project=${encodeURIComponent(project)}`;
+        }
+      }
+
+      if (resource.includes("/functions/")) {
+        const fnMatch = resource.match(/\/locations\/([^/]+)\/functions\/([^/]+)/);
+        if (fnMatch && project) {
+          const region = fnMatch[1];
+          const fnName = fnMatch[2];
+          return `https://console.cloud.google.com/functions/details/${encodeURIComponent(region)}/${encodeURIComponent(fnName)}?project=${encodeURIComponent(project)}`;
+        }
+      }
+
+      if (project) {
+        return `https://console.cloud.google.com/home/dashboard?project=${encodeURIComponent(project)}`;
+      }
+
+      return null;
+    }
+
     function showAccessDetail(type, data) {
       document.getElementById("am-empty-state").classList.add("hidden");
       const view = document.getElementById("am-detail-view");
       view.classList.remove("hidden");
 
       const icon = document.getElementById("am-detail-icon");
-      const nameEl = document.getElementById("am-detail-name");
       const meta = document.getElementById("am-detail-meta");
       const typeField = document.getElementById("am-detail-type");
       const cloudField = document.getElementById("am-detail-cloud");
@@ -1509,10 +1950,13 @@
       permsList.innerHTML = "";
       permsContainer.classList.add("hidden");
 
+      let detailName = "";
+      let detailLink = null;
+
       if (type === "identity") {
         icon.textContent = "👤";
         icon.className = "detail-icon-lg";
-        nameEl.textContent = data.account || "(unknown identity)";
+        detailName = data.account || "(unknown identity)";
         typeField.textContent = "Identity";
         const provider = (data.provider || "unknown").toUpperCase();
         cloudField.textContent = provider;
@@ -1522,7 +1966,10 @@
       } else if (type === "resource") {
         icon.textContent = "📦";
         icon.className = "detail-icon-lg";
-        nameEl.textContent = data.name || "(resource)";
+        const resourceLabel = data.name || "(resource)";
+        const { resourceType, resourceName } = extractResourceParts(resourceLabel);
+        detailName = resourceLabel;
+        detailLink = buildResourceConsoleLink(data.provider, resourceType, resourceName);
         typeField.textContent = "Resource";
         const provider = (data.provider || "unknown").toUpperCase();
         cloudField.textContent = provider;
@@ -1539,10 +1986,12 @@
       } else if (type === "permission") {
         icon.textContent = "🔑";
         icon.className = "detail-icon-lg";
-        nameEl.textContent = data.name || "(permission)";
+        detailName = data.name || "(permission)";
         typeField.textContent = "Permission string";
         cloudField.textContent = "-";
       }
+
+      setDetailName(detailName, detailLink);
     }
   </script>
 </body>

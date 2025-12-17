@@ -6,7 +6,9 @@ use strum::Display;
 use sysinfo::{MemoryRefreshKind, RefreshKind, System};
 use tracing::Level;
 
-use crate::cli::commands::{access_map::AccessMapArgs, rules::RulesArgs, scan::ScanCommandArgs};
+use crate::cli::commands::{
+    access_map::AccessMapArgs, rules::RulesArgs, scan::ScanCommandArgs, view::ViewArgs,
+};
 
 #[deny(missing_docs)]
 #[derive(Parser, Debug)]
@@ -65,6 +67,9 @@ pub enum Command {
     /// Map a cloud credential to its identity, permissions, and blast radius
     #[command(name = "access-map", alias = "access_map")]
     AccessMap(AccessMapArgs),
+
+    /// View Kingfisher JSON/JSONL reports in a local web UI
+    View(ViewArgs),
 
     /// Update the Kingfisher binary
     #[command(name = "self-update")]

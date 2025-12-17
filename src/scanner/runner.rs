@@ -85,7 +85,7 @@ pub async fn run_async_scan(
 
     trace!("Args:\n{global_args:#?}\n{args:#?}");
     let progress_enabled = global_args.use_progress();
-    initialize_environment()?;
+    initialize_environment(progress_enabled)?;
 
     set_redaction_enabled(args.redact);
 
@@ -382,6 +382,7 @@ pub async fn run_async_scan(
             None,
             None,
         );
+        maybe_hint_access_map(&datastore, args);
         return Ok(());
     }
 
@@ -636,7 +637,7 @@ pub async fn run_async_scan(
 async fn finalize_access_map(
     datastore: &Arc<Mutex<FindingsStore>>,
     collector: AccessMapCollector,
-    args: &scan::ScanArgs,
+    _args: &scan::ScanArgs,
 ) -> Result<()> {
     let requests = collector.into_requests();
 
@@ -653,17 +654,6 @@ async fn finalize_access_map(
         let mut ds = datastore.lock().unwrap();
         ds.set_access_map_results(results.clone());
     }
-
-    if let Some(html_path) = &args.access_map_html {
-        access_map::write_reports(&results, html_path)?;
-        info!("wrote access-map HTML report to {}", html_path.display());
-    }
-
-    // if args.access_map_html.is_none() {
-    //     eprintln!(
-    //         "Tip: rerun with --access-map-html /path/to/report.html for an interactive access-map viewer."
-    //     );
-    // }
 
     Ok(())
 }
@@ -722,14 +712,15 @@ fn maybe_hint_access_map(datastore: &Arc<Mutex<FindingsStore>>, args: &scan::Sca
     };
 
     if has_mappable_identities {
-        eprintln!(
-            "Access map not requested. Rerun with --access-map to include resource-level permissions."
-        );
+        info!(
+                             "Access map not requested. Rerun with --access-map to include resource-level permissions, if authorized."
+                        );
     }
 }
 
-fn initialize_environment() -> Result<()> {
-    let init_progress = ProgressBar::new_spinner();
+fn initialize_environment(use_progress: bool) -> Result<()> {
+    let init_progress =
+        if use_progress { ProgressBar::new_spinner() } else { ProgressBar::hidden() };
     init_progress.set_message("Initializing thread pool...");
     let num_threads = num_cpus::get();
     // Attempt to initialize the global thread pool only if it hasn't been
@@ -841,8 +832,10 @@ pub fn spawn_datastore_writer_thread(
 pub fn load_and_record_rules(
     args: &scan::ScanArgs,
     datastore: &Arc<Mutex<findings_store::FindingsStore>>,
+    use_progress: bool,
 ) -> Result<RulesDatabase> {
-    let init_progress = ProgressBar::new_spinner();
+    let init_progress =
+        if use_progress { ProgressBar::new_spinner() } else { ProgressBar::hidden() };
     // init_progress.set_message("Compiling rules...");
     let rules_db = {
         let loaded = RuleLoader::from_rule_specifiers(&args.rules)

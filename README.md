@@ -48,6 +48,15 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
   <img src="docs/runtime-comparison.png" alt="Kingfisher Runtime Comparison" style="vertical-align: center;" />
 </p>
 
+## Basic Usage Demo
+![alt text](docs/kingfisher-usage-01.gif)
+
+## Report Viewer Demo
+Explore Kingfisher’s built-in report viewer and its `--access-map` feature for visualizing access relationships: [Access map outputs and viewer](#access-map-outputs-and-viewer)
+
+![alt text](docs/kingfisher-usage-access-map.gif)
+
+
 # Table of Contents
 
 <details>
@@ -57,6 +66,8 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Multiple Scan Targets](#multiple-scan-targets)
     - [Performance, Accuracy, and Hundreds of Rules](#performance-accuracy-and-hundreds-of-rules)
 - [Benchmark Results](#benchmark-results)
+  - [Basic Usage Demo](#basic-usage-demo)
+  - [Report Viewer Demo](#report-viewer-demo)
 - [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
@@ -64,6 +75,10 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Homebrew](#homebrew)
     - [Linux and macOS](#linux-and-macos)
     - [Windows](#windows)
+    - [Pre-commit hooks](#pre-commit-hooks)
+      - [macOS and Linux](#macos-and-linux)
+      - [Windows PowerShell](#windows-powershell)
+      - [Using the `pre-commit` framework](#using-the-pre-commit-framework)
     - [Compile](#compile)
     - [ Run Kingfisher in Docker](#-run-kingfisher-in-docker)
 - [🔐 Detection Rules at a Glance](#-detection-rules-at-a-glance)
@@ -78,6 +93,8 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
     - [Display only secrets confirmed active by third‑party APIs](#display-only-secrets-confirmed-active-by-thirdparty-apis)
     - [Output JSON and capture to a file](#output-json-and-capture-to-a-file)
     - [Output SARIF directly to disk](#output-sarif-directly-to-disk)
+    - [Access map outputs and viewer](#access-map-outputs-and-viewer)
+    - [View access-map reports locally](#view-access-map-reports-locally)
     - [Pipe any text directly into Kingfisher by passing `-`](#pipe-any-text-directly-into-kingfisher-by-passing--)
     - [Limit maximum file size scanned (`--max-file-size`)](#limit-maximum-file-size-scanned---max-file-size)
     - [Scan using a rule _family_ with one flag](#scan-using-a-rule-family-with-one-flag)
@@ -213,6 +230,133 @@ You can provide a custom destination using the `-InstallDir` parameter:
 ```
 </details>
 
+
+### Pre-commit hooks
+
+Install a Git pre-commit hook to block commits that introduce new secrets.
+
+The installer:
+
+- Preserves any existing `pre-commit` hook by chaining it **before** Kingfisher.
+- Supports custom hook directories via `--hooks-path` (or Git’s `core.hooksPath`).
+- Can be installed either **per-repository** or as a **global** hook.
+
+#### macOS and Linux
+
+<details>
+
+Install a **per-repository** hook from the root of the repo you want to protect:
+
+```bash
+curl --silent --location \
+  https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.sh | \
+  bash
+```
+
+Uninstall from that repository:
+
+```bash
+curl --silent --location \
+  https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.sh | \
+  bash -s -- --uninstall
+```
+
+Install as a **global** pre-commit hook (using core.hooksPath):
+
+```bash
+curl --silent --location \
+  https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.sh | \
+  bash -s -- --global
+```
+
+Uninstall the **global** hook:
+
+```bash
+curl --silent --location \
+  https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.sh | \
+  bash -s -- --global --uninstall
+```
+
+</details>
+
+#### Windows PowerShell
+
+<details>
+
+Install a **per-repository** hook from the root of the target repo:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher-pre-commit.ps1' -OutFile install-kingfisher-pre-commit.ps1
+./install-kingfisher-pre-commit.ps1
+```
+
+Uninstall from that repository:
+
+```powershell
+./install-kingfisher-pre-commit.ps1 -Uninstall
+```
+
+Install as a **global** hook (using core.hooksPath):
+
+```powershell
+./install-kingfisher-pre-commit.ps1 -Global
+```
+
+Uninstall the **global** hook:
+```powershell
+./install-kingfisher-pre-commit.ps1 -Global -Uninstall
+```
+
+> The installer automatically runs any existing `pre-commit` hook first, then
+> executes `kingfisher scan . --staged --quiet --no-update-check`
+> against the staged diff (anchored to `HEAD` when no commits exist yet).
+
+</details>
+
+#### Using the `pre-commit` framework
+
+Add Kingfisher as a hook in your `.pre-commit-config.yaml`:
+
+<details>
+
+```yaml
+repos:
+  - repo: https://github.com/mongodb/kingfisher
+    rev: <version-or-commit>
+    hooks:
+      # No local install required; runs Kingfisher from Docker at the repo root
+      - id: kingfisher-docker
+
+      # Fastest when you already have Kingfisher installed locally
+      - id: kingfisher
+```
+
+Then install the hook via `pre-commit install`. Every hook now drives Kingfisher
+directly with the built-in `--staged` flag:
+
+```bash
+kingfisher scan . --staged --quiet --no-update-check
+```
+
+When `--staged` is set, Kingfisher snapshots the staged index into a temporary
+commit, diffs it against `HEAD` (or an empty tree if no commits exist yet), and
+scans only those staged changes. This mirrors how gitleaks and TruffleHog handle
+pre-commit workflows while keeping everything inside the Kingfisher binary.
+
+> Exit codes: Kingfisher exits `0` when no findings are present and returns
+> `205` when validated credentials are discovered (other findings use codes in
+> the `200` range). The hook surfaces those exit codes directly to `pre-commit`,
+> so no extra handling is required—the commit will fail automatically on
+> non-zero exits.
+
+To trigger a hook in CI without installing to `.git/hooks`, run (for example):
+
+```bash
+pre-commit run kingfisher-pre-commit --all-files
+```
+
+</details>
 
 ### Compile
 You may compile for your platform via `make`
@@ -413,6 +557,25 @@ kingfisher scan . --format json | tee kingfisher.json
 ```bash
 kingfisher scan /path/to/repo --format sarif --output findings.sarif
 ```
+
+### Access map outputs and viewer
+
+- Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with an `access_map` array containing providers, accounts/projects, resources, and the permissions available for each resource (grouped when identical).
+- If you validated cloud credentials without `--access-map`, Kingfisher will remind you on stderr to rerun with the flag so the access map appears in the output.
+- Run `kingfisher view ./kingfisher.json` to explore a report locally in a local web UI
+
+> **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**
+
+![alt text](docs/kingfisher-usage-access-map.gif)
+
+### View access-map reports locally
+
+```bash
+kingfisher view kingfisher.json
+```
+
+The `view` subcommand starts a local-only server (default port `7890`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically, or open the page and upload a report in the browser. If port 7890 is already in use, Kingfisher will exit and tell you to re-run with `--port <PORT>`.
+
 
 ### Pipe any text directly into Kingfisher by passing `-`
 

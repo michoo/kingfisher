@@ -114,6 +114,7 @@ impl TestContext {
                 branch: None,
                 branch_root: false,
                 branch_root_commit: None,
+                staged: false,
             },
             extra_ignore_comments: Vec::new(),
             content_filtering_args: ContentFilteringArgs {
@@ -126,7 +127,6 @@ impl TestContext {
             confidence: ConfidenceLevel::Low,
             no_validate: true,
             access_map: false,
-            access_map_html: None,
             rule_stats: false,
             only_valid: false,
             min_entropy: Some(0.0),
@@ -154,6 +154,7 @@ impl TestContext {
 
 #[tokio::test]
 async fn test_scan_slack_messages() -> Result<()> {
+    use std::env;
     let ctx = TestContext::new()?;
 
     let server = MockServer::start().await;
@@ -256,6 +257,7 @@ async fn test_scan_slack_messages() -> Result<()> {
             branch: None,
             branch_root: false,
             branch_root_commit: None,
+            staged: false,
         },
         content_filtering_args: ContentFilteringArgs {
             max_file_size_mb: 25.0,
@@ -267,7 +269,6 @@ async fn test_scan_slack_messages() -> Result<()> {
         confidence: ConfidenceLevel::Low,
         no_validate: true,
         access_map: false,
-        access_map_html: None,
         rule_stats: false,
         only_valid: false,
         min_entropy: Some(0.0),

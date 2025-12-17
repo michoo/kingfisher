@@ -917,6 +917,7 @@ mod tests {
                 branch: None,
                 branch_root: false,
                 branch_root_commit: None,
+                staged: false,
             },
             extra_ignore_comments: Vec::new(),
             content_filtering_args: ContentFilteringArgs {
@@ -929,7 +930,6 @@ mod tests {
             confidence: ConfidenceLevel::Medium,
             no_validate: false,
             access_map: false,
-            access_map_html: None,
             only_valid: false,
             min_entropy: None,
             rule_stats: false,

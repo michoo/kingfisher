@@ -323,6 +323,16 @@ pub struct InputSpecifierArgs {
     #[arg(long = "since-commit", value_name = "GIT-REF", help_heading = "Git Options")]
     pub since_commit: Option<String>,
 
+    /// Scan only staged changes by synthesizing a temporary commit and diffing it
+    /// against the current HEAD (or an empty tree when no commits exist).
+    #[arg(
+        long,
+        help_heading = "Git Options",
+        conflicts_with = "branch_root",
+        conflicts_with = "branch_root_commit"
+    )]
+    pub staged: bool,
+
     /// Branch, tag, or commit to scan or compare against (defaults to HEAD)
     #[arg(
         long,

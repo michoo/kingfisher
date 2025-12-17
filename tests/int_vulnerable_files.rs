@@ -129,6 +129,7 @@ impl TestContext {
                 branch: None,
                 branch_root: false,
                 branch_root_commit: None,
+                staged: false,
             },
             content_filtering_args: ContentFilteringArgs {
                 max_file_size_mb: 25.0,
@@ -140,7 +141,6 @@ impl TestContext {
             confidence: ConfidenceLevel::Low,
             no_validate: true,
             access_map: false,
-            access_map_html: None,
             rule_stats: false,
             only_valid: false,
             min_entropy: Some(0.0),
@@ -259,6 +259,7 @@ impl TestContext {
                 gcs_bucket: None,
                 gcs_prefix: None,
                 gcs_service_account: None,
+                staged: false,
             },
             extra_ignore_comments: Vec::new(),
             content_filtering_args: ContentFilteringArgs {
@@ -271,7 +272,6 @@ impl TestContext {
             confidence: ConfidenceLevel::Low,
             no_validate: true,
             access_map: false,
-            access_map_html: None,
             rule_stats: false,
             only_valid: false,
             min_entropy: Some(0.0),

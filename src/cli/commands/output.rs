@@ -12,11 +12,11 @@ use crate::util::get_writer_for_file_or_stdout;
 #[command(next_help_heading = "Output Options")]
 pub struct OutputArgs<Format: ValueEnum + Send + Sync + 'static> {
     /// Write output to the specified path (stdout if not given)
-    #[arg(long, short, value_hint = ValueHint::FilePath)]
+    #[arg(global = true, long, short, value_hint = ValueHint::FilePath)]
     pub output: Option<PathBuf>,
 
     /// Output format (defaults to `pretty` if not specified)
-    #[arg(long, short, default_value = "pretty")]
+    #[arg(global = true, long, short, default_value = "pretty")]
     pub format: Format,
 }
 
