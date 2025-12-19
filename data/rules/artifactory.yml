@@ -40,17 +40,17 @@ rules:
   - name: Artifactory JFrog URL
     id: kingfisher.artifactory.2
     pattern: |
-      (?xi)                       
-      \b                         
-      (                          
+      (?xi)
+      \b
+      (
         [a-z0-9]
         (?:
           [a-z0-9\-]{0,61}
           [a-z0-9]
         )?
         \.jfrog\.io
-      )                          
-      \b                         
+      )
+      \b
     min_entropy: 3.5
     visible: false
     confidence: medium
@@ -58,3 +58,37 @@ rules:
       - mycompany.jfrog.io
       - my-company-name.jfrog.io
       - a.jfrog.io
+
+  - name: Artifactory Identity Reference Token
+    id: kingfisher.artifactory.3
+    pattern: |
+      (?xi)
+      \b
+      (
+        cmVmd[A-Z0-9]{59}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - export HOMEBREW_ARTIFACTORY_API_REFERENCE_TOKEN=cmVmdawqkxT1EE4bMepW0zmTVmBYYdv264WVufgipR9CQAW2xwSnY4CTKap8H5u0
+    validation:
+      type: Http
+      content:
+        request:
+          headers:
+            Authorization: 'Bearer {{ TOKEN }}'
+          method: GET
+          response_matcher:
+            - report_response: true
+            - status:
+                - 200
+              type: StatusMatch
+          url: https://{{ JFROGURL }}/artifactory/api/repositories
+    depends_on_rule:
+      - rule_id: "kingfisher.artifactory.2"
+        variable: JFROGURL
