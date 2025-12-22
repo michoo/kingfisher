@@ -8,6 +8,7 @@ use crate::defaults::get_builtin_rules;
 
 impl DetailsReporter {
     fn sarif_level_for_confidence(confidence: &str) -> sarif::ResultLevel {
+        // println!("Mapping confidence '{}' to SARIF level", confidence);
         match confidence.to_ascii_lowercase().as_str() {
             "low" => sarif::ResultLevel::Note,
             "medium" => sarif::ResultLevel::Warning,
@@ -193,8 +194,17 @@ mod tests {
         let expected_medium = sarif::ResultLevel::Warning.to_string();
         let expected_high = sarif::ResultLevel::Error.to_string();
 
-        assert_eq!(low.level.as_deref(), Some(expected_low.as_str()));
-        assert_eq!(medium.level.as_deref(), Some(expected_medium.as_str()));
-        assert_eq!(high.level.as_deref(), Some(expected_high.as_str()));
+        assert_eq!(
+            low.level.as_ref().and_then(|level| level.as_str()),
+            Some(expected_low.as_str())
+        );
+        assert_eq!(
+            medium.level.as_ref().and_then(|level| level.as_str()),
+            Some(expected_medium.as_str())
+        );
+        assert_eq!(
+            high.level.as_ref().and_then(|level| level.as_str()),
+            Some(expected_high.as_str())
+        );
     }
 }
