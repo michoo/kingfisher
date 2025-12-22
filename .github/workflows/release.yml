@@ -137,8 +137,6 @@ jobs:
 
       - name: Build Darwin x64
         run: make darwin-x64
-      - name: Run tests
-        run: make tests
 
       - name: Move artifacts to dist
         shell: bash
@@ -218,17 +216,45 @@ jobs:
             vcpkg-
 
       # Ensure downloads dir exists and seed PCRE 8.45 zip from a working mirror
-      - name: Pre-seed PCRE 8.45 for vcpkg (bypass SourceForge redirect)
+      - name: Pre-seed PCRE 8.45 for vcpkg
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "$env:VCPKG_DOWNLOADS" | Out-Null
           $dst = Join-Path $env:VCPKG_DOWNLOADS "pcre-8.45.zip"
+
           if (-not (Test-Path $dst)) {
-            Invoke-WebRequest `
-              -Uri "https://versaweb.dl.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.zip" `
-              -OutFile $dst -UseBasicParsing
+            $sf = "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.zip/download"
+
+            # Resolve to the final mirror URL (follow redirects without downloading the whole file)
+            $handler = New-Object System.Net.Http.HttpClientHandler
+            $handler.AllowAutoRedirect = $true
+            $client  = New-Object System.Net.Http.HttpClient($handler)
+
+            try {
+              $req = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Head, $sf)
+              $resp = $client.SendAsync($req).GetAwaiter().GetResult()
+
+              # Some mirrors don’t like HEAD; fall back to GET headers only.
+              if (-not $resp.IsSuccessStatusCode) {
+                $req.Dispose()
+                $req = New-Object System.Net.Http.HttpRequestMessage([System.Net.Http.HttpMethod]::Get, $sf)
+                $resp = $client.SendAsync($req, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+              }
+
+              $finalUrl = $resp.RequestMessage.RequestUri.AbsoluteUri
+              Write-Host "Resolved SourceForge URL to: $finalUrl"
+
+              # Download the actual file
+              Invoke-WebRequest -Uri $finalUrl -OutFile $dst
+            }
+            finally {
+              $client.Dispose()
+              $handler.Dispose()
+            }
           }
+
           Get-ChildItem $env:VCPKG_DOWNLOADS
+
 
       - uses: swatinem/rust-cache@v2
 

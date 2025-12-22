@@ -1,28 +1,35 @@
 <#
 .SYNOPSIS
-    Download and install the latest Kingfisher release for Windows.
+    Download and install a Kingfisher release for Windows.
 
 .DESCRIPTION
-    Fetches the most recent GitHub release for mongodb/kingfisher, downloads the
-    Windows x64 archive, and extracts kingfisher.exe to the destination folder.
-    By default the script installs into "$env:USERPROFILE\bin".
+    Fetches a GitHub release for mongodb/kingfisher, downloads the Windows x64
+    archive, and extracts kingfisher.exe to the destination folder. By default
+    the script installs into "$env:USERPROFILE\bin".
 
 .PARAMETER InstallDir
     Optional destination directory for the kingfisher.exe binary.
+
+.PARAMETER Tag
+    Optional GitHub release tag (e.g., v1.71.0). Defaults to the latest release.
 
 .EXAMPLE
     ./install-kingfisher.ps1
 
 .EXAMPLE
     ./install-kingfisher.ps1 -InstallDir "C:\\Tools"
+
+.EXAMPLE
+    ./install-kingfisher.ps1 -Tag v1.71.0
 #>
 param(
     [Parameter(Position = 0)]
-    [string]$InstallDir = (Join-Path $env:USERPROFILE 'bin')
+    [string]$InstallDir = (Join-Path $env:USERPROFILE 'bin'),
+
+    [string]$Tag
 )
 
 $repo = 'mongodb/kingfisher'
-$apiUrl = "https://api.github.com/repos/$repo/releases/latest"
 $assetName = 'kingfisher-windows-x64.zip'
 
 if (-not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
@@ -33,7 +40,13 @@ if (-not (Get-Command Expand-Archive -ErrorAction SilentlyContinue)) {
     throw 'Expand-Archive is required to extract the release archive. Install the PowerShell archive module.'
 }
 
-Write-Host "Fetching latest release metadata for $repo…"
+if ($Tag) {
+    $apiUrl = "https://api.github.com/repos/$repo/releases/tags/$Tag"
+    Write-Host "Fetching release metadata for $repo tag $Tag…"
+} else {
+    $apiUrl = "https://api.github.com/repos/$repo/releases/latest"
+    Write-Host "Fetching latest release metadata for $repo…"
+}
 try {
     $response = Invoke-WebRequest -Uri $apiUrl -UseBasicParsing
     $release = $response.Content | ConvertFrom-Json
@@ -44,7 +57,7 @@ try {
 $releaseTag = $release.tag_name
 $asset = $release.assets | Where-Object { $_.name -eq $assetName }
 if (-not $asset) {
-    throw "Could not find asset '$assetName' in the latest release."
+    throw "Could not find asset '$assetName' in the release metadata."
 }
 
 $tempDir = New-Item -ItemType Directory -Path ([System.IO.Path]::GetTempPath()) -Name ([System.Guid]::NewGuid().ToString())

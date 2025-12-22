@@ -51,7 +51,7 @@ rules:
         \.jfrog\.io
       )
       \b
-    min_entropy: 3.5
+    min_entropy: 2.5
     visible: false
     confidence: medium
     examples:

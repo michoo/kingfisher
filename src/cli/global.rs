@@ -72,7 +72,7 @@ pub enum Command {
     View(ViewArgs),
 
     /// Update the Kingfisher binary
-    #[command(name = "self-update")]
+    #[command(name = "self-update", alias = "update")]
     SelfUpdate,
 }
 
@@ -104,7 +104,7 @@ pub struct GlobalArgs {
     pub ignore_certs: bool,
 
     /// Update the Kingfisher binary to the latest release
-    #[arg(global = true, long = "self-update", default_value_t = false)]
+    #[arg(global = true, long = "self-update", alias = "update", default_value_t = false)]
     pub self_update: bool,
 
     /// Disable automatic update checks
