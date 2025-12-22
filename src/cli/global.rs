@@ -72,7 +72,7 @@ pub enum Command {
     View(ViewArgs),
 
     /// Update the Kingfisher binary
-    #[command(name = "self-update")]
+    #[command(name = "self-update", alias = "update")]
     SelfUpdate,
 }
 

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [v1.72.0]
 - Fixed deduplication for dependency-provider rules so dependent validations run per blob
 - Updated Artifactory rule entropy and added new artifactory rule
+- Aliased "kingfisher self-update" as "kingfisher update"
 
 ## [v1.71.0]
 - Improved Report Viewer layout
