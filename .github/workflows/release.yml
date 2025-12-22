@@ -223,7 +223,7 @@ jobs:
           $dst = Join-Path $env:VCPKG_DOWNLOADS "pcre-8.45.zip"
           if (-not (Test-Path $dst)) {
             Invoke-WebRequest `
-              -Uri "https://versaweb.dl.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.zip" `
+              -Uri "https://netactuate.dl.sourceforge.net/project/pcre/pcre/8.45/pcre-8.45.zip" `
               -OutFile $dst -UseBasicParsing
           }
           Get-ChildItem $env:VCPKG_DOWNLOADS
