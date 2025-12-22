@@ -72,7 +72,10 @@ fn dedup_preserves_dependency_provider_matches_per_blob() -> Result<()> {
     let provider_rule = make_rule("RULE.PROVIDER", vec![]);
     let dependent_rule = make_rule(
         "RULE.DEPENDENT",
-        vec![Some(DependsOnRule { rule_id: "RULE.PROVIDER".to_string(), variable: "TOKEN".into() })],
+        vec![Some(DependsOnRule {
+            rule_id: "RULE.PROVIDER".to_string(),
+            variable: "TOKEN".into(),
+        })],
     );
 
     let mut store = FindingsStore::new(PathBuf::from("/tmp"));
@@ -98,11 +101,7 @@ fn dedup_preserves_dependency_provider_matches_per_blob() -> Result<()> {
             &blob_a,
             make_match(provider_rule.clone(), blob_a.id, "shared_token"),
         ),
-        record_match(
-            &origin,
-            &blob_b,
-            make_match(provider_rule, blob_b.id, "shared_token"),
-        ),
+        record_match(&origin, &blob_b, make_match(provider_rule, blob_b.id, "shared_token")),
     ];
 
     store.record(matches, true);
