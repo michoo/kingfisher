@@ -104,7 +104,12 @@ pub struct GlobalArgs {
     pub ignore_certs: bool,
 
     /// Update the Kingfisher binary to the latest release
-    #[arg(global = true, long = "self-update", default_value_t = false)]
+    #[arg(
+        global = true,
+        long = "self-update",
+        long_alias = "update",
+        default_value_t = false
+    )]
     pub self_update: bool,
 
     /// Disable automatic update checks
