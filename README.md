@@ -209,6 +209,14 @@ curl --silent --location \
   bash -s -- /opt/kingfisher
 ```
 
+To install a specific tag:
+
+```bash
+curl --silent --location \
+  https://raw.githubusercontent.com/mongodb/kingfisher/main/scripts/install-kingfisher.sh | \
+  bash -s -- --tag v1.71.0
+```
+
 </details>
 
 ### Windows
@@ -229,6 +237,12 @@ You can provide a custom destination using the `-InstallDir` parameter:
 
 ```powershell
 ./install-kingfisher.ps1 -InstallDir 'C:\Tools\Kingfisher'
+```
+
+To install a specific tag:
+
+```powershell
+./install-kingfisher.ps1 -Tag v1.71.0
 ```
 </details>
 

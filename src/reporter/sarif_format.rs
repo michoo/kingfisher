@@ -7,6 +7,15 @@ use super::*;
 use crate::defaults::get_builtin_rules;
 
 impl DetailsReporter {
+    fn sarif_level_for_confidence(confidence: &str) -> sarif::ResultLevel {
+        match confidence.to_ascii_lowercase().as_str() {
+            "low" => sarif::ResultLevel::Note,
+            "medium" => sarif::ResultLevel::Warning,
+            "high" => sarif::ResultLevel::Error,
+            _ => sarif::ResultLevel::Warning,
+        }
+    }
+
     fn record_to_sarif_result(&self, record: &FindingReporterRecord) -> Result<sarif::Result> {
         let finding = &record.finding;
         let artifact_location =
@@ -49,7 +58,7 @@ impl DetailsReporter {
             .message(message)
             .kind(sarif::ResultKind::Review.to_string())
             .locations(vec![location])
-            .level(sarif::ResultLevel::Warning.to_string())
+            .level(Self::sarif_level_for_confidence(&finding.confidence).to_string())
             .partial_fingerprints([("fingerprint".to_string(), finding.fingerprint.clone())])
             .build()?;
         Ok(result)
@@ -130,5 +139,62 @@ impl DetailsReporter {
         serde_json::to_writer_pretty(&mut writer, &sarif)?;
         writeln!(writer)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{findings_store::FindingsStore, reporter::styles::Styles};
+    use std::sync::{Arc, Mutex};
+    use tempfile::tempdir;
+
+    fn test_reporter() -> DetailsReporter {
+        let tmp = tempdir().expect("tempdir");
+        let store = FindingsStore::new(tmp.path().to_path_buf());
+        DetailsReporter {
+            datastore: Arc::new(Mutex::new(store)),
+            styles: Styles::new(false),
+            only_valid: false,
+        }
+    }
+
+    fn sample_record(confidence: &str) -> FindingReporterRecord {
+        FindingReporterRecord {
+            rule: RuleMetadata { name: "test-rule".to_string(), id: "rule-1".to_string() },
+            finding: FindingRecordData {
+                snippet: "secret".to_string(),
+                fingerprint: "fingerprint".to_string(),
+                confidence: confidence.to_string(),
+                entropy: "0.0".to_string(),
+                validation: ValidationInfo {
+                    status: "unknown".to_string(),
+                    response: "n/a".to_string(),
+                },
+                language: "Rust".to_string(),
+                line: 1,
+                column_start: 1,
+                column_end: 5,
+                path: "src/lib.rs".to_string(),
+                encoding: None,
+                git_metadata: None,
+            },
+        }
+    }
+
+    #[test]
+    fn sarif_level_maps_from_confidence() {
+        let reporter = test_reporter();
+        let low = reporter.record_to_sarif_result(&sample_record("low")).unwrap();
+        let medium = reporter.record_to_sarif_result(&sample_record("medium")).unwrap();
+        let high = reporter.record_to_sarif_result(&sample_record("high")).unwrap();
+
+        let expected_low = sarif::ResultLevel::Note.to_string();
+        let expected_medium = sarif::ResultLevel::Warning.to_string();
+        let expected_high = sarif::ResultLevel::Error.to_string();
+
+        assert_eq!(low.level.as_deref(), Some(expected_low.as_str()));
+        assert_eq!(medium.level.as_deref(), Some(expected_medium.as_str()));
+        assert_eq!(high.level.as_deref(), Some(expected_high.as_str()));
     }
 }

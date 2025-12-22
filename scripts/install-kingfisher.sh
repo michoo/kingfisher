@@ -3,16 +3,19 @@ set -euo pipefail
 
 REPO="mongodb/kingfisher"
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
-LATEST_DL_BASE="https://github.com/${REPO}/releases/latest/download"
+TAG=""
 
 usage() {
   cat <<'USAGE'
-Usage: install-kingfisher.sh [INSTALL_DIR]
+Usage: install-kingfisher.sh [OPTIONS] [INSTALL_DIR]
 
-Downloads the latest Kingfisher release for Linux or macOS and installs the
-binary into INSTALL_DIR (default: ~/.local/bin).
+Downloads a Kingfisher release for Linux or macOS and installs the binary into
+INSTALL_DIR (default: ~/.local/bin).
 
 Requirements: curl, tar
+
+Options:
+  -t, --tag TAG  Install a specific release tag (e.g., v1.71.0).
 USAGE
 }
 
@@ -21,7 +24,35 @@ if [[ "${1-}" == "-h" || "${1-}" == "--help" ]]; then
   exit 0
 fi
 
-INSTALL_DIR="${1:-$DEFAULT_INSTALL_DIR}"
+INSTALL_DIR="$DEFAULT_INSTALL_DIR"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -t|--tag)
+      if [[ -z "${2-}" ]]; then
+        echo "Error: --tag requires a value." >&2
+        usage
+        exit 1
+      fi
+      TAG="$2"
+      shift 2
+      ;;
+    -*)
+      echo "Error: Unknown option '$1'." >&2
+      usage
+      exit 1
+      ;;
+    *)
+      if [[ "$INSTALL_DIR" != "$DEFAULT_INSTALL_DIR" ]]; then
+        echo "Error: INSTALL_DIR specified multiple times." >&2
+        usage
+        exit 1
+      fi
+      INSTALL_DIR="$1"
+      shift
+      ;;
+  esac
+done
 
 # deps
 command -v curl >/dev/null 2>&1 || { echo "Error: curl is required." >&2; exit 1; }
@@ -45,7 +76,15 @@ esac
 asset_name="kingfisher-${platform}-${arch_suffix}.tgz"
 : "${asset_name:?internal error: asset_name not set}"  # guard for set -u
 
-download_url="${LATEST_DL_BASE}/${asset_name}"
+if [[ -n "$TAG" ]]; then
+  dl_base="https://github.com/${REPO}/releases/download/${TAG}"
+  release_label="release tag ${TAG}"
+else
+  dl_base="https://github.com/${REPO}/releases/latest/download"
+  release_label="latest release"
+fi
+
+download_url="${dl_base}/${asset_name}"
 
 tmpdir="$(mktemp -d)"
 cleanup() { rm -rf "$tmpdir"; }
@@ -53,7 +92,7 @@ trap cleanup EXIT
 
 archive_path="$tmpdir/$asset_name"
 
-echo "Downloading latest: ${asset_name} …"
+echo "Downloading ${release_label}: ${asset_name} …"
 # -f: fail on HTTP errors (e.g., 404 if asset missing)
 if ! curl -fLsS "${download_url}" -o "$archive_path"; then
   echo "Error: Failed to download ${download_url}" >&2
