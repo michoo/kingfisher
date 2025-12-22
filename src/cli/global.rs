@@ -107,7 +107,7 @@ pub struct GlobalArgs {
     #[arg(
         global = true,
         long = "self-update",
-        long_alias = "update",
+        alias = "update",
         default_value_t = false
     )]
     pub self_update: bool,
