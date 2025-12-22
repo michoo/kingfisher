@@ -1294,11 +1294,6 @@ _If no token is provided Kingfisher still works for public repositories._
 
 Kingfisher automatically queries GitHub for a newer release when it starts and tells you whether an update is available.
 
-- **Hands-free updates** – Add `--self-update` to any Kingfisher command
-
-  * If a newer version exists, Kingfisher will download it, replace the running binary, and re-launch itself with the **exact same arguments**.
-  * If the update fails or no newer release is found, the current run proceeds as normal
-
 - **Manual update** – Run `kingfisher update` to update the binary without scanning
 
 - **Disable version checks** – Pass `--no-update-check` to skip both the startup and shutdown checks entirely
