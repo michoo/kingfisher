@@ -215,7 +215,7 @@ async fn render_and_parse_url(
 
     // Check if the URL is resolvable.
     utils::check_url_resolvable(&url).await.map_err(|e| {
-        let error_msg = format!("URL resolution failed: {}", e);
+        let error_msg = format!("URL <{}> resolution failed: {}", &url, e);
         error_msg
     })?;
 

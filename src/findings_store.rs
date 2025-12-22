@@ -52,6 +52,7 @@ pub struct FindingsStore {
     clone_dir: PathBuf,
     seen_bloom: Bloom<u64>,
     bloom_items: usize,
+    dependent_rule_ids: FxHashSet<String>,
     blob_meta: FxHashMap<BlobId, Arc<BlobMetadata>>,
     origin_meta: FxHashMap<u64, Arc<OriginSet>>,
     docker_images: FxHashMap<PathBuf, String>,
@@ -78,6 +79,7 @@ impl FindingsStore {
             clone_dir,
             seen_bloom,
             bloom_items: 0,
+            dependent_rule_ids: FxHashSet::default(),
             docker_images: FxHashMap::default(),
             slack_links: FxHashMap::default(),
             confluence_links: FxHashMap::default(),
@@ -143,6 +145,12 @@ impl FindingsStore {
         // Clear existing data and extend in place
         self.rules.clear();
         self.rules.extend_from_slice(rules);
+        self.dependent_rule_ids.clear();
+        for rule in rules {
+            for dependency in rule.syntax().depends_on_rule.iter().flatten() {
+                self.dependent_rule_ids.insert(dependency.rule_id.to_uppercase());
+            }
+        }
     }
 
     /// Insert a batch of findings.  
@@ -183,10 +191,13 @@ impl FindingsStore {
                     Origin::Extended(_) => "ext",
                 };
 
-                let key = xxh3_64(
-                    format!("{}|{}|{}", m.rule.id().to_uppercase(), origin_kind, snippet)
-                        .as_bytes(),
-                );
+                let rule_id = m.rule.id().to_uppercase();
+                let key_string = if self.dependent_rule_ids.contains(&rule_id) {
+                    format!("{}|{}|{}|{}", rule_id, origin_kind, snippet, blob_md.id.hex())
+                } else {
+                    format!("{}|{}|{}", rule_id, origin_kind, snippet)
+                };
+                let key = xxh3_64(key_string.as_bytes());
 
                 if self.seen_bloom.check(&key) {
                     continue; // very likely a duplicate

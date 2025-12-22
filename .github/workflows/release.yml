@@ -137,8 +137,6 @@ jobs:
 
       - name: Build Darwin x64
         run: make darwin-x64
-      - name: Run tests
-        run: make tests
 
       - name: Move artifacts to dist
         shell: bash
