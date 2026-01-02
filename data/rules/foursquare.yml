@@ -1,6 +1,6 @@
 rules:
   - name: Foursquare Client ID
-    id: kingfisher.foursquare.client_id.1
+    id: kingfisher.foursquare.1
     visible: false
     confidence: low
     min_entropy: 0.0
@@ -20,21 +20,14 @@ rules:
       - 'client_id: "0F12A345BB67C8D901EFG23H45IJKL67MNO89PQ12RST34UV"'
 
   - name: Foursquare Client Secret
-    id: kingfisher.foursquare.1
+    id: kingfisher.foursquare.2
     pattern: |
       (?xi)
-      (?:
-        \bfoursquare\b
-        (?:.|[\n\r]){0,32}?
-      )?
-      (?:
-        \bclient_secret\b\s*[:=]\s*["']?
-        |
-        \bclient_secret=
-        |
-        (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
-      )
+      \b
+      foursquare
       (?:.|[\n\r]){0,32}?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
+      (?:.|[\n\r]){0,16}?
       \b
       (
         [0-9A-Z]{48}
@@ -45,13 +38,13 @@ rules:
     min_entropy: 3.5
     confidence: medium
     examples:
-      - 'client_secret=0F12A345BB67C8D901EFG23H45IJKL67MNO89PQ12RST34UV'
+      - 'foursquare_secret=0F12A345BB67C8D901EFG23H45IJKL67MNO89PQ12RST34UV'
       - 'foursquare client_secret: "0F12A345BB67C8D901EFG23H45IJKL67MNO89PQ12RST34UV"'
     references:
       - https://docs.foursquare.com/developer/reference/v2-authentication
       - https://docs.foursquare.com/developer/reference/upcoming-changes
     depends_on_rule:
-      - rule_id: kingfisher.foursquare.client_id.1
+      - rule_id: kingfisher.foursquare.1
         variable: FOURSQUARE_CLIENT_ID
     validation:
       type: Http
