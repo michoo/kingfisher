@@ -66,7 +66,10 @@ Explore Kingfisher’s built-in report viewer and its `--access-map`, which can 
 kingfisher scan /path/to/scan --access-map --view-report
 ```
 
-![alt text](docs/kingfisher-usage-access-map.gif)
+![alt text](docs/kingfisher-usage-access-map-01.gif)
+
+**Click to view video**
+[![Demo](docs/demos/findings-thumbnail.png)](docs/kingfisher-usage-access-map-02.mp4)
 
 
 # Table of Contents

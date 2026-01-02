@@ -23,7 +23,6 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           profile: minimal
           override: true
-      - uses: swatinem/rust-cache@v2
       - name: Build (Makefile linux-arm64)
         run: make ubuntu-arm64
       - name: Run tests
