@@ -133,22 +133,22 @@ mod tests {
 
     #[test]
     fn parse_mysql_url_accepts_valid_urls() {
-        let url = "mysql://user:secret@example.com:3306/app";
+        let url = "mysql://user:secret@exmple.com:3306/app";
         let opts = parse_mysql_url(url).expect("expected valid MySQL URL");
         assert_eq!(opts.user(), Some("user"));
         assert_eq!(opts.pass(), Some("secret"));
-        assert_eq!(opts.ip_or_hostname(), "example.com");
+        assert_eq!(opts.ip_or_hostname(), "exmple.com");
     }
 
     #[test]
     fn parse_mysql_url_rejects_invalid_urls() {
         for candidate in [
-            "",                                          // empty
-            "mysql://user@example.com/app",              // missing password
-            "mysql://:secret@example.com/app",           // missing username
-            "mysql://user:secret@:3306/app",             // missing host
-            "postgres://user:secret@example.com",        // wrong scheme
-            "mysql://user:secret@example.com:70000/app", // invalid port
+            "",                                         // empty
+            "mysql://user@exmple.com/app",              // missing password
+            "mysql://:secret@exmple.com/app",           // missing username
+            "mysql://user:secret@:3306/app",            // missing host
+            "postgres://user:secret@exmple.com",        // wrong scheme
+            "mysql://user:secret@exmple.com:70000/app", // invalid port
         ] {
             assert!(
                 parse_mysql_url(candidate).is_err(),
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn parse_mysql_url_allows_trimming_whitespace() {
         let opts =
-            parse_mysql_url("  mysql://user:secret@example.com:3306/app  ").expect("trimmed URL");
+            parse_mysql_url("  mysql://user:secret@exmple.com:3306/app  ").expect("trimmed URL");
         assert_eq!(opts.user(), Some("user"));
         assert_eq!(opts.pass(), Some("secret"));
     }

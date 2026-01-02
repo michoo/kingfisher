@@ -65,6 +65,7 @@ pub fn build_request_builder(
     url: &Url,
     headers: &BTreeMap<String, String>,
     body: &Option<String>,
+    timeout: Duration,
     parser: &liquid::Parser,
     globals: &liquid::Object,
 ) -> Result<RequestBuilder, String> {
@@ -72,7 +73,7 @@ pub fn build_request_builder(
         debug!("{}", err_msg);
         err_msg
     })?;
-    let mut request_builder = client.request(method, url.clone()).timeout(Duration::from_secs(10));
+    let mut request_builder = client.request(method, url.clone()).timeout(timeout);
     let custom_headers = process_headers(headers, parser, globals, url)
         .map_err(|e| format!("Error processing headers: {}", e))?;
 
@@ -199,6 +200,9 @@ where
             return result;
         }
         retries += 1;
+        if retries > max_retries {
+            break;
+        }
         let backoff = backoff_min.saturating_mul(2u32.pow(retries as u32)).min(backoff_max);
         sleep(backoff).await;
     }
@@ -445,9 +449,17 @@ mod tests {
             ("Accept".to_string(), "application/custom".to_string()),
         ]);
         let url = Url::from_str("https://example.com").unwrap();
-        let result =
-            build_request_builder(&client, "GET", &url, &headers, &None, &parser, &globals)
-                .expect("building request");
+        let result = build_request_builder(
+            &client,
+            "GET",
+            &url,
+            &headers,
+            &None,
+            Duration::from_secs(10),
+            &parser,
+            &globals,
+        )
+        .expect("building request");
         let req = result.build().expect("finalizing request");
         assert_eq!(
             req.headers().get(header::ACCEPT).and_then(|v| v.to_str().ok()),

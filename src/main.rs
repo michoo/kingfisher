@@ -51,6 +51,7 @@ use kingfisher::{
     findings_store,
     findings_store::FindingsStore,
     gitea, github, huggingface,
+    reporter::{styles::Styles, DetailsReporter},
     rule_loader::RuleLoader,
     rules_database::RulesDatabase,
     scanner::{load_and_record_rules, run_scan},
@@ -197,14 +198,25 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
         Command::View(view_args) => view::run(view_args).await,
         Command::AccessMap(identity_args) => access_map::run(identity_args).await,
         command => {
-            let temp_dir = TempDir::new().context("Failed to create temporary directory")?;
-            let clone_dir = temp_dir.path().to_path_buf();
-
-            let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
             let update_status = check_for_update_async(&global_args, None).await;
             match command {
                 Command::Scan(scan_command) => match scan_command.into_operation()? {
                     ScanOperation::Scan(mut scan_args) => {
+                        let temp_dir =
+                            TempDir::new().context("Failed to create temporary directory")?;
+                        let temp_dir_path = temp_dir.path().to_path_buf();
+                        let clone_dir = if let Some(clone_dir) =
+                            scan_args.input_specifier_args.git_clone_dir.as_ref()
+                        {
+                            std::fs::create_dir_all(clone_dir)?;
+                            clone_dir.to_path_buf()
+                        } else {
+                            temp_dir_path.clone()
+                        };
+                        let keep_clones = scan_args.input_specifier_args.keep_clones
+                            && scan_args.input_specifier_args.git_clone_dir.is_none();
+
+                        let datastore = Arc::new(Mutex::new(FindingsStore::new(clone_dir)));
                         info!(
                             "Launching with {} concurrent scan jobs. Use --num-jobs to override.",
                             &scan_args.num_jobs
@@ -214,7 +226,7 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         if (paths.is_empty() || is_dash) && !atty::is(atty::Stream::Stdin) {
                             let mut buf = Vec::new();
                             std::io::stdin().read_to_end(&mut buf)?;
-                            let stdin_file = temp_dir.path().join("stdin_input");
+                            let stdin_file = temp_dir_path.join("stdin_input");
                             std::fs::write(&stdin_file, buf)?;
                             scan_args.input_specifier_args.path_inputs = vec![stdin_file.into()];
                         }
@@ -239,9 +251,29 @@ async fn async_main(args: CommandLineArgs) -> Result<()> {
                         }
                         let exit_code = determine_exit_code(&datastore);
 
-                        if let Err(e) = temp_dir.close() {
+                        if scan_args.view_report {
+                            let reporter = DetailsReporter {
+                                datastore: Arc::clone(&datastore),
+                                styles: Styles::new(global_args.use_color(std::io::stdout())),
+                                only_valid: scan_args.only_valid,
+                            };
+                            let envelope = reporter.build_report_envelope(&scan_args)?;
+                            let report_bytes = serde_json::to_vec_pretty(&envelope)?;
+                            let view_args = view::ViewArgs {
+                                report: None,
+                                port: view::DEFAULT_PORT,
+                                open_browser: true,
+                                report_bytes: Some(report_bytes),
+                            };
+                            view::run(view_args).await?;
+                        }
+
+                        if keep_clones {
+                            let _kept_path = temp_dir.keep(); // consumes TempDir; prevents auto-delete
+                        } else if let Err(e) = temp_dir.close() {
                             eprintln!("Failed to close temporary directory: {}", e);
                         }
+
                         std::process::exit(exit_code);
                     }
                     ScanOperation::ListRepositories(list_command) => match list_command {
@@ -373,6 +405,10 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         input_specifier_args: InputSpecifierArgs {
             path_inputs: Vec::new(),
             git_url: Vec::new(),
+            git_clone_dir: None,
+            keep_clones: false,
+            repo_clone_limit: None,
+            include_contributors: false,
             github_user: Vec::new(),
             github_organization: Vec::new(),
             github_exclude: Vec::new(),
@@ -467,6 +503,7 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         redact: false,
         git_repo_timeout: 1800,
         no_dedup: false,
+        view_report: false,
         baseline_file: None,
         manage_baseline: false,
         skip_regex: Vec::new(),
@@ -477,6 +514,8 @@ fn create_default_scan_args() -> cli::commands::scan::ScanArgs {
         no_base64: false,
         no_inline_ignore: false,
         no_ignore_if_contains: false,
+        validation_timeout: 10,
+        validation_retries: 1,
     }
 }
 /// Run the rules check command

@@ -245,7 +245,7 @@ async fn render_template(
         })
 }
 
-/// Validate a single match with a timeout of 60 seconds.
+/// Validate a single match with a configurable timeout.
 pub async fn validate_single_match(
     m: &mut OwnedBlobMatch,
     parser: &liquid::Parser,
@@ -253,8 +253,10 @@ pub async fn validate_single_match(
     dependent_variables: &FxHashMap<String, Vec<(String, OffsetSpan)>>,
     missing_dependencies: &FxHashMap<String, Vec<String>>,
     cache: &Cache,
+    validation_timeout: Duration,
+    validation_retries: u32,
 ) {
-    let timeout_result = time::timeout(Duration::from_secs(60), async {
+    let timeout_result = time::timeout(validation_timeout, async {
         timed_validate_single_match(
             m,
             parser,
@@ -262,6 +264,8 @@ pub async fn validate_single_match(
             dependent_variables,
             missing_dependencies,
             cache,
+            validation_timeout,
+            validation_retries,
         )
         .await
     })
@@ -269,8 +273,10 @@ pub async fn validate_single_match(
 
     if timeout_result.is_err() {
         m.validation_success = false;
-        m.validation_response_body =
-            validation_body::from_string("Validation timed out after 60 seconds");
+        m.validation_response_body = validation_body::from_string(format!(
+            "Validation timed out after {} seconds",
+            validation_timeout.as_secs()
+        ));
         m.validation_response_status = StatusCode::REQUEST_TIMEOUT;
     }
 }
@@ -285,6 +291,8 @@ async fn timed_validate_single_match<'a>(
     dependent_variables: &FxHashMap<String, Vec<(String, OffsetSpan)>>,
     missing_dependencies: &FxHashMap<String, Vec<String>>,
     cache: &Cache,
+    validation_timeout: Duration,
+    validation_retries: u32,
 ) {
     // ──────────────────────────────────────────────────────────
     // 1. process-wide fingerprint de-dup
@@ -383,6 +391,9 @@ async fn timed_validate_single_match<'a>(
     match &rule_syntax.validation {
         // ---------------------------------------------------- HTTP validator
         Some(Validation::Http(http_validation)) => {
+            let request_timeout = validation_timeout;
+            let multipart_timeout = validation_timeout;
+            let max_retries: u32 = validation_retries;
             // render URL
             let url = match render_and_parse_url(
                 parser,
@@ -409,6 +420,7 @@ async fn timed_validate_single_match<'a>(
                 &url,
                 &http_validation.request.headers,
                 &http_validation.request.body,
+                request_timeout,
                 parser,
                 &globals,
             ) {
@@ -462,7 +474,7 @@ async fn timed_validate_single_match<'a>(
             let exec_single = |builder: reqwest::RequestBuilder| async {
                 httpvalidation::retry_request(
                     builder,
-                    1,
+                    max_retries,
                     Duration::from_millis(500),
                     Duration::from_secs(2),
                 )
@@ -477,7 +489,7 @@ async fn timed_validate_single_match<'a>(
                         .unwrap_or(reqwest::Method::GET);
 
                     let mut fresh_builder =
-                        client.request(method, url.clone()).timeout(Duration::from_secs(5));
+                        client.request(method, url.clone()).timeout(multipart_timeout);
 
                     if let Ok(mut headers) = httpvalidation::process_headers(
                         &http_validation.request.headers,
@@ -546,7 +558,7 @@ async fn timed_validate_single_match<'a>(
 
                 httpvalidation::retry_multipart_request(
                     build_request,
-                    1,
+                    max_retries as usize,
                     Duration::from_millis(500),
                     Duration::from_secs(2),
                 )

@@ -5,7 +5,7 @@ rules:
       (?xi)
       \b
       (
-        sgp_(?:[a-f0-9]{16}_local_)?[a-f0-9]{40}
+        sgp_(?:[A-F0-9]{16}|local)_[A-F0-9]{40}|sgp_[A-F0-9]{40}
       )
       \b
     pattern_requirements:

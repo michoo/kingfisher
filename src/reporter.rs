@@ -12,13 +12,13 @@ use serde::Serialize;
 use url::Url;
 
 use crate::{
-    access_map::{AccessSummary, ResourceExposure},
+    access_map::{AccessSummary, AccessTokenDetails, ProviderMetadata, ResourceExposure},
     blob::BlobMetadata,
     bstring_escape::Escaped,
     cli,
     cli::global::GlobalArgs,
     finding_data, findings_store,
-    matcher::Match,
+    matcher::{compute_finding_fingerprint, Match},
     origin::{Origin, OriginSet},
     rules::rule::Confidence,
     validation_body::{self, ValidationResponseBody},
@@ -227,6 +227,57 @@ impl DetailsReporter {
         }
     }
 
+    fn normalized_finding_fingerprint(m: &Match, origin: &OriginSet) -> u64 {
+        let finding_value = m
+            .groups
+            .captures
+            .get(1)
+            .or_else(|| m.groups.captures.get(0))
+            .map(|capture| capture.raw_value())
+            .unwrap_or("");
+        let offset_start = m.location.offset_span.start as u64;
+        let offset_end = m.location.offset_span.end as u64;
+        let has_file = origin.iter().any(|o| matches!(o, Origin::File(_)));
+        let has_git = origin.iter().any(|o| matches!(o, Origin::GitRepo(_)));
+        let origin_key = if has_file || has_git { "file_git" } else { "ext" };
+        compute_finding_fingerprint(finding_value, origin_key, offset_start, offset_end)
+    }
+
+    fn origin_set_contains_git(origin: &OriginSet) -> bool {
+        origin.iter().any(|o| matches!(o, Origin::GitRepo(_)))
+    }
+
+    fn merge_origins_for_dedup(mut existing: ReportMatch, incoming: ReportMatch) -> ReportMatch {
+        let existing_has_git = Self::origin_set_contains_git(&existing.origin);
+        let incoming_has_git = Self::origin_set_contains_git(&incoming.origin);
+        let prefer_git = existing_has_git || incoming_has_git;
+
+        if incoming_has_git && !existing_has_git {
+            existing = incoming.clone();
+        }
+
+        let mut origins = Vec::new();
+        let mut push_unique = |origin: &Origin| {
+            if !origins.iter().any(|existing| existing == origin) {
+                origins.push(origin.clone());
+            }
+        };
+
+        for origin in existing.origin.iter().chain(incoming.origin.iter()) {
+            push_unique(origin);
+        }
+
+        if prefer_git {
+            origins.retain(|origin| matches!(origin, Origin::GitRepo(_)));
+        }
+
+        if let Some(origin_set) = OriginSet::try_from_iter(origins) {
+            existing.origin = origin_set;
+        }
+
+        existing
+    }
+
     /// If the given file path corresponds to a Confluence page downloaded to disk,
     /// return the URL for that page.
     fn confluence_page_url(&self, path: &std::path::Path) -> Option<String> {
@@ -339,23 +390,12 @@ impl DetailsReporter {
         let mut by_fp: HashMap<(u64, String), ReportMatch> = HashMap::new();
 
         for rm in matches {
-            let key = (rm.m.finding_fingerprint, rm.m.rule.id().to_string());
+            let key = (
+                Self::normalized_finding_fingerprint(&rm.m, &rm.origin),
+                rm.m.rule.id().to_string(),
+            );
             if let Some(existing) = by_fp.get_mut(&key) {
-                // merge origin sets (keep first origin, append the rest)
-                for o in rm.origin.iter() {
-                    if !existing.origin.iter().any(|e| e == o) {
-                        existing.origin = OriginSet::new(
-                            existing.origin.first().clone(),
-                            existing
-                                .origin
-                                .iter()
-                                .skip(1)
-                                .cloned()
-                                .chain(std::iter::once(o.clone()))
-                                .collect(),
-                        );
-                    }
-                }
+                *existing = Self::merge_origins_for_dedup(existing.clone(), rm);
                 continue;
             }
             by_fp.insert(key, rm);
@@ -617,6 +657,8 @@ impl DetailsReporter {
                 provider: result.cloud.clone(),
                 account: account.clone(),
                 groups,
+                token_details: result.token_details.clone(),
+                provider_metadata: result.provider_metadata.clone(),
             });
         }
 
@@ -774,6 +816,10 @@ pub struct AccessMapEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account: Option<String>,
     pub groups: Vec<AccessMapResourceGroup>,
+    #[serde(default)]
+    pub token_details: Option<AccessTokenDetails>,
+    #[serde(default)]
+    pub provider_metadata: Option<ProviderMetadata>,
 }
 
 #[derive(Serialize, JsonSchema, Clone, Debug)]
@@ -854,6 +900,10 @@ mod tests {
             input_specifier_args: InputSpecifierArgs {
                 path_inputs: Vec::new(),
                 git_url: Vec::new(),
+                git_clone_dir: None,
+                keep_clones: false,
+                repo_clone_limit: None,
+                include_contributors: false,
                 github_user: Vec::new(),
                 github_organization: Vec::new(),
                 github_exclude: Vec::new(),
@@ -934,6 +984,7 @@ mod tests {
             min_entropy: None,
             rule_stats: false,
             no_dedup: false,
+            view_report: false,
             redact: false,
             no_base64: false,
             git_repo_timeout: 1_800,
@@ -946,6 +997,8 @@ mod tests {
             skip_aws_account_file: None,
             no_inline_ignore: false,
             no_ignore_if_contains: false,
+            validation_timeout: 10,
+            validation_retries: 1,
         }
     }
 
@@ -958,7 +1011,7 @@ mod tests {
         let commit_metadata = Arc::new(CommitMetadata {
             commit_id: ObjectId::from_hex(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
             committer_name: "Alice".into(),
-            committer_email: "alice@example.com".into(),
+            committer_email: "alice@exmple.com".into(),
             committer_timestamp: Time::new(0, 0),
         });
         let blob_path = "path/in/history.txt".to_string();

@@ -34,6 +34,42 @@ use crate::{
 
 pub type DatastoreMessage = (OriginSet, BlobMetadata, Vec<(Option<f64>, Match)>);
 
+fn repo_host_contains(repo_url: &GitUrl, needle: &str) -> bool {
+    Url::parse(repo_url.as_str())
+        .ok()
+        .and_then(|url| url.host_str().map(|host| host.to_lowercase()))
+        .map(|host| host.contains(needle))
+        .unwrap_or(false)
+}
+
+fn apply_repo_clone_limit(
+    repo_urls: &mut Vec<GitUrl>,
+    limit: Option<usize>,
+    predicate: impl Fn(&GitUrl) -> bool,
+) {
+    let Some(limit) = limit else {
+        return;
+    };
+    let mut limited = Vec::new();
+    let mut remaining = Vec::new();
+    for url in repo_urls.drain(..) {
+        if predicate(&url) {
+            limited.push(url);
+        } else {
+            remaining.push(url);
+        }
+    }
+    limited.sort();
+    limited.dedup();
+    if limited.len() > limit {
+        limited.truncate(limit);
+    }
+    limited.extend(remaining);
+    limited.sort();
+    limited.dedup();
+    *repo_urls = limited;
+}
+
 pub fn clone_or_update_git_repos_streaming<F>(
     args: &scan::ScanArgs,
     global_args: &global::GlobalArgs,
@@ -173,6 +209,41 @@ pub async fn enumerate_github_repos(
         exclude_repos: args.input_specifier_args.github_exclude.clone(),
     };
     let mut repo_urls = args.input_specifier_args.git_url.clone();
+    if args.input_specifier_args.include_contributors {
+        for repo_url in &args.input_specifier_args.git_url {
+            if !repo_host_contains(repo_url, "github") {
+                continue;
+            }
+            match github::enumerate_contributor_repo_urls(
+                repo_url,
+                &args.input_specifier_args.github_api_url,
+                global_args.ignore_certs,
+                &args.input_specifier_args.github_exclude,
+                args.input_specifier_args.repo_clone_limit,
+                global_args.use_progress(),
+            )
+            .await
+            {
+                Ok(contributor_urls) => {
+                    for repo_string in contributor_urls {
+                        match GitUrl::from_str(&repo_string) {
+                            Ok(repo_url) => repo_urls.push(repo_url),
+                            Err(e) => {
+                                error!(
+                                    "Failed to parse contributor repo URL from {repo_string}: {e}"
+                                );
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to enumerate GitHub contributor repositories for {repo_url}: {err}"
+                    );
+                }
+            }
+        }
+    }
     if !repo_specifiers.is_empty() {
         let mut progress = if global_args.use_progress() {
             let style =
@@ -214,6 +285,9 @@ pub async fn enumerate_github_repos(
             HumanCount(num_found)
         ));
     }
+    apply_repo_clone_limit(&mut repo_urls, args.input_specifier_args.repo_clone_limit, |url| {
+        repo_host_contains(url, "github")
+    });
     repo_urls.sort();
     repo_urls.dedup();
     Ok(repo_urls)
@@ -233,6 +307,41 @@ pub async fn enumerate_gitlab_repos(
     };
 
     let mut repo_urls = args.input_specifier_args.git_url.clone();
+    if args.input_specifier_args.include_contributors {
+        for repo_url in &args.input_specifier_args.git_url {
+            if !repo_host_contains(repo_url, "gitlab") {
+                continue;
+            }
+            match gitlab::enumerate_contributor_repo_urls(
+                repo_url,
+                &args.input_specifier_args.gitlab_api_url,
+                global_args.ignore_certs,
+                &args.input_specifier_args.gitlab_exclude,
+                args.input_specifier_args.repo_clone_limit,
+                global_args.use_progress(),
+            )
+            .await
+            {
+                Ok(contributor_urls) => {
+                    for repo_string in contributor_urls {
+                        match GitUrl::from_str(&repo_string) {
+                            Ok(repo_url) => repo_urls.push(repo_url),
+                            Err(e) => {
+                                error!(
+                                    "Failed to parse contributor repo URL from {repo_string}: {e}"
+                                );
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    error!(
+                        "Failed to enumerate GitLab contributor repositories for {repo_url}: {err}"
+                    );
+                }
+            }
+        }
+    }
     if !repo_specifiers.is_empty() {
         let progress = if global_args.use_progress() {
             let style =
@@ -277,6 +386,9 @@ pub async fn enumerate_gitlab_repos(
             HumanCount(num_found)
         ));
     }
+    apply_repo_clone_limit(&mut repo_urls, args.input_specifier_args.repo_clone_limit, |url| {
+        repo_host_contains(url, "gitlab")
+    });
     repo_urls.sort();
     repo_urls.dedup();
     Ok(repo_urls)

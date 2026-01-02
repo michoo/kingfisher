@@ -11,7 +11,7 @@ fn smoke_scan_git_history() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let repo_dir = dir.path().join("repo");
     let repo = Repository::init(&repo_dir)?;
-    let sig = Signature::now("tester", "tester@example.com")?;
+    let sig = Signature::now("tester", "tester@exmple.com")?;
 
     // commit v1
     let file_path = repo_dir.join("config.yml");

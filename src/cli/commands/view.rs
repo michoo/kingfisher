@@ -13,24 +13,29 @@ use axum::{
     routing::get,
     Router,
 };
-use clap::ValueHint;
 use include_dir::{include_dir, Dir};
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{info, warn};
 
-const DEFAULT_PORT: u16 = 7890;
+pub const DEFAULT_PORT: u16 = 7890;
 static VIEWER_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs/access-map-viewer");
 
 /// View a Kingfisher access-map report locally.
 #[derive(clap::Args, Debug)]
 pub struct ViewArgs {
     /// Path to a JSON or JSONL access-map report to load automatically
-    #[arg(value_name = "REPORT", value_hint = ValueHint::FilePath)]
+    #[arg(value_name = "REPORT", value_hint = clap::ValueHint::FilePath)]
     pub report: Option<PathBuf>,
 
     /// Local port for the embedded viewer (default 7890)
     #[arg(long, default_value_t = DEFAULT_PORT)]
     pub port: u16,
+
+    #[arg(skip)]
+    pub open_browser: bool,
+
+    #[arg(skip)]
+    pub report_bytes: Option<Vec<u8>>,
 }
 
 #[derive(Clone)]
@@ -40,7 +45,9 @@ struct AppState {
 
 /// Run the `kingfisher view` subcommand.
 pub async fn run(args: ViewArgs) -> Result<()> {
-    let report = if let Some(path) = args.report.as_ref() {
+    let report = if let Some(report_bytes) = args.report_bytes.as_ref() {
+        Some(report_bytes.clone())
+    } else if let Some(path) = args.report.as_ref() {
         let expanded_path = expand_tilde(path)?;
         let ext = path
             .extension()
@@ -73,12 +80,20 @@ pub async fn run(args: ViewArgs) -> Result<()> {
     let address: SocketAddr =
         listener.local_addr().context("Failed to read local listener address")?;
 
+    let url = format!("http://{}:{}", address.ip(), address.port());
+
     info!(%address, "Starting access-map viewer");
-    eprintln!(
-        "Serving access-map viewer at http://{}:{} (Ctrl+C to stop)",
-        address.ip(),
-        address.port()
-    );
+    eprintln!("Serving access-map viewer at {} (Ctrl+C to stop)", url);
+
+    let open_browser = args.open_browser || args.report.is_some() || args.report_bytes.is_some();
+    if open_browser {
+        let url = url.clone();
+        tokio::task::spawn_blocking(move || {
+            if let Err(err) = webbrowser::open(&url) {
+                warn!(%err, "Failed to open browser for access-map viewer");
+            }
+        });
+    }
 
     let state = Arc::new(AppState { report });
 

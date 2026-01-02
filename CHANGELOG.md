@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.73.0]
+- Will now prefer git history findings when identical secrets appear in both current files and git history (dedup only).
+- Fixed report viewer to add support for opening JSONL.
+- Add opt-in contributor repository enumeration for GitHub/GitLab `--git-url` scans with `--include-contributors`, plus `--repo-clone-limit` to cap repo cloning.
+- Add `--git-clone-dir` to set the parent clone directory and `--keep-clones` to preserve cloned repos after scans.
+- Added several new rules.
+- Added configurable validation timeout and retry settings for `kingfisher scan`.
+
 ## [v1.72.0]
 - Fixed deduplication for dependency-provider rules so dependent validations run per blob
 - Updated Artifactory rule entropy and added new artifactory rule

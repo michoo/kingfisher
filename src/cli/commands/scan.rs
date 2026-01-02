@@ -82,6 +82,26 @@ pub struct ScanArgs {
     #[arg(global = true, long, short = 'n', default_value_t = false)]
     pub no_validate: bool,
 
+    /// Timeout for validation requests in seconds (1-60)
+    #[arg(
+        global = true,
+        long = "validation-timeout",
+        default_value_t = 10,
+        value_name = "SECONDS",
+        value_parser = clap::value_parser!(u64).range(1..=60)
+    )]
+    pub validation_timeout: u64,
+
+    /// Number of retries for validation requests (0-5)
+    #[arg(
+        global = true,
+        long = "validation-retries",
+        default_value_t = 1,
+        value_name = "N",
+        value_parser = clap::value_parser!(u32).range(0..=5)
+    )]
+    pub validation_retries: u32,
+
     /// Map validated cloud credentials to their effective identities; use only when
     /// authorized for the target account because this triggers additional network
     /// requests to determine granted access
@@ -106,6 +126,10 @@ pub struct ScanArgs {
     /// Display every occurrence of a finding
     #[arg(global = true, long, default_value_t = false)]
     pub no_dedup: bool,
+
+    /// Serve a JSON report locally and open the browser (http://127.0.0.1:7890)
+    #[arg(skip)]
+    pub view_report: bool,
 
     /// Redact findings values using a secure hash
     #[arg(global = true, long, short = 'r', default_value_t = false)]
@@ -188,6 +212,10 @@ pub struct ScanCommandArgs {
     #[command(flatten)]
     pub scan_args: ScanArgs,
 
+    /// Serve a JSON report locally and open the browser (http://127.0.0.1:7890)
+    #[arg(global = true, long = "view-report", default_value_t = false)]
+    pub view_report: bool,
+
     #[command(subcommand)]
     pub provider: Option<ScanInputCommand>,
 }
@@ -212,6 +240,8 @@ impl ScanCommandArgs {
     /// Convert CLI arguments into a scan or repository-listing operation.
     pub fn into_operation(mut self) -> anyhow::Result<ScanOperation> {
         let mut used_provider_subcommand = false;
+
+        self.scan_args.view_report = self.view_report;
 
         if let Some(provider) = self.provider.take() {
             used_provider_subcommand = true;
@@ -246,6 +276,9 @@ impl ScanCommandArgs {
                             args.specifiers.all_organizations;
                         scan_args.input_specifier_args.github_repo_type = args.specifiers.repo_type;
                         scan_args.input_specifier_args.github_api_url = args.api_url;
+                        scan_args.input_specifier_args.repo_clone_limit = args.repo_clone_limit;
+                        scan_args.input_specifier_args.include_contributors =
+                            args.include_contributors;
                         None
                     }
                 }
@@ -271,6 +304,9 @@ impl ScanCommandArgs {
                             args.specifiers.include_subgroups;
                         scan_args.input_specifier_args.gitlab_repo_type = args.specifiers.repo_type;
                         scan_args.input_specifier_args.gitlab_api_url = args.api_url;
+                        scan_args.input_specifier_args.repo_clone_limit = args.repo_clone_limit;
+                        scan_args.input_specifier_args.include_contributors =
+                            args.include_contributors;
                         None
                     }
                 }
@@ -505,6 +541,14 @@ pub struct GithubScanArgs {
     #[command(flatten)]
     pub specifiers: GitHubRepoSpecifiers,
 
+    /// Include contributor repositories when scanning git URLs
+    #[arg(long = "include-contributors", default_value_t = false)]
+    pub include_contributors: bool,
+
+    /// Limit the number of repositories cloned (including contributor repos)
+    #[arg(long = "repo-clone-limit", value_name = "COUNT")]
+    pub repo_clone_limit: Option<usize>,
+
     /// List matching repositories without scanning them
     #[arg(long = "list-only")]
     pub list_only: bool,
@@ -523,6 +567,14 @@ pub struct GithubScanArgs {
 pub struct GitLabScanArgs {
     #[command(flatten)]
     pub specifiers: GitLabRepoSpecifiers,
+
+    /// Include contributor repositories when scanning git URLs
+    #[arg(long = "include-contributors", default_value_t = false)]
+    pub include_contributors: bool,
+
+    /// Limit the number of repositories cloned (including contributor repos)
+    #[arg(long = "repo-clone-limit", value_name = "COUNT")]
+    pub repo_clone_limit: Option<usize>,
 
     /// List matching repositories without scanning them
     #[arg(long = "list-only")]

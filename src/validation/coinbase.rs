@@ -55,6 +55,7 @@ pub async fn validate_cdp_api_key(
         &url,
         &headers,
         &None,
+        Duration::from_secs(10),
         parser,
         &liquid::Object::new(),
     )

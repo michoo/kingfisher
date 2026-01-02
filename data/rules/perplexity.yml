@@ -2,7 +2,7 @@ rules:
   - name: Perplexity AI API Key
     id: kingfisher.perplexity.1
     pattern: |
-      (?xi)
+      (?x)
       \b
       (
         pplx-[A-Za-z0-9]{48}

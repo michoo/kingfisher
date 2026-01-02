@@ -35,7 +35,7 @@ fn scan_by_commit_and_branch_diff() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let repo_dir = dir.path().join("repo");
     let repo = Repository::init(&repo_dir)?;
-    let signature = Signature::now("tester", "tester@example.com")?;
+    let signature = Signature::now("tester", "tester@exmple.com")?;
 
     // Commit an initial config file packed with known test secrets. We'll scan
     // this commit directly via `--branch <commit-hash>` in the first assertion.
@@ -147,7 +147,7 @@ fn setup_linear_repo_with_secrets() -> Result<(TempDir, std::path::PathBuf, Vec<
     let dir = tempdir()?;
     let repo_dir = dir.path().join("repo");
     let repo = Repository::init(&repo_dir)?;
-    let sig = Signature::now("tester", "tester@example.com")?;
+    let sig = Signature::now("tester", "tester@exmple.com")?;
 
     let secrets_path = repo_dir.join("secrets.txt");
 

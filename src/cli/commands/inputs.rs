@@ -35,6 +35,22 @@ pub struct InputSpecifierArgs {
     #[arg(long, value_hint = ValueHint::Url)]
     pub git_url: Vec<GitUrl>,
 
+    /// Parent directory for cloned Git repositories and scan artifacts
+    #[arg(long = "git-clone-dir", value_hint = ValueHint::DirPath, help_heading = "Git Options")]
+    pub git_clone_dir: Option<PathBuf>,
+
+    /// Keep cloned Git repositories on disk after the scan completes
+    #[arg(long = "keep-clones", default_value_t = false, help_heading = "Git Options")]
+    pub keep_clones: bool,
+
+    /// Limit the number of GitHub/GitLab repositories cloned during enumeration
+    #[arg(long = "repo-clone-limit", value_name = "COUNT")]
+    pub repo_clone_limit: Option<usize>,
+
+    /// Include contributor repositories when scanning GitHub or GitLab git URLs
+    #[arg(long = "include-contributors", default_value_t = false)]
+    pub include_contributors: bool,
+
     /// Scan repositories belonging to the specified GitHub user
     #[arg(long, hide = true)]
     pub github_user: Vec<String>,

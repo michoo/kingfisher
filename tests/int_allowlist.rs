@@ -60,6 +60,10 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         input_specifier_args: InputSpecifierArgs {
             path_inputs: vec![inputs_dir.join("a.txt")],
             git_url: Vec::new(),
+            git_clone_dir: None,
+            keep_clones: false,
+            repo_clone_limit: None,
+            include_contributors: false,
             github_user: Vec::new(),
             github_organization: Vec::new(),
             github_exclude: Vec::new(),
@@ -143,6 +147,7 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup: false,
+        view_report: false,
         baseline_file: None,
         manage_baseline: false,
         skip_regex: skip_regex,
@@ -152,6 +157,8 @@ fn run_skiplist(skip_regex: Vec<String>, skip_skipword: Vec<String>) -> Result<u
         no_base64: false,
         no_inline_ignore: false,
         no_ignore_if_contains: false,
+        validation_retries: 1,
+        validation_timeout: 10,
     };
 
     let global_args = GlobalArgs {

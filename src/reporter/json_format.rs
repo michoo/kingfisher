@@ -73,6 +73,7 @@ mod tests {
         cli::commands::scan::ScanArgs {
             num_jobs: 1,
             no_dedup: false,
+            view_report: false,
             rules: RuleSpecifierArgs {
                 rules_path: Vec::new(),
                 rule: vec!["all".into()],
@@ -82,6 +83,10 @@ mod tests {
                 // local path / git URL inputs
                 path_inputs: Vec::new(),
                 git_url: Vec::new(),
+                git_clone_dir: None,
+                keep_clones: false,
+                repo_clone_limit: None,
+                include_contributors: false,
 
                 // GitHub
                 github_user: Vec::new(),
@@ -190,6 +195,8 @@ mod tests {
             no_base64: false,
             no_inline_ignore: false,
             no_ignore_if_contains: false,
+            validation_timeout: 10,
+            validation_retries: 1,
         }
     }
 

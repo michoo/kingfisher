@@ -453,6 +453,9 @@
 
     .badge-aws { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
     .badge-gcp { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+    .badge-azure { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+    .badge-github { background: #f4f4f5; color: #18181b; border-color: #d4d4d8; }
+    .badge-gitlab { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
     .badge-perm { background: #ecfdf5; color: #16a34a; border-color: #bbf7d0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
     .detail-grid {
@@ -842,7 +845,7 @@
               Dashboard
             </button>
             <button class="nav-button" data-view-target="view-access">
-              <span class="nav-icon">🗺️</span>
+              <span class="nav-icon">🕸️</span>
               Access Map
             </button>
             <button class="nav-button" data-view-target="view-findings">
@@ -947,6 +950,68 @@
                         <label>Cloud Provider</label>
                         <div id="am-detail-cloud">-</div>
                       </div>
+                    </div>
+                    <div id="am-token-container" class="hidden">
+                      <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px;">Token Details</h4>
+                      <div class="detail-grid">
+                        <div class="detail-field">
+                          <label>Token Name</label>
+                          <div id="am-token-name">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Username</label>
+                          <div id="am-token-username">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Token Type</label>
+                          <div id="am-token-type">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Account Type</label>
+                          <div id="am-token-account-type">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>User ID</label>
+                          <div id="am-token-user">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Company</label>
+                          <div id="am-token-company">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Created At</label>
+                          <div id="am-token-created">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Location</label>
+                          <div id="am-token-location">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Last Used</label>
+                          <div id="am-token-last-used">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Email</label>
+                          <div id="am-token-email">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Expires At</label>
+                          <div id="am-token-expires">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Profile URL</label>
+                          <div id="am-token-url">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Instance Version</label>
+                          <div id="am-token-version">-</div>
+                        </div>
+                        <div class="detail-field">
+                          <label>Enterprise</label>
+                          <div id="am-token-enterprise">-</div>
+                        </div>
+                      </div>
+                      <div id="am-token-scopes" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                     </div>
                     <div id="am-perms-container" class="hidden">
                       <h4 style="margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px;">Permissions</h4>
@@ -1298,7 +1363,7 @@
         return JSON.parse(text);
       } catch (e) {
         const trimmed = text.trim();
-        const parts = trimmed.split(/\n(?={)/g);
+        const parts = trimmed.split(/\r?\n(?=\s*{)/g).filter(Boolean);
         if (parts.length > 1) {
           try {
             return JSON.parse("[" + parts.join(",") + "]");
@@ -1306,6 +1371,53 @@
         }
       }
       return null;
+    }
+
+    function collectReportData(entries) {
+      const findings = [];
+      const accessMap = [];
+      let mainReport = null;
+      let statsReport = null;
+
+      const items = Array.isArray(entries) ? entries : [entries];
+      items.forEach((item) => {
+        if (!item || typeof item !== "object") return;
+
+        if (Array.isArray(item.findings) || Array.isArray(item.access_map)) {
+          if (!mainReport) {
+            mainReport = item;
+          }
+        }
+
+        if (Array.isArray(item.findings)) {
+          findings.push(...item.findings);
+        }
+
+        if (Array.isArray(item.access_map)) {
+          accessMap.push(...item.access_map);
+        }
+
+        if (item.rule && item.finding) {
+          findings.push(item);
+        }
+
+        if (item.provider && item.account) {
+          accessMap.push(item);
+        }
+
+        if (
+          typeof item.scan_duration !== "undefined" ||
+          typeof item.scanDuration !== "undefined" ||
+          typeof item.bytes_scanned !== "undefined" ||
+          item.kingfisher ||
+          item.stats ||
+          item.summary
+        ) {
+          statsReport = item;
+        }
+      });
+
+      return { findings, accessMap, mainReport, statsReport };
     }
 
     function processFile(file) {
@@ -1408,64 +1520,33 @@
       let parsed = parsePossiblyMultiJson(text);
 
       if (parsed === null) {
-        const lines = text.split("\\n");
-        const tmpFindings = [];
-        const tmpAccessMap = [];
-        let mainReport = null;
-        let statsReport = null;
+        const lines = text.split(/\r?\n/);
+        const entries = [];
 
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line || line[0] !== "{") continue;
           try {
             const obj = JSON.parse(line);
-            if (!mainReport && (Array.isArray(obj.findings) || Array.isArray(obj.access_map))) {
-              mainReport = obj;
-            }
-            if (typeof obj.scan_duration !== "undefined" || obj.kingfisher || typeof obj.bytes_scanned !== "undefined") {
-              statsReport = obj;
-            }
-            if (obj.findings) tmpFindings.push(...obj.findings);
-            else if (obj.access_map) tmpAccessMap.push(...obj.access_map);
-            else if (obj.rule && obj.finding) tmpFindings.push(obj);
-            else if (obj.provider && obj.account) tmpAccessMap.push(obj);
+            entries.push(obj);
           } catch (errLine) {
             console.warn("Skipping invalid JSON line", i);
           }
         }
 
-        findings = tmpFindings;
-        accessMap = tmpAccessMap;
-        rawData = Object.assign({}, mainReport || {}, statsReport || {});
-      } else {
-        let mainReport = null;
-        let statsReport = null;
-
-        if (Array.isArray(parsed)) {
-          parsed.forEach((item) => {
-            if (!item || typeof item !== "object") return;
-            if (!mainReport && (Array.isArray(item.findings) || Array.isArray(item.access_map))) {
-              mainReport = item;
-            }
-            if (typeof item.scan_duration !== "undefined" || item.kingfisher || typeof item.bytes_scanned !== "undefined") {
-              statsReport = item;
-            }
-          });
-        } else {
-          const item = parsed;
-          if (Array.isArray(item.findings) || Array.isArray(item.access_map)) {
-            mainReport = item;
-          }
-          if (typeof item.scan_duration !== "undefined" || item.kingfisher || typeof item.bytes_scanned !== "undefined") {
-            statsReport = item;
-          }
+        const collected = collectReportData(entries);
+        findings = collected.findings;
+        accessMap = collected.accessMap;
+        if (collected.mainReport || collected.statsReport) {
+          rawData = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
         }
-
-        const dataForFindings = mainReport || statsReport || {};
-        findings = Array.isArray(dataForFindings.findings) ? dataForFindings.findings : [];
-        accessMap = Array.isArray(dataForFindings.access_map) ? dataForFindings.access_map : [];
-
-        rawData = Object.assign({}, dataForFindings, statsReport || {});
+      } else {
+        const collected = collectReportData(parsed);
+        findings = collected.findings;
+        accessMap = collected.accessMap;
+        if (collected.mainReport || collected.statsReport || parsed) {
+          rawData = Object.assign({}, collected.mainReport || {}, collected.statsReport || {});
+        }
       }
 
       currentPage = 1;
@@ -2180,9 +2261,9 @@
 
       filteredAccessMapView.forEach((entry) => {
         const identity = entry.identity;
-        const account = identity.account || "unknown-identity";
+        const account = formatIdentityLabel(identity);
         const identityNameMatches = entry.identityNameMatches;
-        const idNode = createTreeNode(account, "identity", true);
+        const idNode = createTreeNode(account, "identity", true, identity.provider);
         idNode.container.style.borderLeft = "none";
         idNode.container.style.marginLeft = "0";
         idNode.header.addEventListener("click", (e) => {
@@ -2248,7 +2329,7 @@
 
       const identities = [];
       accessMap.forEach((identity) => {
-        const account = identity.account || "unknown-identity";
+        const account = formatIdentityLabel(identity);
         const groups = Array.isArray(identity.groups) ? identity.groups : [];
 
         const identityNameMatches = Boolean(filterLower) && account.toLowerCase().includes(filterLower);
@@ -2315,7 +2396,7 @@
       }
     }
 
-    function createTreeNode(label, type, isOpen) {
+    function createTreeNode(label, type, isOpen, provider) {
       const container = document.createElement("div");
       container.className = "tree-node";
 
@@ -2331,8 +2412,8 @@
       const icon = document.createElement("span");
       icon.className = "node-icon icon-" + type;
       if (type === "identity") icon.textContent = "👤";
-      else if (type === "resource") icon.textContent = "Hx";
-      else if (type === "group") icon.textContent = "📁";
+      else if (type === "resource") icon.textContent = "📦";
+      else if (type === "group") icon.textContent = "🗂️";
 
       const text = document.createElement("span");
       text.textContent = label;
@@ -2343,6 +2424,9 @@
       header.appendChild(toggle);
       header.appendChild(icon);
       header.appendChild(text);
+      if (type === "identity" && provider) {
+        addBadge(header, provider.toUpperCase(), providerBadgeClass(provider));
+      }
 
       const children = document.createElement("div");
       children.className = "tree-children";
@@ -2393,6 +2477,22 @@
       span.className = "badge " + cls;
       span.textContent = text;
       container.appendChild(span);
+    }
+
+    function providerBadgeClass(provider) {
+      const normalized = String(provider || "").toLowerCase();
+      if (normalized === "aws") return "badge-aws";
+      if (normalized === "gcp") return "badge-gcp";
+      if (normalized === "azure") return "badge-azure";
+      if (normalized === "github") return "badge-github";
+      if (normalized === "gitlab") return "badge-gitlab";
+      return "badge-aws";
+    }
+
+    function formatIdentityLabel(identity) {
+      const base = identity && identity.account ? identity.account : "unknown-identity";
+      const provider = identity && identity.provider ? identity.provider.toUpperCase() : null;
+      return provider ? `[${provider}] ${base}` : base;
     }
 
     function setDetailName(text, link) {
@@ -2553,10 +2653,28 @@
       const cloudField = document.getElementById("am-detail-cloud");
       const permsContainer = document.getElementById("am-perms-container");
       const permsList = document.getElementById("am-perms-list");
+      const tokenContainer = document.getElementById("am-token-container");
+      const tokenName = document.getElementById("am-token-name");
+      const tokenUsername = document.getElementById("am-token-username");
+      const tokenType = document.getElementById("am-token-type");
+      const tokenAccountType = document.getElementById("am-token-account-type");
+      const tokenUser = document.getElementById("am-token-user");
+      const tokenCompany = document.getElementById("am-token-company");
+      const tokenCreated = document.getElementById("am-token-created");
+      const tokenLocation = document.getElementById("am-token-location");
+      const tokenLastUsed = document.getElementById("am-token-last-used");
+      const tokenEmail = document.getElementById("am-token-email");
+      const tokenExpires = document.getElementById("am-token-expires");
+      const tokenUrl = document.getElementById("am-token-url");
+      const tokenVersion = document.getElementById("am-token-version");
+      const tokenEnterprise = document.getElementById("am-token-enterprise");
+      const tokenScopes = document.getElementById("am-token-scopes");
 
       meta.innerHTML = "";
       permsList.innerHTML = "";
       permsContainer.classList.add("hidden");
+      tokenScopes.innerHTML = "";
+      tokenContainer.classList.add("hidden");
 
       let detailName = "";
       let detailLink = null;
@@ -2569,7 +2687,44 @@
         const provider = (data.provider || "unknown").toUpperCase();
         cloudField.textContent = provider;
         if (data.provider) {
-          addBadge(meta, provider, data.provider === "gcp" ? "badge-gcp" : "badge-aws");
+          addBadge(meta, provider, providerBadgeClass(data.provider));
+        }
+        if (data.token_details) {
+          const details = data.token_details;
+          tokenName.textContent = details.name || "-";
+          tokenUsername.textContent = details.username || "-";
+          tokenType.textContent = details.token_type || "-";
+          tokenAccountType.textContent = details.account_type || "-";
+          tokenUser.textContent = details.user_id || "-";
+          tokenCompany.textContent = details.company || "-";
+          tokenCreated.textContent = details.created_at || "-";
+          tokenLocation.textContent = details.location || "-";
+          tokenLastUsed.textContent = details.last_used_at || "-";
+          tokenEmail.textContent = details.email || "-";
+          tokenExpires.textContent = details.expires_at || "-";
+          if (details.url) {
+            tokenUrl.innerHTML = "";
+            const urlLink = document.createElement("a");
+            urlLink.href = details.url;
+            urlLink.target = "_blank";
+            urlLink.rel = "noreferrer noopener";
+            urlLink.textContent = details.url;
+            tokenUrl.appendChild(urlLink);
+          } else {
+            tokenUrl.textContent = "-";
+          }
+          tokenVersion.textContent =
+            (data.provider_metadata && data.provider_metadata.version) || "-";
+          tokenEnterprise.textContent =
+            data.provider_metadata && typeof data.provider_metadata.enterprise === "boolean"
+              ? data.provider_metadata.enterprise
+                ? "true"
+                : "false"
+              : "-";
+          if (Array.isArray(details.scopes)) {
+            details.scopes.forEach((scope) => addBadge(tokenScopes, scope, "badge-perm"));
+          }
+          tokenContainer.classList.remove("hidden");
         }
       } else if (type === "resource") {
         icon.textContent = "📦";
@@ -2582,7 +2737,7 @@
         const provider = (data.provider || "unknown").toUpperCase();
         cloudField.textContent = provider;
         if (data.provider) {
-          addBadge(meta, provider, data.provider === "gcp" ? "badge-gcp" : "badge-aws");
+          addBadge(meta, provider, providerBadgeClass(data.provider));
         }
 
         if (Array.isArray(data.permissions) && data.permissions.length) {

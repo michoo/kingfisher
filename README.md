@@ -11,6 +11,8 @@ Kingfisher is a blazingly fast secret-scanning and **live validation** tool buil
 
 It combines Intel’s SIMD-accelerated regex engine (Hyperscan) with language-aware parsing to achieve high accuracy at massive scale, and **ships with hundreds of built-in rules** to detect, **validate**, and triage secrets before they ever reach production.  
 
+Designed for offensive security engineers and blue-teamers alike, Kingfisher helps you pivot across repo ecosystems, validate exposure paths, and hunt for developer-owned leaks that spill beyond the primary codebase.
+
 For a look at how Kingfisher has grown from its early foundations into today's full-featured scanner, see [Lineage and Evolution](#lineage-and-evolution).
 
 </p>
@@ -33,7 +35,7 @@ For a look at how Kingfisher has grown from its early foundations into today's f
 ### Performance, Accuracy, and Hundreds of Rules
 - **Performance**: multithreaded, Hyperscan‑powered scanning built for huge codebases  
 - **Extensible rules**: hundreds of built-in detectors plus YAML-defined custom rules ([docs/RULES.md](/docs/RULES.md))  
-- **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`
+- **Blast Radius Mapping**: instantly map leaked keys to their effective cloud identities and exposed resources with `--access-map`. Supports AWS, GCP, Azure, GitHub, Gitlab, and more token support coming.
 - **Broad AI SaaS coverage**: finds and validates tokens for OpenAI, Anthropic, Google Gemini, Cohere, AWS Bedrock, Voyage AI, Mistral, Stability AI, Replicate, xAI (Grok), Ollama, Langchain, Perplexity, Weights & Biases, Cerebras, Friendli, Fireworks.ai, NVIDIA NIM, Together.ai, Zhipu, and many more
 - **Compressed Files**: Supports extracting and scanning compressed files for secrets
 - **Baseline management**: generate and track baselines to suppress known secrets ([docs/BASELINE.md](/docs/BASELINE.md))
@@ -51,12 +53,31 @@ See ([docs/COMPARISON.md](docs/COMPARISON.md))
 </p>
 
 ## Basic Usage Demo
+```bash
+kingfisher scan /path/to/scan --view-report
+```
+NOTE: Replay has been slowed down for demo
 ![alt text](docs/kingfisher-usage-01.gif)
 
 ## Report Viewer Demo
-Explore Kingfisher’s built-in report viewer and its `--access-map` feature for visualizing access relationships: [Access map outputs and viewer](#access-map-outputs-and-viewer)
+Explore Kingfisher’s built-in report viewer and its `--access-map`, which can show what the token (AWS, GCP, Azure, GitHub, and GitLab...more coming) can actually access : [Access map outputs and viewer](#access-map-outputs-and-viewer)
 
-![alt text](docs/kingfisher-usage-access-map.gif)
+Note: when you pass `--view-report`, Kingfisher starts a **localhost-only** web server on port `7890` and opens it in your default browser. You’ll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
+
+```bash
+INFO kingfisher::cli::commands::view: Starting access-map viewer address=127.0.0.1:7890
+Serving access-map viewer at http://127.0.0.1:7890 (Ctrl+C to stop)
+```
+
+**Usage:**
+```bash
+kingfisher scan /path/to/scan --access-map --view-report
+```
+
+![alt text](docs/kingfisher-usage-access-map-01.gif)
+
+**Click to view video**
+[![Demo](docs/demos/findings-thumbnail.png)](https://private-user-images.githubusercontent.com/131722602/531560056-d33ee7a6-c60a-4e42-88e0-ac03cb429a46.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjczODczNzQsIm5iZiI6MTc2NzM4NzA3NCwicGF0aCI6Ii8xMzE3MjI2MDIvNTMxNTYwMDU2LWQzM2VlN2E2LWM2MGEtNGU0Mi04OGUwLWFjMDNjYjQyOWE0Ni5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwMTAyJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDEwMlQyMDUxMTRaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03MThiMGEwMmJhNWY0OTVlYzRkYThhMWMyYzZkYmNlNjZjMTlhMmQ2ZDhjNjFhMzczYTAyYmRkOTZlYjAzMWQzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.OIY-coUIIng2Os8mHrcR_W15AlCVDAk2NPZWJIHSWrQ)
 
 
 # Table of Contents
@@ -159,6 +180,7 @@ Explore Kingfisher’s built-in report viewer and its `--access-map` feature for
   - [To add your rules alongside the built‑ins:](#to-add-your-rules-alongside-the-builtins)
   - [Other Examples](#other-examples)
   - [Customize the HTTP User-Agent](#customize-the-http-user-agent)
+  - [Validation tuning flags](#validation-tuning-flags)
   - [Notable Scan Options](#notable-scan-options)
   - [Understanding `--confidence`](#understanding---confidence)
     - [Ignore known false positives](#ignore-known-false-positives)
@@ -579,15 +601,16 @@ kingfisher scan /path/to/repo --format sarif --output findings.sarif
 
 Finding a leaked credential is only the first step. The critical question isn’t just “Is this a secret?”—it’s “What can an attacker do with it?”
 
-Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS or GCP) to map the full extent of the credential's power.
+Kingfisher's `--access-map` feature transforms secret detection from a simple alert into a comprehensive threat assessment. Instead of leaving you with a cryptic API key, Kingfisher actively authenticates against your cloud provider (AWS, GCP, Azure Storage, Azure DevOps, GitHub, or GitLab) to map the full extent of the credential's power. 
 
 * Instant Identity Resolution: Immediately identify who the key belongs to—whether it's a specific IAM user, an assumed role, or a service account.
-* Visualize the Blast Radius: See exactly which resources (S3 buckets, EC2 instances, projects) are exposed and at risk.
-
+* Visualize the Blast Radius: See exactly which resources (S3 buckets, EC2 instances, projects, storage containers) are exposed and at risk.
+ 
 
 Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with an `access_map` containing the resources and the permissions that the key can access - for each resource (grouped when identical).
 - If you validated cloud credentials without `--access-map`, Kingfisher will remind you on stderr to rerun with the flag so the access map appears in the output.
-- Run `kingfisher view ./kingfisher.json` to explore a report locally in a local web UI
+- Run `kingfisher view ./kingfisher.json` to explore a report locally in a local web UI (opens your browser automatically when a report is provided).
+- Or use `kingfisher scan --view-report ...` to generate a JSON report, start the viewer at `http://127.0.0.1:7890`, and open it in your browser.
 
 > **Use the access map functionality only when you are authorized to inspect the target account, as Kingfisher will issue additional network requests to determine what access the secret grants**
 
@@ -599,7 +622,7 @@ Add `--access-map` to enrich JSON, JSONL, BSON, pretty, and SARIF reports with a
 kingfisher view kingfisher.json
 ```
 
-The `view` subcommand starts a local-only server (default port `7890`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically, or open the page and upload a report in the browser. If port 7890 is already in use, Kingfisher will exit and tell you to re-run with `--port <PORT>`.
+The `view` subcommand starts a local-only server (default port `7890`) that bundles the HTML, CSS, and JavaScript for the access-map viewer directly into the Kingfisher binary. Provide a JSON or JSONL report to load it automatically and Kingfisher will open your browser, or open the page and upload a report in the browser. If port 7890 is already in use, Kingfisher will exit and tell you to re-run with `--port <PORT>`.
 
 
 ### Pipe any text directly into Kingfisher by passing `-`
@@ -867,6 +890,7 @@ kingfisher scan docker private.registry.example.com/my-image:tag
 
 ```bash
 kingfisher scan github --organization my-org
+kingfisher scan github --organization my-org --repo-clone-limit 500
 ```
 
 ### Skip specific GitHub repositories during enumeration
@@ -884,11 +908,24 @@ kingfisher scan github --organization my-org \
 
 ### Scan remote GitHub repository
 
-`--git-url` clones the repository and scans its files and history. To also inspect
-related server-side data, supply `--repo-artifacts`. This flag pulls down the
-repository's issues (including pull requests), wiki, and any public gists owned by
-the repository owner and scans them for secrets. Fetching these extras counts
-against API rate limits and private artifacts require a `KF_GITHUB_TOKEN`.
+`--git-url` clones the repository and scans its files and history. When the URL
+targets GitHub and you pass `--include-contributors`, Kingfisher enumerates
+repository contributors and attempts to clone **all public repos owned by those
+contributors**—a common offensive and blue-team pivot when developers leak
+secrets in personal or side projects. Use `--repo-clone-limit` to cap how many
+repositories are cloned during this enumeration.
+
+**NOTE**: This may cause you to be temporarily rate-limited by GitHub.
+Providing a token (`KF_GITHUB_TOKEN`) will provide a higher rate limit.
+
+To inspect related server-side data, supply `--repo-artifacts`. This flag pulls
+down the repository's issues (including pull requests), wiki, and any public
+gists owned by the repository owner and scans them for secrets. Fetching these
+extras counts against API rate limits and private artifacts require a
+`KF_GITHUB_TOKEN`.
+
+Use `--git-clone-dir` to choose where cloned repositories land and
+`--keep-clones` to preserve them for follow-on analysis.
 
 > **Why does `--git-url` sometimes report fewer findings than scanning a local checkout?**. 
 > 
@@ -904,6 +941,16 @@ against API rate limits and private artifacts require a `KF_GITHUB_TOKEN`.
 ```bash
 # Scan the repository only
 kingfisher scan --git-url https://github.com/org/repo.git
+
+# Scan the repository plus contributor repos, but cap the crawl
+kingfisher scan --git-url https://github.com/org/repo.git \
+  --include-contributors \
+  --repo-clone-limit 250
+
+# Keep clones for later manual inspection
+kingfisher scan --git-url https://github.com/org/repo.git \
+  --git-clone-dir ./kingfisher-clones \
+  --keep-clones
 
 # Include issues, wiki, and owner gists
 kingfisher scan --git-url https://github.com/org/repo.git --repo-artifacts
@@ -922,6 +969,7 @@ KF_GITHUB_TOKEN="ghp_…" kingfisher scan --git-url https://github.com/org/priva
 kingfisher scan gitlab --group my-group
 # include repositories from all nested subgroups
 kingfisher scan gitlab --group my-group --include-subgroups
+kingfisher scan gitlab --group my-group --repo-clone-limit 500
 ```
 
 ### Scan GitLab user
@@ -945,14 +993,36 @@ kingfisher scan gitlab --group my-group \
 
 ### Scan remote GitLab repository by URL
 
-`--git-url` by itself clones the project repository. To include server-side
-artifacts owned by the project, add `--repo-artifacts`. Kingfisher will retrieve
-the project's issues, wiki, and snippets and scan them for secrets. These extra
-requests may take longer and require a `KF_GITLAB_TOKEN` for private projects.
+`--git-url` by itself clones the project repository. When the URL targets
+GitLab and you pass `--include-contributors`, Kingfisher enumerates contributors
+and tries to clone **their other public projects** to catch secrets that escape
+the main repo. Apply `--repo-clone-limit` to cap the total repos cloned during
+this pivot.
+
+**NOTE**: This may cause you to be temporarily rate-limited by GitLab.
+Providing a token (`KF_GITLAB_TOKEN`) will provide a higher rate limit.
+
+To include server-side artifacts owned by the project, add `--repo-artifacts`.
+Kingfisher will retrieve the project's issues, wiki, and snippets and scan them
+for secrets. These extra requests may take longer and require a
+`KF_GITLAB_TOKEN` for private projects.
+
+Use `--git-clone-dir` to choose where cloned projects land and `--keep-clones`
+to preserve them for later review.
 
 ```bash
 # Scan the repository only
 kingfisher scan --git-url https://gitlab.com/group/project.git
+
+# Scan the repository plus contributor projects, but cap the crawl
+kingfisher scan --git-url https://gitlab.com/group/project.git \
+  --include-contributors \
+  --repo-clone-limit 250
+
+# Keep clones for later manual inspection
+kingfisher scan --git-url https://gitlab.com/group/project.git \
+  --git-clone-dir ./kingfisher-clones \
+  --keep-clones
 
 # Include issues, wiki, and snippets
 kingfisher scan --git-url https://gitlab.com/group/project.git --repo-artifacts
@@ -1377,14 +1447,23 @@ kingfisher --user-agent-suffix "Sept 2025 testing" scan github --user my-user --
 ```
 
 When omitted, Kingfisher defaults to `kingfisher/<version> Mozilla/5.0 ...`. The suffix is trimmed; passing an empty string
-leaves the default unchanged.
 
+## Validation tuning flags
+
+Use these options with `kingfisher scan` to customize live validation behavior:
+
+- `--validation-timeout SECONDS`: per-request and per-match timeout for validation (default: 10, range: 1-60).
+- `--validation-retries N`: number of retry attempts for validation requests (default: 1, range: 0-5).
 ## Notable Scan Options
 
 - `--no-dedup`: Report every occurrence of a finding (disable the default de-duplicate behavior)
 - `--no-base64`: By default, Kingfisher finds and decodes base64 blobs and scans them for secrets. This adds a slight performance overhead; use this flag to disable
 - `--confidence <LEVEL>`: (low|medium|high)
 - `--min-entropy <VAL>`: Override default threshold
+- `--include-contributors`: When using `--git-url` for GitHub or GitLab, include contributor-owned repos in the scan
+- `--git-clone-dir <DIR>`: Choose the parent directory for cloned repos and scan artifacts (use with `--git-url`)
+- `--keep-clones`: Preserve cloned repositories on disk after a scan completes
+- `--repo-clone-limit <N>`: Cap the number of GitHub/GitLab repositories cloned when enumerating orgs/groups or contributor repos
 - `--no-binary`: Skip binary files
 - `--no-extract-archives`: Do not scan inside archives
 - `--extraction-depth <N>`: Specifies how deep nested archives should be extracted and scanned (default: 2)
@@ -1399,6 +1478,8 @@ leaves the default unchanged.
 - `--ignore-comment <DIRECTIVE>`: Honor additional inline directives from other scanners (repeatable; e.g. `--ignore-comment "gitleaks:allow"`)
 - `--no-ignore`: Disable inline directives entirely so every match is reported
 - `--no-ignore-if-contains`: Ignore the `ignore_if_contains` filter in rules so placeholder words still produce findings
+- `--validation-timeout SECONDS`: per-request and per-match timeout for validation (default: 10, range: 1-60).
+- `--validation-retries N`: number of retry attempts for validation requests (default: 1, range: 0-5).
 
 ## Understanding `--confidence`
 

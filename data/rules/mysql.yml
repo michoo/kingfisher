@@ -36,6 +36,7 @@ rules:
       ignore_if_contains:
         - "****"
         - "xxxx"
+        - "example"
     min_entropy: 3.3
     confidence: medium
     examples:
