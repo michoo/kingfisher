@@ -1436,7 +1436,6 @@ kingfisher --user-agent-suffix "Sept 2025 testing" scan github --user my-user --
 ```
 
 When omitted, Kingfisher defaults to `kingfisher/<version> Mozilla/5.0 ...`. The suffix is trimmed; passing an empty string
-{"$id":"1","innerException":null,"message":"VS403403: Cannot find any branches for the test-project repository.","typeName":"Microsoft.TeamFoundation.Git.Server.GitItemNotFoundException, Microsoft.TeamFoundation.Git.Server","typeKey":"GitItemNotFoundException","errorCode":0,"eventId":3000}
 
 ## Validation tuning flags
 
