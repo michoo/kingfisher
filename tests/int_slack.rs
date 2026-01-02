@@ -1,7 +1,4 @@
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use kingfisher::{
@@ -49,6 +46,10 @@ impl TestContext {
             input_specifier_args: InputSpecifierArgs {
                 path_inputs: Vec::new(),
                 git_url: Vec::new(),
+                git_clone_dir: None,
+                keep_clones: false,
+                repo_clone_limit: None,
+                include_contributors: false,
                 github_user: Vec::new(),
                 github_organization: Vec::new(),
                 github_exclude: Vec::new(),
@@ -134,6 +135,7 @@ impl TestContext {
             git_repo_timeout: 1800,
             output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
             no_dedup: true,
+            view_report: false,
             baseline_file: None,
             manage_baseline: false,
             skip_regex: Vec::new(),
@@ -143,6 +145,8 @@ impl TestContext {
             no_base64: false,
             no_inline_ignore: false,
             no_ignore_if_contains: false,
+            validation_retries: 1,
+            validation_timeout: 10,
         };
 
         let loaded = RuleLoader::from_rule_specifiers(&scan_args.rules).load(&scan_args)?;
@@ -191,6 +195,10 @@ async fn test_scan_slack_messages() -> Result<()> {
         input_specifier_args: InputSpecifierArgs {
             path_inputs: Vec::new(),
             git_url: Vec::new(),
+            git_clone_dir: None,
+            keep_clones: false,
+            repo_clone_limit: None,
+            include_contributors: false,
             github_user: Vec::new(),
             github_organization: Vec::new(),
             github_exclude: Vec::new(),
@@ -286,6 +294,9 @@ async fn test_scan_slack_messages() -> Result<()> {
         extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,
         no_ignore_if_contains: false,
+        view_report: false,
+        validation_retries: 1,
+        validation_timeout: 10,
     };
 
     let global_args = GlobalArgs {

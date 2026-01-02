@@ -20,7 +20,7 @@ use crate::cli::commands::access_map::AccessMapArgs;
 
 use super::{
     build_default_account_resource, build_recommendations, AccessMapResult, AccessSummary,
-    PermissionSummary, ResourceExposure, RoleBinding, Severity,
+    AccessTokenDetails, PermissionSummary, ResourceExposure, RoleBinding, Severity,
 };
 
 pub async fn map_access(args: &AccessMapArgs) -> Result<AccessMapResult> {
@@ -138,6 +138,22 @@ async fn map_access_with_config(config: SdkConfig) -> Result<AccessMapResult> {
         severity,
         recommendations,
         risk_notes,
+        token_details: Some(AccessTokenDetails {
+            name: account_id.clone(),
+            username: None,
+            account_type: None,
+            company: None,
+            location: None,
+            email: None,
+            url: None,
+            token_type: Some("access_key".into()),
+            created_at: None,
+            last_used_at: None,
+            expires_at: None,
+            user_id: Some(arn.clone()),
+            scopes: Vec::new(),
+        }),
+        provider_metadata: None,
     })
 }
 

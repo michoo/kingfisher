@@ -359,6 +359,8 @@ pub async fn run_async_scan(
                 args.num_jobs,
                 None,
                 access_map_collector.clone(),
+                Duration::from_secs(args.validation_timeout),
+                args.validation_retries,
             )
             .await?;
         }
@@ -442,6 +444,8 @@ pub async fn run_async_scan(
                 args.num_jobs,
                 Some(0..initial_match_count),
                 access_map_collector.clone(),
+                Duration::from_secs(args.validation_timeout),
+                args.validation_retries,
             )
             .await?;
         }
@@ -523,6 +527,8 @@ pub async fn run_async_scan(
                                     args.num_jobs,
                                     Some(0..match_count),
                                     access_map.clone(),
+                                    Duration::from_secs(args.validation_timeout),
+                                    args.validation_retries,
                                 ))?;
                             }
                         }
@@ -591,6 +597,8 @@ pub async fn run_async_scan(
                 args.num_jobs,
                 None,
                 access_map_collector.clone(),
+                Duration::from_secs(args.validation_timeout),
+                args.validation_retries,
             )
             .await?;
         }
@@ -642,7 +650,7 @@ async fn finalize_access_map(
     let requests = collector.into_requests();
 
     if requests.is_empty() {
-        debug!("access-map enabled but no validated AWS or GCP credentials were collected; skipping report output");
+        debug!("access-map enabled but no validated AWS, GCP, or Azure credentials were collected; skipping report output");
         let mut ds = datastore.lock().unwrap();
         ds.set_access_map_results(Vec::new());
         return Ok(());
@@ -707,7 +715,9 @@ fn maybe_hint_access_map(datastore: &Arc<Mutex<FindingsStore>>, args: &scan::Sca
         ds.get_matches().iter().any(|entry| {
             let rule = &entry.2.rule;
             entry.2.validation_success
-                && matches!(rule.syntax().validation, Some(Validation::AWS | Validation::GCP))
+                && (matches!(rule.syntax().validation, Some(Validation::AWS | Validation::GCP))
+                    || rule.id().starts_with("kingfisher.github.")
+                    || rule.id().starts_with("kingfisher.gitlab."))
         })
     };
 

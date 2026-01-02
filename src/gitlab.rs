@@ -18,10 +18,11 @@ use gitlab::{
 };
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::task;
-use tracing::warn;
+use tracing::{info, warn};
 use url::{form_urlencoded, Url};
 
 use crate::{findings_store, git_url::GitUrl};
@@ -40,6 +41,25 @@ struct SimpleProject {
 #[derive(Deserialize)]
 struct SimpleGroup {
     id: u64,
+}
+
+#[derive(Deserialize)]
+struct GitLabProjectId {
+    id: u64,
+}
+
+#[derive(Deserialize)]
+struct GitLabContributor {
+    name: String,
+    email: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct GitLabUser {
+    id: u64,
+    _username: String,
+    name: String,
+    email: Option<String>,
 }
 
 /// Repository filter types for GitLab
@@ -206,6 +226,15 @@ fn create_gitlab_client(gitlab_url: &Url, ignore_certs: bool) -> Result<Gitlab> 
     Ok(builder.build()?)
 }
 
+fn normalize_api_base(api_url: &Url) -> Url {
+    let mut base = api_url.clone();
+    if !base.path().ends_with('/') {
+        let path = format!("{}/", base.path());
+        base.set_path(&path);
+    }
+    base
+}
+
 pub async fn enumerate_repo_urls(
     repo_specifiers: &RepoSpecifiers,
     gitlab_url: Url,
@@ -220,6 +249,217 @@ pub async fn enumerate_repo_urls(
     .await??;
 
     Ok(repo_urls)
+}
+
+pub async fn enumerate_contributor_repo_urls(
+    repo_url: &GitUrl,
+    gitlab_url: &Url,
+    ignore_certs: bool,
+    exclude_repos: &[String],
+    repo_clone_limit: Option<usize>,
+    progress_enabled: bool,
+) -> Result<Vec<String>> {
+    let (_, path) = parse_repo(repo_url).context("invalid GitLab repo URL")?;
+    let encoded = form_urlencoded::byte_serialize(path.as_bytes()).collect::<String>();
+    let exclude_set = build_exclude_matcher(exclude_repos);
+    let client = reqwest::Client::builder().danger_accept_invalid_certs(ignore_certs).build()?;
+    let token = env::var("KF_GITLAB_TOKEN").ok().filter(|t| !t.is_empty());
+    let api_base = normalize_api_base(gitlab_url);
+
+    let project_url = api_base
+        .join(&format!("api/v4/projects/{encoded}"))
+        .context("Failed to build GitLab project URL")?;
+    let mut project_req = client.get(project_url);
+    if let Some(token) = token.as_ref() {
+        project_req = project_req.header("PRIVATE-TOKEN", token);
+    }
+    let project_resp = project_req.send().await?;
+    if !project_resp.status().is_success() {
+        warn_on_rate_limit("GitLab", project_resp.status(), "fetching project metadata");
+        return Ok(Vec::new());
+    }
+    let project: GitLabProjectId = project_resp.json().await?;
+    let project_id = project.id;
+
+    let mut contributors = Vec::new();
+    let mut page = 1;
+    loop {
+        let mut url = api_base
+            .join(&format!("api/v4/projects/{project_id}/repository/contributors"))
+            .context("Failed to build GitLab contributors URL")?;
+        url.query_pairs_mut().append_pair("per_page", "100").append_pair("page", &page.to_string());
+        let mut req = client.get(url);
+        if let Some(token) = token.as_ref() {
+            req = req.header("PRIVATE-TOKEN", token);
+        }
+        let resp = req.send().await?;
+        if !resp.status().is_success() {
+            warn_on_rate_limit("GitLab", resp.status(), "listing contributors");
+            break;
+        }
+        let page_contributors: Vec<GitLabContributor> = resp.json().await?;
+        if page_contributors.is_empty() {
+            break;
+        }
+        contributors.extend(page_contributors);
+        page += 1;
+    }
+
+    let mut seen_users = HashSet::new();
+    let mut users = Vec::new();
+    for contributor in contributors {
+        let query = contributor.email.as_deref().unwrap_or(&contributor.name);
+        let mut url = api_base.join("api/v4/users").context("Failed to build GitLab users URL")?;
+        url.query_pairs_mut().append_pair("search", query);
+        let mut req = client.get(url);
+        if let Some(token) = token.as_ref() {
+            req = req.header("PRIVATE-TOKEN", token);
+        }
+        let resp = req.send().await?;
+        if !resp.status().is_success() {
+            warn_on_rate_limit("GitLab", resp.status(), "searching for contributor users");
+            continue;
+        }
+        let users_resp: Vec<GitLabUser> = resp.json().await?;
+        let matching = users_resp.into_iter().find(|user| {
+            contributor
+                .email
+                .as_ref()
+                .and_then(|email| user.email.as_ref().map(|u| (email, u)))
+                .map(|(email, user_email)| email.eq_ignore_ascii_case(user_email))
+                .unwrap_or_else(|| user.name.eq_ignore_ascii_case(&contributor.name))
+        });
+        let Some(user) = matching else {
+            continue;
+        };
+        if !seen_users.insert(user.id) {
+            continue;
+        }
+        users.push(user);
+    }
+
+    let (per_user_limit, total_limit) =
+        determine_contributor_repo_limits(repo_clone_limit, users.len(), "GitLab");
+    let progress = build_contributor_progress_bar(
+        progress_enabled,
+        users.len() as u64,
+        "Enumerating GitLab contributor repositories...",
+    );
+
+    let mut repo_urls = Vec::new();
+    let mut total_repo_count = 0usize;
+    for user in users {
+        if let Some(total_limit) = total_limit {
+            if total_repo_count >= total_limit {
+                break;
+            }
+        }
+        let mut user_repo_count = 0usize;
+        page = 1;
+        loop {
+            if let Some(per_user_limit) = per_user_limit {
+                if user_repo_count >= per_user_limit {
+                    break;
+                }
+            }
+            if let Some(total_limit) = total_limit {
+                if total_repo_count >= total_limit {
+                    break;
+                }
+            }
+            let mut url = api_base
+                .join(&format!("api/v4/users/{}/projects", user.id))
+                .context("Failed to build GitLab user projects URL")?;
+            url.query_pairs_mut()
+                .append_pair("per_page", "100")
+                .append_pair("page", &page.to_string())
+                .append_pair("order_by", "updated_at")
+                .append_pair("sort", "desc");
+            let mut req = client.get(url);
+            if let Some(token) = token.as_ref() {
+                req = req.header("PRIVATE-TOKEN", token);
+            }
+            let resp = req.send().await?;
+            if !resp.status().is_success() {
+                warn_on_rate_limit("GitLab", resp.status(), "listing user projects");
+                break;
+            }
+            let projects: Vec<SimpleProject> = resp.json().await?;
+            if projects.is_empty() {
+                break;
+            }
+            for proj in projects {
+                if let Some(per_user_limit) = per_user_limit {
+                    if user_repo_count >= per_user_limit {
+                        break;
+                    }
+                }
+                if let Some(total_limit) = total_limit {
+                    if total_repo_count >= total_limit {
+                        break;
+                    }
+                }
+                if should_exclude_repo(&proj.http_url_to_repo, &exclude_set) {
+                    continue;
+                }
+                repo_urls.push(proj.http_url_to_repo);
+                user_repo_count += 1;
+                total_repo_count += 1;
+            }
+            page += 1;
+        }
+        progress.inc(1);
+    }
+
+    repo_urls.sort();
+    repo_urls.dedup();
+    progress.finish_and_clear();
+    Ok(repo_urls)
+}
+
+fn warn_on_rate_limit(service: &str, status: StatusCode, action: &str) {
+    if status == StatusCode::FORBIDDEN || status == StatusCode::TOO_MANY_REQUESTS {
+        warn!("{service} API rate limit or access restriction while {action}: HTTP {status}");
+    }
+}
+
+fn determine_contributor_repo_limits(
+    repo_clone_limit: Option<usize>,
+    user_count: usize,
+    service: &str,
+) -> (Option<usize>, Option<usize>) {
+    let Some(limit) = repo_clone_limit else {
+        return (None, None);
+    };
+    if user_count == 0 {
+        return (Some(0), Some(limit));
+    }
+    if user_count > limit {
+        let per_user_limit = std::cmp::max(1, limit / 100);
+        info!(
+            "Found {user_count} {service} contributors which exceeds repo-clone-limit {limit}. \
+Consider increasing repo-clone-limit; sampling {per_user_limit} repos per user until the limit is reached."
+        );
+        return (Some(per_user_limit), Some(limit));
+    }
+    let per_user_limit = std::cmp::max(1, limit / user_count);
+    (Some(per_user_limit), Some(limit))
+}
+
+fn build_contributor_progress_bar(
+    progress_enabled: bool,
+    length: u64,
+    message: &str,
+) -> ProgressBar {
+    if progress_enabled {
+        let style = ProgressStyle::with_template("{spinner} {msg} {pos}/{len} [{elapsed_precise}]")
+            .expect("progress bar style template should compile");
+        let pb = ProgressBar::new(length).with_style(style).with_message(message.to_string());
+        pb.enable_steady_tick(Duration::from_millis(500));
+        pb
+    } else {
+        ProgressBar::hidden()
+    }
 }
 
 fn enumerate_repo_urls_blocking(

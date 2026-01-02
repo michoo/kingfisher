@@ -20,22 +20,18 @@ rules:
       type: Http
       content:
         request:
-          method: POST
-          url: https://api.github.com/graphql
+          method: GET
+          url: https://api.github.com/user
           headers:
             Authorization: token {{ TOKEN }}
             Accept: application/vnd.github+json
-            Content-Type: application/json
-          body: |
-            {
-              "query": "{ viewer { login } }"
-            }
           response_matcher:
             - report_response: true
             - match_all_words: true
               type: WordMatch
               words:
                 - '"login"'
+                - '"id"'
   - name: GitHub Personal Access Token
     id: kingfisher.github.2
     pattern: |
@@ -65,22 +61,18 @@ rules:
       type: Http
       content:
         request:
-          method: POST
-          url: https://api.github.com/graphql
+          method: GET
+          url: https://api.github.com/user
           headers:
             Authorization: token {{ TOKEN }}
             Accept: application/vnd.github+json
-            Content-Type: application/json
-          body: |
-            {
-              "query": "{ viewer { login } }"
-            }
           response_matcher:
             - report_response: true
             - match_all_words: true
               type: WordMatch
               words:
                 - '"login"'
+                - '"id"'
   - name: GitHub OAuth Access Token
     id: kingfisher.github.3
     pattern: |
@@ -107,22 +99,18 @@ rules:
       type: Http
       content:
         request:
-          method: POST
-          url: https://api.github.com/graphql
+          method: GET
+          url: https://api.github.com/user
           headers:
             Authorization: token {{ TOKEN }}
             Accept: application/vnd.github+json
-            Content-Type: application/json
-          body: |
-            {
-              "query": "{ viewer { login } }"
-            }
           response_matcher:
             - report_response: true
             - match_all_words: true
               type: WordMatch
               words:
                 - '"login"'
+                - '"id"'
   - name: GitHub App User-to-Server Token
     id: kingfisher.github.4
     pattern: |
@@ -141,22 +129,18 @@ rules:
       type: Http
       content:
         request:
-          method: POST
-          url: https://api.github.com/graphql
+          method: GET
+          url: https://api.github.com/user
           headers:
             Authorization: token {{ TOKEN }}
             Accept: application/vnd.github+json
-            Content-Type: application/json
-          body: |
-            {
-              "query": "{ viewer { login } }"
-            }
           response_matcher:
             - report_response: true
             - match_all_words: true
               type: WordMatch
               words:
                 - '"login"'
+                - '"id"'
   - name: GitHub App Server-to-Server Token
     id: kingfisher.github.5
     pattern: |
@@ -175,22 +159,18 @@ rules:
       type: Http
       content:
         request:
-          method: POST
-          url: https://api.github.com/graphql
+          method: GET
+          url: https://api.github.com/user
           headers:
             Authorization: token {{ TOKEN }}
             Accept: application/vnd.github+json
-            Content-Type: application/json
-          body: |
-            {
-              "query": "{ viewer { login } }"
-            }
           response_matcher:
             - report_response: true
             - match_all_words: true
               type: WordMatch
               words:
                 - '"login"'
+                - '"id"'
   - name: GitHub Refresh Token
     id: kingfisher.github.6
     pattern: |
@@ -206,22 +186,18 @@ rules:
       type: Http
       content:
         request:
-          method: POST
-          url: https://api.github.com/graphql
+          method: GET
+          url: https://api.github.com/user
           headers:
             Authorization: token {{ TOKEN }}
             Accept: application/vnd.github+json
-            Content-Type: application/json
-          body: |
-            {
-              "query": "{ viewer { login } }"
-            }
           response_matcher:
             - report_response: true
             - match_all_words: true
               type: WordMatch
               words:
                 - '"login"'
+                - '"id"'
   - name: GitHub Client ID
     id: kingfisher.github.7
     pattern: |

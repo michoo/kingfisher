@@ -77,7 +77,7 @@ fn dummy_commit(commit_id: &str) -> CommitMetadata {
     CommitMetadata {
         commit_id: oid,
         committer_name: "tester".into(),
-        committer_email: "tester@example.com".into(),
+        committer_email: "tester@exmple.com".into(),
         committer_timestamp: ts,
     }
 }

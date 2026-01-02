@@ -242,13 +242,13 @@ mod tests {
 
     #[test]
     fn parse_accepts_postgis_scheme() {
-        let url = "postgis://postgres:secret@example.com:5432";
+        let url = "postgis://postgres:secret@exmple.com:5432";
         assert!(parse_postgres_url(url).is_ok(), "postgis scheme should be accepted");
     }
 
     #[test]
     fn parse_rejects_invalid_port() {
-        let url = "postgres://postgres:secret@example.com:70000";
+        let url = "postgres://postgres:secret@exmple.com:70000";
         assert!(parse_postgres_url(url).is_err(), "invalid port should be rejected");
     }
 }

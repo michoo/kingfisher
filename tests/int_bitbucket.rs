@@ -55,6 +55,10 @@ fn test_bitbucket_remote_scan() -> Result<()> {
         input_specifier_args: InputSpecifierArgs {
             path_inputs: Vec::new(),
             git_url: vec![git_url],
+            git_clone_dir: None,
+            keep_clones: false,
+            repo_clone_limit: None,
+            include_contributors: false,
             github_user: Vec::new(),
             github_organization: Vec::new(),
             github_exclude: Vec::new(),
@@ -142,6 +146,7 @@ fn test_bitbucket_remote_scan() -> Result<()> {
         git_repo_timeout: 1800,
         output_args: OutputArgs { output: None, format: ReportOutputFormat::Pretty },
         no_dedup: true,
+        view_report: false,
         baseline_file: None,
         manage_baseline: false,
         skip_regex: Vec::new(),
@@ -152,6 +157,8 @@ fn test_bitbucket_remote_scan() -> Result<()> {
         extra_ignore_comments: Vec::new(),
         no_inline_ignore: false,
         no_ignore_if_contains: false,
+        validation_retries: 1,
+        validation_timeout: 10,
     };
 
     let global_args = GlobalArgs {

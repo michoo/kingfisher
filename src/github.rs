@@ -14,12 +14,24 @@ use octorust::{
     types::{Order, ReposListOrgSort, ReposListOrgType, ReposListUserType},
     Client,
 };
+use reqwest::StatusCode;
+use serde::Deserialize;
 use serde_json::Value;
-use tracing::warn;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::{findings_store, git_url::GitUrl, validation::GLOBAL_USER_AGENT};
 use std::str::FromStr;
+
+#[derive(Deserialize)]
+struct GitHubContributor {
+    login: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct GitHubRepo {
+    clone_url: String,
+}
 
 #[derive(Debug)]
 pub struct RepoSpecifiers {
@@ -213,6 +225,185 @@ fn create_github_client(github_url: &url::Url, ignore_certs: bool) -> Result<Arc
         client.with_host_override(github_url.as_str());
     }
     Ok(Arc::new(client))
+}
+
+fn normalize_api_base(api_url: &Url) -> Url {
+    let mut base = api_url.clone();
+    if !base.path().ends_with('/') {
+        let path = format!("{}/", base.path());
+        base.set_path(&path);
+    }
+    base
+}
+
+pub async fn enumerate_contributor_repo_urls(
+    repo_url: &GitUrl,
+    github_api_url: &Url,
+    ignore_certs: bool,
+    exclude_repos: &[String],
+    repo_clone_limit: Option<usize>,
+    progress_enabled: bool,
+) -> Result<Vec<String>> {
+    let (_, owner, repo) = parse_repo(repo_url).context("invalid GitHub repo URL")?;
+    let exclude_set = build_exclude_matcher(exclude_repos);
+    let client = reqwest::Client::builder().danger_accept_invalid_certs(ignore_certs).build()?;
+    let token = env::var("KF_GITHUB_TOKEN").ok().filter(|t| !t.is_empty());
+    let api_base = normalize_api_base(github_api_url);
+
+    let mut contributor_logins = Vec::new();
+    let mut seen_contributors = HashSet::new();
+    let mut page = 1;
+    loop {
+        let mut url = api_base
+            .join(&format!("repos/{owner}/{repo}/contributors"))
+            .context("Failed to build GitHub contributors URL")?;
+        url.query_pairs_mut().append_pair("per_page", "100").append_pair("page", &page.to_string());
+        let mut req = client.get(url).header("User-Agent", GLOBAL_USER_AGENT.as_str());
+        if let Some(token) = token.as_ref() {
+            req = req.bearer_auth(token);
+        }
+        let resp = req.send().await?;
+        if !resp.status().is_success() {
+            warn_on_rate_limit("GitHub", resp.status(), "listing contributors");
+            break;
+        }
+        let contributors: Vec<GitHubContributor> = resp.json().await?;
+        if contributors.is_empty() {
+            break;
+        }
+        for contributor in contributors {
+            if let Some(login) = contributor.login {
+                if seen_contributors.insert(login.clone()) {
+                    contributor_logins.push(login);
+                }
+            }
+        }
+        page += 1;
+    }
+
+    let (per_user_limit, total_limit) =
+        determine_contributor_repo_limits(repo_clone_limit, contributor_logins.len(), "GitHub");
+    let progress = build_contributor_progress_bar(
+        progress_enabled,
+        contributor_logins.len() as u64,
+        "Enumerating GitHub contributor repositories...",
+    );
+
+    let mut repo_urls = Vec::new();
+    let mut total_repo_count = 0usize;
+    for login in contributor_logins {
+        if let Some(total_limit) = total_limit {
+            if total_repo_count >= total_limit {
+                break;
+            }
+        }
+        let mut user_repo_count = 0usize;
+        page = 1;
+        loop {
+            if let Some(per_user_limit) = per_user_limit {
+                if user_repo_count >= per_user_limit {
+                    break;
+                }
+            }
+            if let Some(total_limit) = total_limit {
+                if total_repo_count >= total_limit {
+                    break;
+                }
+            }
+            let mut url = api_base
+                .join(&format!("users/{login}/repos"))
+                .context("Failed to build GitHub user repos URL")?;
+            url.query_pairs_mut()
+                .append_pair("per_page", "100")
+                .append_pair("page", &page.to_string())
+                .append_pair("type", "all")
+                .append_pair("sort", "updated")
+                .append_pair("direction", "desc");
+            let mut req = client.get(url).header("User-Agent", GLOBAL_USER_AGENT.as_str());
+            if let Some(token) = token.as_ref() {
+                req = req.bearer_auth(token);
+            }
+            let resp = req.send().await?;
+            if !resp.status().is_success() {
+                warn_on_rate_limit("GitHub", resp.status(), "listing user repositories");
+                break;
+            }
+            let repos: Vec<GitHubRepo> = resp.json().await?;
+            if repos.is_empty() {
+                break;
+            }
+            for repo in repos {
+                if let Some(per_user_limit) = per_user_limit {
+                    if user_repo_count >= per_user_limit {
+                        break;
+                    }
+                }
+                if let Some(total_limit) = total_limit {
+                    if total_repo_count >= total_limit {
+                        break;
+                    }
+                }
+                if should_exclude_repo(&repo.clone_url, &exclude_set) {
+                    continue;
+                }
+                repo_urls.push(repo.clone_url);
+                user_repo_count += 1;
+                total_repo_count += 1;
+            }
+            page += 1;
+        }
+        progress.inc(1);
+    }
+
+    repo_urls.sort();
+    repo_urls.dedup();
+    progress.finish_and_clear();
+    Ok(repo_urls)
+}
+
+fn warn_on_rate_limit(service: &str, status: StatusCode, action: &str) {
+    if status == StatusCode::FORBIDDEN || status == StatusCode::TOO_MANY_REQUESTS {
+        warn!("{service} API rate limit or access restriction while {action}: HTTP {status}");
+    }
+}
+
+fn determine_contributor_repo_limits(
+    repo_clone_limit: Option<usize>,
+    user_count: usize,
+    service: &str,
+) -> (Option<usize>, Option<usize>) {
+    let Some(limit) = repo_clone_limit else {
+        return (None, None);
+    };
+    if user_count == 0 {
+        return (Some(0), Some(limit));
+    }
+    if user_count > limit {
+        let per_user_limit = std::cmp::max(1, limit / 100);
+        info!(
+            "Found {user_count} {service} contributors which exceeds repo-clone-limit {limit}. \
+Consider increasing repo-clone-limit; sampling {per_user_limit} repos per user until the limit is reached."
+        );
+        return (Some(per_user_limit), Some(limit));
+    }
+    let per_user_limit = std::cmp::max(1, limit / user_count);
+    (Some(per_user_limit), Some(limit))
+}
+
+fn build_contributor_progress_bar(
+    progress_enabled: bool,
+    length: u64,
+    message: &str,
+) -> ProgressBar {
+    if progress_enabled {
+        let style = ProgressStyle::with_template("{spinner} {msg} {pos}/{len} [{elapsed_precise}]")
+            .expect("progress bar style template should compile");
+        let pb = ProgressBar::new(length).with_style(style).with_message(message.to_string());
+        pb.enable_steady_tick(Duration::from_millis(500));
+        pb
+    } else {
+        ProgressBar::hidden()
+    }
 }
 pub async fn enumerate_repo_urls(
     repo_specifiers: &RepoSpecifiers,

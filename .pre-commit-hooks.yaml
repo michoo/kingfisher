@@ -1,7 +1,7 @@
 - id: kingfisher-docker
   name: kingfisher (docker)
   description: Run Kingfisher in Docker against staged changes at the repository root. No local install required.
-  entry: ghcr.io/kingfisher-sec/kingfisher:latest
+  entry: ghcr.io/mongodb/kingfisher:latest
   language: docker
   args: ["scan", ".", "--staged", "--quiet", "--no-update-check"]
   pass_filenames: false

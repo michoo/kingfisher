@@ -428,7 +428,7 @@ mod tests {
             Some("owner/repo")
         );
         assert_eq!(
-            parse_excluded_repo("ssh://git@example.com:3000/Owner/Repo.git").as_deref(),
+            parse_excluded_repo("ssh://git@exmple.com:3000/Owner/Repo.git").as_deref(),
             Some("owner/repo")
         );
     }

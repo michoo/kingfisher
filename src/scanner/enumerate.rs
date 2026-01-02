@@ -1117,7 +1117,7 @@ mod tests {
         let temp = tempdir()?;
         let repo_path = temp.path().join("repo");
         let repo = Git2Repository::init(&repo_path)?;
-        let signature = Signature::now("tester", "tester@example.com")?;
+        let signature = Signature::now("tester", "tester@exmple.com")?;
 
         let tracked_file = repo_path.join("secret.txt");
         fs::create_dir_all(tracked_file.parent().unwrap())?;

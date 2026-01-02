@@ -51,6 +51,37 @@ impl AccessMapCollector {
         });
     }
 
+    pub fn record_azure(&self, credential_json: &str, containers: Option<Vec<String>>) {
+        let key = xxhash_rust::xxh3::xxh3_64(credential_json.as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::Azure {
+            credential_json: credential_json.to_string(),
+            containers,
+        });
+    }
+
+    pub fn record_azure_devops(&self, token: &str, organization: &str) {
+        let key =
+            xxhash_rust::xxh3::xxh3_64(format!("azure_devops|{organization}|{token}").as_bytes());
+        self.inner.entry(key).or_insert_with(|| AccessMapRequest::AzureDevops {
+            token: token.to_string(),
+            organization: organization.to_string(),
+        });
+    }
+
+    pub fn record_github(&self, token: &str) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("github|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Github { token: token.to_string() });
+    }
+
+    pub fn record_gitlab(&self, token: &str) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("gitlab|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Gitlab { token: token.to_string() });
+    }
+
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
         self.inner.iter().map(|entry| entry.value().clone()).collect()
     }
@@ -65,6 +96,8 @@ pub async fn run_secret_validation(
     num_jobs: usize,
     range: Option<std::ops::Range<usize>>,
     access_map: Option<AccessMapCollector>,
+    validation_timeout: Duration,
+    validation_retries: u32,
 ) -> Result<()> {
     // ── 1. Concurrency & counters ───────────────────────────────────────────
     let concurrency = if num_jobs > 0 { num_jobs } else { num_cpus::get() };
@@ -185,6 +218,8 @@ pub async fn run_secret_validation(
                     &fail,
                     &cache_glob,
                     access_map.as_ref(),
+                    validation_timeout,
+                    validation_retries,
                 )
                 .await;
 
@@ -258,6 +293,8 @@ pub async fn run_secret_validation(
                     let fail = fail_count.clone();
                     let cache_glob = cache.clone();
                     let access_map = access_map.clone();
+                    let validation_timeout = validation_timeout;
+                    let validation_retries = validation_retries;
 
                     async move {
                         let owned = matches_for_blob
@@ -292,7 +329,6 @@ pub async fn run_secret_validation(
                                 let fail = fail.clone();
                                 let cache_glob = cache_glob.clone();
                                 let access_map = access_map.clone();
-
                                 async move {
                                     validate_single(
                                         &mut rep,
@@ -306,6 +342,8 @@ pub async fn run_secret_validation(
                                         &fail,
                                         &cache_glob,
                                         access_map.as_ref(),
+                                        validation_timeout,
+                                        validation_retries,
                                     )
                                     .await;
                                     for d in &mut dups {
@@ -388,6 +426,8 @@ async fn validate_single(
     fail_count: &AtomicUsize,
     cache2: &Arc<SkipMap<String, CachedResponse>>,
     access_map: Option<&AccessMapCollector>,
+    validation_timeout: Duration,
+    validation_retries: u32,
 ) {
     // Build key
     let dep_vars_str = dep_vars
@@ -438,8 +478,18 @@ async fn validate_single(
     }
     // If we reach here, we're the first task to validate this key
     // Perform validation
-    let outcome = timeout(Duration::from_secs(30), async {
-        validate_single_match(om, parser, client, dep_vars, missing_deps, cache2).await
+    let outcome = timeout(validation_timeout, async {
+        validate_single_match(
+            om,
+            parser,
+            client,
+            dep_vars,
+            missing_deps,
+            cache2,
+            validation_timeout,
+            validation_retries,
+        )
+        .await
     })
     .await;
     // Store result in cache
@@ -497,8 +547,11 @@ fn build_cache_key(
 }
 
 fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapCollector>) {
+    let is_gitlab_rule = om.rule.id().starts_with("kingfisher.gitlab.");
+    let validation_ok =
+        om.validation_success || (is_gitlab_rule && om.validation_response_status.is_success());
     let collector = match collector {
-        Some(c) if om.validation_success => c,
+        Some(c) if validation_ok => c,
         _ => return,
     };
 
@@ -530,7 +583,67 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                 }
             }
         }
-        _ => {}
+        Some(Validation::AzureStorage) => {
+            let storage_key = captures
+                .iter()
+                .find(|(name, ..)| name == "TOKEN")
+                .map(|(_, value, ..)| value.clone())
+                .unwrap_or_default();
+            let storage_account =
+                utils::find_closest_variable(&captures, &storage_key, "TOKEN", "AZURENAME")
+                    .unwrap_or_default();
+
+            let mut storage_account = storage_account;
+            if storage_account.is_empty() {
+                storage_account =
+                    extract_azure_storage_account_from_body(&om.validation_response_body)
+                        .unwrap_or_default();
+            }
+            let containers_hint =
+                extract_azure_storage_containers_from_body(&om.validation_response_body);
+
+            if !storage_account.is_empty() && !storage_key.is_empty() {
+                let creds_json = format!(
+                    r#"{{"storage_account":"{}","storage_key":"{}"}}"#,
+                    storage_account, storage_key
+                );
+                collector.record_azure(&creds_json, containers_hint);
+            }
+        }
+        _ => {
+            if om.rule.id().starts_with("kingfisher.github.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_github(value);
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.azure.devops.") {
+                let token = captures
+                    .iter()
+                    .find(|(name, ..)| name == "TOKEN")
+                    .map(|(_, value, ..)| value.clone())
+                    .unwrap_or_default();
+                let mut organization =
+                    utils::find_closest_variable(&captures, &token, "TOKEN", "AZURE_DEVOPS_ORG")
+                        .unwrap_or_default();
+                if organization.is_empty() {
+                    organization = extract_azure_devops_org_from_body(&om.validation_response_body)
+                        .unwrap_or_default();
+                }
+
+                if !token.is_empty() && !organization.is_empty() {
+                    collector.record_azure_devops(&token, &organization);
+                }
+            }
+            if is_gitlab_rule {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_gitlab(value);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -544,4 +657,41 @@ fn extract_akid_from_body(body: &validation_body::ValidationResponseBody) -> Opt
 
     let text = validation_body::clone_as_string(body);
     AKID_RE.find(&text).map(|m| m.as_str().to_string())
+}
+
+fn extract_azure_storage_account_from_body(
+    body: &validation_body::ValidationResponseBody,
+) -> Option<String> {
+    static ACCOUNT_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+        regex::Regex::new(r"(?i)Account:\s*([a-z0-9]{3,24})").expect("valid regex")
+    });
+
+    let text = validation_body::clone_as_string(body);
+    ACCOUNT_RE.captures(&text).and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+}
+
+fn extract_azure_storage_containers_from_body(
+    body: &validation_body::ValidationResponseBody,
+) -> Option<Vec<String>> {
+    static CONTAINERS_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+        regex::Regex::new(r"(?i)Containers:\s*(\\[[^\\]]*\\])").expect("valid regex")
+    });
+
+    let text = validation_body::clone_as_string(body);
+    let capture = CONTAINERS_RE
+        .captures(&text)
+        .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))?;
+    serde_json::from_str::<Vec<String>>(&capture).ok()
+}
+
+fn extract_azure_devops_org_from_body(
+    body: &validation_body::ValidationResponseBody,
+) -> Option<String> {
+    static ORG_RE: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+        regex::Regex::new(r#"(?i)https?://dev\.azure\.com/([a-z0-9][a-z0-9-]{0,61}[a-z0-9])"#)
+            .expect("valid regex")
+    });
+
+    let text = validation_body::clone_as_string(body);
+    ORG_RE.captures(&text).and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
 }

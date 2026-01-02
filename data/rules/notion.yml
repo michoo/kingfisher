@@ -38,10 +38,9 @@ rules:
     id: kingfisher.notion.2
     pattern: |
       (?xi)
-      notion
-      (?:.|[\\n\r]){0,32}?
+      \b
       (
-        ntn_[A-Z0-9]{40,55}
+        ntn_[0-9]{11}[A-Za-z0-9]{35}
       )
     min_entropy: 4.0
     confidence: medium

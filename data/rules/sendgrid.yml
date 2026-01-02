@@ -11,6 +11,7 @@ rules:
         \.
         [0-9A-Z_-]{39,47}
       )
+      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.5
@@ -18,7 +19,7 @@ rules:
     examples:
       - "      'SENDGRID_API_KEYSID': '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'"
       - "var sendgrid = require('sendgrid')('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');"
-      - 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
+      - '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'
     references:
       - https://docs.sendgrid.com/ui/account-and-settings/api-keys
     validation:

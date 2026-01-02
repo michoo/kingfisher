@@ -5,7 +5,7 @@ rules:
       (?xi)
       \b
       (
-        (?:shpat|shpca|shppa|shpss)_[a-f0-9]{30,34}
+        (?:shpat|shpca|shppa|shpss)_[a-f0-9]{32}
       )
       \b
     pattern_requirements:
