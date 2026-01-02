@@ -69,7 +69,7 @@ kingfisher scan /path/to/scan --access-map --view-report
 ![alt text](docs/kingfisher-usage-access-map-01.gif)
 
 **Click to view video**
-[![Demo](docs/demos/findings-thumbnail.png)](docs/kingfisher-usage-access-map-02.mp4)
+[![Demo](docs/demos/findings-thumbnail.png)](https://private-user-images.githubusercontent.com/131722602/531560056-d33ee7a6-c60a-4e42-88e0-ac03cb429a46.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjczODczNzQsIm5iZiI6MTc2NzM4NzA3NCwicGF0aCI6Ii8xMzE3MjI2MDIvNTMxNTYwMDU2LWQzM2VlN2E2LWM2MGEtNGU0Mi04OGUwLWFjMDNjYjQyOWE0Ni5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwMTAyJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDEwMlQyMDUxMTRaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03MThiMGEwMmJhNWY0OTVlYzRkYThhMWMyYzZkYmNlNjZjMTlhMmQ2ZDhjNjFhMzczYTAyYmRkOTZlYjAzMWQzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.OIY-coUIIng2Os8mHrcR_W15AlCVDAk2NPZWJIHSWrQ)
 
 
 # Table of Contents
