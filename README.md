@@ -62,6 +62,14 @@ NOTE: Replay has been slowed down for demo
 ## Report Viewer Demo
 Explore Kingfisher’s built-in report viewer and its `--access-map`, which can show what the token (AWS, GCP, Azure, GitHub, and GitLab...more coming) can actually access : [Access map outputs and viewer](#access-map-outputs-and-viewer)
 
+Note: when you pass `--view-report`, Kingfisher starts a **localhost-only** web server on port `7890` and opens it in your default browser. You’ll see this near the end of the scan output, and **Kingfisher will keep running** until you stop it.
+
+```bash
+INFO kingfisher::cli::commands::view: Starting access-map viewer address=127.0.0.1:7890
+Serving access-map viewer at http://127.0.0.1:7890 (Ctrl+C to stop)
+```
+
+**Usage:**
 ```bash
 kingfisher scan /path/to/scan --access-map --view-report
 ```
