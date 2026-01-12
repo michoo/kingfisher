@@ -298,7 +298,13 @@ fn body_looks_like_html(body: &str, headers: &HeaderMap) -> bool {
         .unwrap_or(false);
 
     // ---- 2. early-body scan (<=1024 bytes) --------------------------------
-    let probe = &body[..body.len().min(1024)];
+    // Find the last character boundary at or before 1024 bytes to avoid UTF-8 boundary issues
+    // Walk backward at most 3 bytes (UTF-8 max char size is 4 bytes) to find valid boundary
+    let mut end = 1024.min(body.len());
+    while end > 0 && !body.is_char_boundary(end) {
+        end -= 1;
+    }
+    let probe = &body[..end];
     // Trim any leading whitespace so we still catch HTML that starts after newlines/indentation.
     let trimmed = probe.trim_start_matches(|c: char| c.is_whitespace());
     let probe = trimmed.to_ascii_lowercase();
@@ -569,5 +575,31 @@ mod tests {
         let ok = validate_response(&matchers, body, &StatusCode::OK, &headers, false);
 
         assert!(!ok, "HTML responses should be rejected unless explicitly allowed");
+    }
+
+    #[test]
+    fn test_body_looks_like_html_utf8_boundary() {
+        // Test case for UTF-8 boundary issue: multi-byte character at 1024-byte boundary
+        // This reproduces the bug where slicing at byte 1024 would panic if it's in the middle
+        // of a multi-byte character (e.g., Chinese character '业' spans bytes 1023..1026)
+        let mut headers = HeaderMap::new();
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"));
+
+        // HTML at the start, with padding to push a multi-byte char to byte 1024
+        // This mirrors the real crash: HTML response from Gitee with Chinese chars
+        let html_start = "<!DOCTYPE html><html lang=\"zh-CN\"><head><title>";
+        let padding_len = 1023 - html_start.len();
+        let body = format!(
+            "{}{}业</title></head><body>Gitee</body></html>",
+            html_start,
+            "x".repeat(padding_len)
+        );
+
+        // Verify our test setup: multi-byte char should be at byte 1023
+        assert_eq!(body.as_bytes()[1023], 0xE4, "Expected first byte of '业' at position 1023");
+
+        // This should not panic AND should correctly identify HTML
+        let result = body_looks_like_html(&body, &headers);
+        assert!(result, "Should correctly identify HTML even with multi-byte characters at boundary");
     }
 }
