@@ -5,7 +5,7 @@ rules:
       (?xi)
       (?:lark|larksuite)
       (?:.|[\n\r]){0,64}?
-      (?:tenant|access[_ -]?token)?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|ACCESS_KEY)
       (?:.|[\n\r]){0,32}?
       \b
       (
@@ -51,7 +51,7 @@ rules:
       (?xi)
       (?:lark|larksuite)
       (?:.|[\n\r]){0,64}?
-      (?:user|access[_ -]?token|oauth)?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|ACCESS_KEY)
       (?:.|[\n\r]){0,32}?
       \b
       (
@@ -95,11 +95,11 @@ rules:
       (?xi)
       (?:lark|larksuite)
       (?:.|[\n\r]){0,64}?
-      (?:app|access[_ -]?token)?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|ACCESS_KEY)
       (?:.|[\n\r]){0,32}?
       \b
       (
-        a-[A-Z0-9_.]{14,50}
+        a-[A-Z0-9_.]{30,35}
       )
       \b
     min_entropy: 3.2
@@ -115,27 +115,28 @@ rules:
       content:
         request:
           method: POST
-          url: https://open.larksuite.com/open-apis/auth/v3/tenant_access_token
+          # This endpoint checks app_access_token directly; no tenant_key involved.
+          url: https://open.larksuite.com/open-apis/authen/v1/oidc/refresh_access_token
           headers:
-            Content-Type: application/json
             Accept: application/json
-          # This endpoint expects app_access_token + tenant_key for store apps.
-          # We intentionally send a random (almost-certainly invalid) tenant_key.
-          # If the app_access_token is invalid, platforms commonly return code 99991664 ("invalid app token").
-          body: |
-            {
-              "app_access_token": "{{ TOKEN }}",
-              "tenant_key": "{{ '' | random_string: 16 }}"
-            }
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: "Bearer {{ TOKEN }}"
+          # Send an intentionally bogus refresh_token. If the app_access_token is valid,
+          # we should get some error other than "20014" (invalid app_access_token).
+          body: >
+            grant_type=refresh_token&refresh_token=kingfisher_invalid_refresh_token
           response_matcher:
             - report_response: true
             - type: StatusMatch
-              status: [200, 400]
+              status: [200]
             - type: JsonValid
-            # Fail verification if provider explicitly says the app token is invalid.
+
+            # If the app token is invalid, Lark uses 20014 (and sometimes 99991664 for invalid app token).
             - type: WordMatch
               negative: true
               match_all_words: false
               words:
+                - '"code":20014'
+                - '"code": 20014'
                 - '"code":99991664'
                 - '"code": 99991664'

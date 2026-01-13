@@ -34,4 +34,8 @@ rules:
             # 403 = valid token but missing required scope (still proves the token is real)
             - type: StatusMatch
               status: [200, 403]
+            - type: WordMatch
+              words:
+                - '"cidr"'
+              match_all_words: true
 
