@@ -1,0 +1,115 @@
+rules:
+  # Helper: Client ID / App Key (NOT secret)
+  - name: RingCentral Client ID (helper)
+    id: kingfisher.ringcentral.client_id.1
+    visible: false
+    pattern: |
+      (?xi)
+      (?:ringcentral|rcsdk)
+      (?:.|[\n\r]){0,32}?
+      (?:
+          client[_-]?id
+        | app[_-]?key
+        | appKey
+        | RINGCENTRAL_CLIENT[_-]?ID
+        | RC_CLIENT[_-]?ID
+      )
+      (?:.|[\n\r]){0,32}?
+      \b
+      (
+        [0-9A-Za-z_-]{22}
+      )
+      \b
+    min_entropy: 2.6
+    confidence: medium
+    examples:
+      - "ringcentral_client_id = 'AbCDefGHiJKlMNopQRsTuv'"
+      - '"appKey: \"AbCDefGHiJKlMNopQRsTuv\""'
+    references:
+      - https://developers.ringcentral.com/guide/getting-started/register-app
+      - https://ringcentral.github.io/tutorial/
+
+  # Main: Client Secret / App Secret (secret)
+  - name: RingCentral Client Secret
+    id: kingfisher.ringcentral.client_secret.1
+    pattern: |
+      (?xi)
+      (?:ringcentral|rcsdk)
+      (?:.|[\n\r]){0,32}?
+      (?:
+          client[_-]?secret
+        | app[_-]?secret
+        | appSecret
+        | RINGCENTRAL_CLIENT[_-]?SECRET
+        | RC_CLIENT[_-]?SECRET
+      )
+      (?:.|[\n\r]){0,32}?
+      \b
+      (
+        [0-9A-Za-z_-]{22,64}
+      )
+      \b
+    min_entropy: 3.2
+    confidence: high
+    examples:
+      - "ringcentral_client_secret = 'aBcDeFgHiJkLmNoPqRsTuVwXyZ012345'"
+      - '"appSecret": "yourAppSecretGoesHere_123"'
+    pattern_requirements:
+      min_digits: 1
+      min_lowercase: 1
+      min_uppercase: 1
+      ignore_if_contains:
+        - yourAppSecret
+        - YOUR_APP_SECRET
+        - changeme
+        - example
+        - test
+    references:
+      - https://developers.ringcentral.com/api-reference/OAuth-and-OIDC/getToken
+      - https://developers.ringcentral.com/guide/basics/errors
+      - https://ringcentral.github.io/tutorial/
+
+    depends_on_rule:
+      - rule_id: kingfisher.ringcentral.client_id.1
+        variable: CLIENT_ID
+
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: https://platform.devtest.ringcentral.com/restapi/oauth/token
+          headers:
+            Accept: application/json
+            Content-Type: application/x-www-form-urlencoded
+            Authorization: >
+              Basic {{ CLIENT_ID | append: ":" | append: TOKEN | b64enc }}
+          # Intentionally use a grant that's typically not enabled. If we get "unsupported grant type"
+          # (or “grant type not allowed / unauthorized for grant type”), that still proves the client
+          # credentials were accepted.
+          body: grant_type=client_credentials
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200, 400, 401, 403]
+            - type: JsonValid
+
+            # VERIFIED signals (any of these indicate the client auth succeeded)
+            - type: WordMatch
+              match_all_words: false
+              words:
+                - "OAU-250"  # Unsupported grant type
+                - "OAU-112"  # client unauthorized for required grant type
+                - "OAU-125"  # grant type not allowed for application
+                - '"access_token"'
+
+            # NOT VERIFIED signals (bad client id/secret or malformed auth header)
+            - type: WordMatch
+              negative: true
+              match_all_words: false
+              words:
+                - "OAU-120"  # Wrong Application ID
+                - "OAU-121"  # Wrong Application
+                - "OAU-146"  # Invalid client credentials
+                - "OAU-123"  # Invalid Authorization header
+                - '"invalid_client"'

@@ -5,29 +5,29 @@ rules:
       (?xi)
       (
         https://
-        outlook\.office\.com/webhook/
-        [0-9a-f]{8}-
-        [0-9a-f]{4}-
-        [0-9a-f]{4}-
-        [0-9a-f]{4}-
-        [0-9a-f]{12}
+        .*\.office\.com/webhook/
+        [0-9a-z]{8}-
+        [0-9a-z]{4}-
+        [0-9a-z]{4}-
+        [0-9a-z]{4}-
+        [0-9a-z]{12}
         @
-        [0-9a-f]{8}-
-        [0-9a-f]{4}-
-        [0-9a-f]{4}-
-        [0-9a-f]{4}-
-        [0-9a-f]{12}
+        [0-9a-z]{8}-
+        [0-9a-z]{4}-
+        [0-9a-z]{4}-
+        [0-9a-z]{4}-
+        [0-9a-z]{12}
         /IncomingWebhook/
-        [0-9a-f]{32}
+        [0-9a-z]{32}
         /
-        [0-9a-f]{8}-
-        [0-9a-f]{4}-
-        [0-9a-f]{4}-
-        [0-9a-f]{4}-
-        [0-9a-f]{12}
+        [0-9a-z]{8}-
+        [0-9a-z]{4}-
+        [0-9a-z]{4}-
+        [0-9a-z]{4}-
+        [0-9a-z]{12}
       )
     pattern_requirements:
-      min_digits: 2
+      min_digits: 8
     min_entropy: 3.3
     confidence: medium
     examples:

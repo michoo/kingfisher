@@ -1,0 +1,458 @@
+rules:
+  # --------------------------
+  # GOV — long‑lived credentials
+  # --------------------------
+  - name: navercloud_gov_access_key
+    id: kingfisher.navercloud.gov_access_key
+    pattern: |
+      (?xi)
+      \b
+      (?:gov-ntruss\.com|gov-ncloud\.com|api-gov\.ncloud-docs\.com|guide-gov\.ncloud-docs\.com)
+      (?:.|[\n\r]){0,250}?
+      (?:x-ncp-iam-access-key|NCLOUD_ACCESS_KEY(?:_ID)?|NCP_ACCESS_KEY(?:_ID)?|access[_-]?key(?:_id)?|accessKey(?:Id)?)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 2
+      ignore_if_contains:
+        - secure token service
+        - temporary credential
+        - temporary credentials
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'https://ncloud.apigw.gov-ntruss.com/server/v2/getRegionList x-ncp-iam-access-key: D78BB444D6D3C84CA38D'
+    references:
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+      - https://api-gov.ncloud-docs.com/docs/compute-server
+      - https://api-gov.ncloud-docs.com/docs/compute-server-common-getregionlist
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.gov-ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ TOKEN }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: TOKEN -%}
+              {{ msg | hmac_sha256: SECRET }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.gov_access_key_secret
+        variable: SECRET
+
+  - name: navercloud_gov_access_key_secret
+    id: kingfisher.navercloud.gov_access_key_secret
+    pattern: |
+      (?xi)
+      \b
+      (?:gov-ntruss\.com|gov-ncloud\.com|api-gov\.ncloud-docs\.com|guide-gov\.ncloud-docs\.com)
+      (?:.|[\n\r]){0,250}?
+      (?:NCLOUD_SECRET_KEY|NCP_SECRET_KEY|secret[_-]?key|secretKey|secret_access_key|SecretAccessKey)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9/+=]{40}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+      ignore_if_contains:
+        - secure token service
+        - temporary credential
+        - temporary credentials
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'gov-ntruss.com secretKey="b0qP0cQ9ZfS0lq8Gm9QyGqgT2aX9bVd1eKp3uX1/"'
+    references:
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+      - https://api-gov.ncloud-docs.com/docs/compute-server-common-getregionlist
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.gov-ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ AKID }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: AKID -%}
+              {{ msg | hmac_sha256: TOKEN }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.gov_access_key
+        variable: AKID
+
+  # --------------------------
+  # GOV — STS (temporary credentials)
+  # --------------------------
+  - name: navercloud_gov_sts
+    id: kingfisher.navercloud.gov_sts
+    pattern: |
+      (?xi)
+      \b
+      (?:gov-ntruss\.com|gov-ncloud\.com|api-gov\.ncloud-docs\.com|guide-gov\.ncloud-docs\.com)
+      (?:.|[\n\r]){0,250}?
+      (?:secure\s*token\s*service|\bsts\b|temporary\s*credentials?)
+      (?:.|[\n\r]){0,120}?
+      (?:x-ncp-iam-access-key|access[_-]?key(?:_id)?|accessKey(?:Id)?|AccessKeyId|NCLOUD_ACCESS_KEY(?:_ID)?)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 2
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'Secure Token Service (STS) AccessKeyId: D78BB444D6D3C84CA38D gov-ntruss.com'
+    references:
+      - https://api-gov.ncloud-docs.com/docs/management-sts
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+      - https://api-gov.ncloud-docs.com/docs/compute-server-common-getregionlist
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.gov-ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ TOKEN }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: TOKEN -%}
+              {{ msg | hmac_sha256: SECRET }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.gov_sts_secret
+        variable: SECRET
+
+  - name: navercloud_gov_sts_secret
+    id: kingfisher.navercloud.gov_sts_secret
+    pattern: |
+      (?xi)
+      \b
+      (?:gov-ntruss\.com|gov-ncloud\.com|api-gov\.ncloud-docs\.com|guide-gov\.ncloud-docs\.com)
+      (?:.|[\n\r]){0,250}?
+      (?:secure\s*token\s*service|\bsts\b|temporary\s*credentials?)
+      (?:.|[\n\r]){0,120}?
+      (?:secret[_-]?key|secretKey|SecretAccessKey|NCLOUD_SECRET_KEY)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9/+=]{40}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'STS SecretAccessKey: b0qP0cQ9ZfS0lq8Gm9QyGqgT2aX9bVd1eKp3uX1/ gov-ncloud.com'
+    references:
+      - https://api-gov.ncloud-docs.com/docs/management-sts
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+      - https://api-gov.ncloud-docs.com/docs/compute-server-common-getregionlist
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.gov-ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ AKID }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: AKID -%}
+              {{ msg | hmac_sha256: TOKEN }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.gov_sts
+        variable: AKID
+
+  # --------------------------
+  # PUB — long‑lived credentials
+  # --------------------------
+  - name: navercloud_pub_access_key
+    id: kingfisher.navercloud.pub_access_key
+    pattern: |
+      (?xi)
+      \b
+      (?:\.apigw\.ntruss\.com|api\.ncloud-docs\.com|guide\.ncloud-docs\.com|www\.ncloud\.com|x-ncp-iam-access-key|NCLOUD_ACCESS_KEY(?:_ID)?|NCP_ACCESS_KEY(?:_ID)?)
+      (?:.|[\n\r]){0,200}?
+      (?:x-ncp-iam-access-key|access[_-]?key(?:_id)?|accessKey(?:Id)?|AccessKeyId|NCLOUD_ACCESS_KEY(?:_ID)?|NCP_ACCESS_KEY(?:_ID)?)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9]{20}
+      )
+      \b
+      (?:.|[\n\r]){0,80}?
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 2
+      ignore_if_contains:
+        - gov-ntruss
+        - gov-ncloud
+        - api-gov.ncloud-docs.com
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'https://ncloud.apigw.ntruss.com/server/v2/getRegionList x-ncp-iam-access-key: D78BB444D6D3C84CA38D'
+    references:
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ TOKEN }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: TOKEN -%}
+              {{ msg | hmac_sha256: SECRET }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.pub_access_key_secret
+        variable: SECRET
+
+  - name: navercloud_pub_access_key_secret
+    id: kingfisher.navercloud.pub_access_key_secret
+    pattern: |
+      (?xi)
+      \b
+      (?:\.apigw\.ntruss\.com|api\.ncloud-docs\.com|guide\.ncloud-docs\.com|www\.ncloud\.com|NCLOUD_SECRET_KEY|NCP_SECRET_KEY|secret[_-]?key|secretKey)
+      (?:.|[\n\r]){0,200}?
+      (?:NCLOUD_SECRET_KEY|NCP_SECRET_KEY|secret[_-]?key|secretKey|secret_access_key|SecretAccessKey)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9/+=]{40}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+      ignore_if_contains:
+        - gov-ntruss
+        - gov-ncloud
+        - api-gov.ncloud-docs.com
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'secretKey="b0qP0cQ9ZfS0lq8Gm9QyGqgT2aX9bVd1eKp3uX1/" https://sens.apigw.ntruss.com'
+    references:
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ AKID }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: AKID -%}
+              {{ msg | hmac_sha256: TOKEN }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.pub_access_key
+        variable: AKID
+
+  # --------------------------
+  # PUB — STS (temporary credentials)
+  # --------------------------
+  - name: navercloud_pub_sts
+    id: kingfisher.navercloud.pub_sts
+    pattern: |
+      (?xi)
+      \b
+      (?:\.apigw\.ntruss\.com|api\.ncloud-docs\.com|guide\.ncloud-docs\.com|www\.ncloud\.com|ncloud\.apigw\.ntruss\.com)
+      (?:.|[\n\r]){0,250}?
+      (?:secure\s*token\s*service|\bsts\b|temporary\s*credentials?)
+      (?:.|[\n\r]){0,120}?
+      (?:x-ncp-iam-access-key|access[_-]?key(?:_id)?|accessKey(?:Id)?|AccessKeyId|NCLOUD_ACCESS_KEY(?:_ID)?)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9]{20}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 2
+      ignore_if_contains:
+        - gov-ntruss
+        - gov-ncloud
+        - api-gov.ncloud-docs.com
+    min_entropy: 3.0
+    confidence: medium
+    examples:
+      - 'Secure Token Service (STS) AccessKeyId: D78BB444D6D3C84CA38D https://api.ncloud-docs.com'
+    references:
+      - https://api.ncloud-docs.com/docs/en/management-sts
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ TOKEN }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: TOKEN -%}
+              {{ msg | hmac_sha256: SECRET }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.pub_sts_secret
+        variable: SECRET
+
+  - name: navercloud_pub_sts_secret
+    id: kingfisher.navercloud.pub_sts_secret
+    pattern: |
+      (?xi)
+      \b
+      (?:\.apigw\.ntruss\.com|api\.ncloud-docs\.com|guide\.ncloud-docs\.com|www\.ncloud\.com|ncloud\.apigw\.ntruss\.com)
+      (?:.|[\n\r]){0,250}?
+      (?:secure\s*token\s*service|\bsts\b|temporary\s*credentials?)
+      (?:.|[\n\r]){0,120}?
+      (?:secret[_-]?key|secretKey|SecretAccessKey|NCLOUD_SECRET_KEY)
+      (?:.|[\n\r]){0,40}?
+      (
+        [A-Z0-9/+=]{40}
+      )
+      \b
+    pattern_requirements:
+      min_digits: 2
+      min_uppercase: 1
+      min_lowercase: 1
+      ignore_if_contains:
+        - gov-ntruss
+        - gov-ncloud
+        - api-gov.ncloud-docs.com
+    min_entropy: 3.5
+    confidence: medium
+    examples:
+      - 'STS SecretAccessKey: b0qP0cQ9ZfS0lq8Gm9QyGqgT2aX9bVd1eKp3uX1/ https://guide.ncloud-docs.com'
+    references:
+      - https://api.ncloud-docs.com/docs/en/management-sts
+      - https://api-gov.ncloud-docs.com/docs/common-ncpapi-ncpapi
+    validation:
+      type: Http
+      content:
+        request:
+          method: GET
+          url: https://ncloud.apigw.ntruss.com/server/v2/getRegionList
+          headers:
+            x-ncp-apigw-timestamp: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}{{ ts }}
+            x-ncp-iam-access-key: "{{ AKID }}"
+            x-ncp-apigw-signature-v2: >
+              {%- assign ts = "" | unix_timestamp | times: 1000 -%}
+              {%- assign uri = "/server/v2/getRegionList" -%}
+              {%- assign msg = "GET " | append: uri | append: "\n" | append: ts | append: "\n" | append: AKID -%}
+              {{ msg | hmac_sha256: TOKEN }}
+          response_matcher:
+            - type: StatusMatch
+              status: [200]
+            - type: XmlValid
+            - type: WordMatch
+              match_all_words: true
+              words:
+                - "<returnCode>0</returnCode>"
+                - "<returnMessage>success</returnMessage>"
+    depends_on_rule:
+      - rule_id: kingfisher.navercloud.pub_sts
+        variable: AKID

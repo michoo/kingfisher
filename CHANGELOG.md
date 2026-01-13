@@ -1,6 +1,8 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [v1.74.0]
+
 
 ## [v1.73.0]
 - Will now prefer git history findings when identical secrets appear in both current files and git history (dedup only).

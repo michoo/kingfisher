@@ -1,5 +1,5 @@
 // This module checks GitHub for a newer Kingfisher release and (optionally)
-// self-updates.  Our release assets use short, user-friendly names such as
+// s.  Our release assets use short, user-friendly names such as
 // `kingfisher-linux-arm64.tgz`, `kingfisher-darwin-x64.tgz`, etc.  Those names
 // do **not** match the full Rust target triple that the `self_update` crate
 // expects (e.g. `aarch64-unknown-linux-musl`).  We therefore map the compile-

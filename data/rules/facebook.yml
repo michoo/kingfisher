@@ -2,13 +2,13 @@ rules:
   - name: Facebook App ID
     id: kingfisher.facebook.1
     pattern: |
-      (?xi)                   
-      \b                     
+      (?xi)
+      \b
       (?:facebook|fb)
-      (?:.|[\n\r]){0,8}?
-      (?:APP|APPLICATION)
-      (?:.|[\n\r]){0,16}?
-      \b                     
+      (?:.|[\n\r]){0,32}?
+      (?:APP|APPLICATION|CLIENT)
+      (?:.|[\n\r]){0,32}?
+      \b
       (                      
         \d{15}
       )
@@ -27,13 +27,17 @@ rules:
     id: kingfisher.facebook.2
     pattern: |
       (?xi)
-      \b (?: facebook | fb )
-      .?
-      (?: api | app | application | client | consumer | customer | secret | key )
-      .?
-      (?: key | oauth | sec | secret )?
+      \b 
+      (?: facebook | fb )
+      (?:.|[\n\r]){0,32}?
+      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN|AUTH)
+      (?:.|[\n\r]){0,48}?
       .{0,2} \s{0,20} .{0,2} \s{0,20} .{0,2}
-      \b ([a-z0-9]{32}) \b
+      \b
+      (
+        [a-z0-9]{32}
+      )
+      \b
     examples:
       - '   # config.facebook.key = "34cebc81c056a21bc66e212f947d73ec"'
       - "    var fbApiKey = '0278fc1adf6dc1d82a156f306ce2c5cc';"
