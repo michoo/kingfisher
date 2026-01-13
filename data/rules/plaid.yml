@@ -206,7 +206,7 @@ rules:
                 - '"INVALID_API_KEYS"'
 
   - name: Plaid Access Token (Sandbox)
-    id: kkingfisher.plaid.5
+    id: kingfisher.plaid.5
     pattern: |
       (?xi)
       \b
