@@ -60,3 +60,32 @@ rules:
                 - 200
               type: StatusMatch
           url: https://api.openai.com/v1/models
+
+  - name: OpenAI API Key (Short Prefixed)
+    id: kingfisher.openai.3
+    pattern: |
+      (?xi)
+      (
+        sk-None-[A-Z0-9]{48}
+      )
+    pattern_requirements:
+      min_digits: 2
+    min_entropy: 3.3
+    confidence: medium
+    examples:
+      - sk-None-abcdefghij1234567890ABCDEFGHIJ1234567890abcdefgh
+    references:
+      - https://help.openai.com/en/articles/9132009-how-can-i-view-the-users-or-organizations-associated-with-an-api-key
+    validation:
+      type: Http
+      content:
+        request:
+          headers:
+            Authorization: 'Bearer {{ TOKEN }}'
+          method: GET
+          response_matcher:
+            - report_response: true
+            - status:
+                - 200
+              type: StatusMatch
+          url: https://api.openai.com/v1/me
