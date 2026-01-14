@@ -199,3 +199,57 @@ rules:
                 - '"login"'
                 - '"id"'
 
+  - name: GitHub Client ID
+    id: kingfisher.github.7
+    pattern: |
+      (?xi)
+      (?:github)
+      .?
+      (?: api | app | application | client | consumer | customer )?
+      .?
+      (?: id | identifier | key )
+      .{0,2} \s{0,20} .{0,2} \s{0,20} .{0,2}
+      \b ([a-z0-9]{20}) \b
+    visible: false
+    examples:
+      - |
+        GITHUB_CLIENT_ID=ac58d6da7d7a84c039b7
+        GITHUB_SECRET=37d02377a3e9d849e18704c3ec883f9c5787d857
+  - name: GitHub Legacy Secret Key
+    id: kingfisher.github.8
+    pattern: |
+      (?xi)
+      \b
+      (?:github|gh)
+      (?:.|[\n\r]){0,4}?
+      (?:oauth|pat|token|key|secret|api[_-]?key|access[_-]?token)\b
+      (?:.|[\n\r]){0,32}?
+      \b
+      (
+          [a-z0-9]{40}
+      )
+      \b
+    depends_on_rule:
+      - rule_id: "kingfisher.github.5"
+        variable: GITHUB_CLIENT_ID
+    validation:
+      type: Http
+      content:
+        request:
+          method: POST
+          url: "https://github.com/login/oauth/access_token"
+          headers:
+            Accept: "application/json"
+            Content-Type: "application/json"
+          body: '{"client_id":"{{GITHUB_CLIENT_ID}}","client_secret":"{{TOKEN}}","code":"invalid_code"}'
+          response_matcher:
+            - report_response: true
+            - type: StatusMatch
+              status: [200]
+            - type: WordMatch
+              words:
+                - '"error":"bad_verification_code"'
+    examples:
+      - |
+        GITHUB_CLIENT_ID=ac58d6da7d7a84c039b7
+        GITHUB_SECRET=37d02377a3e9d849e18704c3ec883f9c5787d857
