@@ -45,6 +45,7 @@ rules:
       (
         [A-Z0-9]{32}
       )
+      \b
     pattern_requirements:
       min_digits: 3
     min_entropy: 3.3

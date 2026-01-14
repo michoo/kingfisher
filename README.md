@@ -107,7 +107,7 @@ kingfisher scan /path/to/scan --access-map --view-report
 - [🔐 Detection Rules at a Glance](#-detection-rules-at-a-glance)
   - [📝 Write Custom Rules!](#-write-custom-rules)
     - [Pattern requirements and placeholder filtering](#pattern-requirements-and-placeholder-filtering)
-    - [🔍 Checksum Intelligence (New!)](#-checksum-intelligence-new)
+    - [🔍 Checksum Intelligence](#-checksum-intelligence)
 - [🎉 Usage](#-usage)
   - [Basic Examples](#basic-examples)
     - [Scan with secret validation](#scan-with-secret-validation)
@@ -526,7 +526,7 @@ checksum mismatch lengths so you can confirm why a finding was suppressed.
 
 Once you've done that, you can provide your custom rules (defined in a YAML file) and provide it to Kingfisher at runtime --- no recompiling required!
 
-### 🔍 Checksum Intelligence (New!)
+### 🔍 Checksum Intelligence
 
 Modern API tokens increasingly include **built-in checksums**, short internal digests that make each credential self-verifiable. (For background, see [GitHub’s write-up on their newer token formats](https://github.blog/engineering/platform-security/behind-githubs-new-authentication-token-formats/) and why checksums slash false positives.)
 
@@ -535,17 +535,11 @@ Kingfisher supports **checksum-aware matching** in rules, enabling **offline str
 By validating each token’s internal checksum (for tokens that support checksums), Kingfisher eliminates nearly all false positives—automatically skipping structurally invalid or fake tokens before validation ever runs.
 
 **Why this matters**
-- ✅ **Offline verification** — no API call required  
-- 🧠 **Industry-aligned** — compatible with prefix + checksum token designs (e.g., modern PATs)  
-- ⚡ **Lower false positives** — invalid tokens are filtered out by structure alone
+- **Offline verification** — no API call required  
+- **Industry-aligned** — compatible with prefix + checksum token designs (e.g., modern PATs)  
+- **Lower false positives** — invalid tokens are filtered out by structure alone
 
 **Learn more**: implementation details and templating are documented in **[docs/RULES.md](docs/RULES.md)**
-
----
-
-<!-- Optional: add this one-liner to your “Performance, Accuracy, and Hundreds of Rules” bullets -->
-- **Checksum-aware detection**: verifies tokens with embedded checksums (offline) to cut false positives — see [docs/RULES.md](docs/RULES.md)
-
 # 🎉 Usage
 
 ## Basic Examples

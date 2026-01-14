@@ -7,6 +7,7 @@ rules:
       (
         tk-us-[\w-]{48}
       )
+      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.0

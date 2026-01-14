@@ -15,7 +15,7 @@ const DEFAULT_GITHUB_API: &str = "https://api.github.com";
 #[derive(Deserialize)]
 struct GitHubUser {
     login: String,
-    id: u64,
+    _id: u64,
     #[serde(default)]
     name: Option<String>,
     #[serde(default)]

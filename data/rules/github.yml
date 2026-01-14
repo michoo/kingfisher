@@ -198,6 +198,7 @@ rules:
               words:
                 - '"login"'
                 - '"id"'
+
   - name: GitHub Client ID
     id: kingfisher.github.7
     pattern: |
@@ -214,13 +215,14 @@ rules:
       - |
         GITHUB_CLIENT_ID=ac58d6da7d7a84c039b7
         GITHUB_SECRET=37d02377a3e9d849e18704c3ec883f9c5787d857
-  - name: GitHub Secret Key
+  - name: GitHub Legacy Secret Key
     id: kingfisher.github.8
     pattern: |
       (?xi)
-      github
-      (?:.|[\n\r]){0,32}?
-      (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
+      \b
+      (?:github|gh)
+      (?:.|[\n\r]){0,4}?
+      (?:oauth|pat|token|key|secret|api[_-]?key|access[_-]?token)\b
       (?:.|[\n\r]){0,32}?
       \b
       (
