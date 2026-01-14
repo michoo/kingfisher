@@ -23,12 +23,12 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           profile: minimal
           override: true
+      - name: Build (Makefile linux-arm64)
+        run: make ubuntu-arm64
       - name: Run tests
         run: make tests
         env:
           CARGO_BUILD_JOBS: 1
-      - name: Build (Makefile linux-arm64)
-        run: make ubuntu-arm64
 
   macos-arm64:
     name: macOS arm64
@@ -41,10 +41,10 @@ jobs:
           profile: minimal
           override: true
       - uses: swatinem/rust-cache@v2
-      - name: Run tests
-        run: make tests
       - name: Build (Makefile darwin-arm64)
         run: make darwin-arm64
+      - name: Run tests
+        run: make tests
 
   windows:
     name: Windows x64
