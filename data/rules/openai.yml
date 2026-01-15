@@ -3,9 +3,11 @@ rules:
     id: kingfisher.openai.1
     pattern: |
       (?xi)
+      \b
       (
         sk-[A-Z0-9]{48}
       )
+      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3
@@ -33,6 +35,7 @@ rules:
     id: kingfisher.openai.2
     pattern: |
       (?xi)
+      \b
       (
         (sk-(?:proj|svcacct|None)-[A-Z0-9_-]{100,})
       )
@@ -65,9 +68,11 @@ rules:
     id: kingfisher.openai.3
     pattern: |
       (?xi)
+      \b
       (
         sk-None-[A-Z0-9]{48}
       )
+      \b
     pattern_requirements:
       min_digits: 2
     min_entropy: 3.3

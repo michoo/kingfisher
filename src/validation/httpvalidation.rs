@@ -600,6 +600,9 @@ mod tests {
 
         // This should not panic AND should correctly identify HTML
         let result = body_looks_like_html(&body, &headers);
-        assert!(result, "Should correctly identify HTML even with multi-byte characters at boundary");
+        assert!(
+            result,
+            "Should correctly identify HTML even with multi-byte characters at boundary"
+        );
     }
 }
