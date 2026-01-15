@@ -201,6 +201,7 @@ pub async fn map_access_from_json(data: &str) -> Result<AccessMapResult> {
         risk_notes,
         token_details: None,
         provider_metadata: None,
+        fingerprint: None,
     })
 }
 

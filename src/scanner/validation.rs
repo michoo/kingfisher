@@ -35,51 +35,67 @@ pub struct AccessMapCollector {
 }
 
 impl AccessMapCollector {
-    pub fn record_aws(&self, access_key: &str, secret_key: &str) {
+    pub fn record_aws(&self, access_key: &str, secret_key: &str, fingerprint: String) {
         let key = xxhash_rust::xxh3::xxh3_64(format!("aws|{access_key}|{secret_key}").as_bytes());
         self.inner.entry(key).or_insert_with(|| AccessMapRequest::Aws {
             access_key: access_key.to_string(),
             secret_key: secret_key.to_string(),
             session_token: None,
+            fingerprint,
         });
     }
 
-    pub fn record_gcp(&self, credential_json: &str) {
+    pub fn record_gcp(&self, credential_json: &str, fingerprint: String) {
         let key = xxhash_rust::xxh3::xxh3_64(credential_json.as_bytes());
         self.inner.entry(key).or_insert_with(|| AccessMapRequest::Gcp {
             credential_json: credential_json.to_string(),
+            fingerprint,
         });
     }
 
-    pub fn record_azure(&self, credential_json: &str, containers: Option<Vec<String>>) {
+    pub fn record_azure(
+        &self,
+        credential_json: &str,
+        containers: Option<Vec<String>>,
+        fingerprint: String,
+    ) {
         let key = xxhash_rust::xxh3::xxh3_64(credential_json.as_bytes());
         self.inner.entry(key).or_insert_with(|| AccessMapRequest::Azure {
             credential_json: credential_json.to_string(),
             containers,
+            fingerprint,
         });
     }
 
-    pub fn record_azure_devops(&self, token: &str, organization: &str) {
+    pub fn record_azure_devops(&self, token: &str, organization: &str, fingerprint: String) {
         let key =
             xxhash_rust::xxh3::xxh3_64(format!("azure_devops|{organization}|{token}").as_bytes());
         self.inner.entry(key).or_insert_with(|| AccessMapRequest::AzureDevops {
             token: token.to_string(),
             organization: organization.to_string(),
+            fingerprint,
         });
     }
 
-    pub fn record_github(&self, token: &str) {
+    pub fn record_github(&self, token: &str, fingerprint: String) {
         let key = xxhash_rust::xxh3::xxh3_64(format!("github|{token}").as_bytes());
         self.inner
             .entry(key)
-            .or_insert_with(|| AccessMapRequest::Github { token: token.to_string() });
+            .or_insert_with(|| AccessMapRequest::Github { token: token.to_string(), fingerprint });
     }
 
-    pub fn record_gitlab(&self, token: &str) {
+    pub fn record_gitlab(&self, token: &str, fingerprint: String) {
         let key = xxhash_rust::xxh3::xxh3_64(format!("gitlab|{token}").as_bytes());
         self.inner
             .entry(key)
-            .or_insert_with(|| AccessMapRequest::Gitlab { token: token.to_string() });
+            .or_insert_with(|| AccessMapRequest::Gitlab { token: token.to_string(), fingerprint });
+    }
+
+    pub fn record_slack(&self, token: &str, fingerprint: String) {
+        let key = xxhash_rust::xxh3::xxh3_64(format!("slack|{token}").as_bytes());
+        self.inner
+            .entry(key)
+            .or_insert_with(|| AccessMapRequest::Slack { token: token.to_string(), fingerprint });
     }
 
     pub fn into_requests(self) -> Vec<AccessMapRequest> {
@@ -556,6 +572,7 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
     };
 
     let captures = utils::process_captures(&om.captures);
+    let fp = om.finding_fingerprint.to_string();
 
     match om.rule.syntax().validation {
         Some(Validation::AWS) => {
@@ -573,13 +590,13 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
             }
 
             if !akid.is_empty() && !secret.is_empty() {
-                collector.record_aws(&akid, &secret);
+                collector.record_aws(&akid, &secret, fp.clone());
             }
         }
         Some(Validation::GCP) => {
             if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
                 if !value.is_empty() {
-                    collector.record_gcp(value);
+                    collector.record_gcp(value, fp.clone());
                 }
             }
         }
@@ -607,14 +624,14 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                     r#"{{"storage_account":"{}","storage_key":"{}"}}"#,
                     storage_account, storage_key
                 );
-                collector.record_azure(&creds_json, containers_hint);
+                collector.record_azure(&creds_json, containers_hint, fp.clone());
             }
         }
         _ => {
             if om.rule.id().starts_with("kingfisher.github.") {
                 if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
                     if !value.is_empty() {
-                        collector.record_github(value);
+                        collector.record_github(value, fp.clone());
                     }
                 }
             }
@@ -633,13 +650,20 @@ fn maybe_record_access_map(om: &OwnedBlobMatch, collector: Option<&AccessMapColl
                 }
 
                 if !token.is_empty() && !organization.is_empty() {
-                    collector.record_azure_devops(&token, &organization);
+                    collector.record_azure_devops(&token, &organization, fp.clone());
                 }
             }
             if is_gitlab_rule {
                 if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
                     if !value.is_empty() {
-                        collector.record_gitlab(value);
+                        collector.record_gitlab(value, fp.clone());
+                    }
+                }
+            }
+            if om.rule.id().starts_with("kingfisher.slack.") {
+                if let Some((_, value, ..)) = captures.iter().find(|(name, ..)| name == "TOKEN") {
+                    if !value.is_empty() {
+                        collector.record_slack(value, fp);
                     }
                 }
             }

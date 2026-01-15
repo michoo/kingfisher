@@ -35,4 +35,6 @@ pub enum AccessMapProvider {
     Github,
     /// GitLab
     Gitlab,
+    /// Slack
+    Slack,
 }

@@ -1,6 +1,11 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [v1.75.0]
+- Enhanced Access Map View: added fingerprint display, enabled searching by fingerprint, and implemented bidirectional navigation between Findings and Access Map nodes.
+- Added Slack Access Map support with granular permissions in the tree view.
+
 ## [v1.74.0]
 - Added new rules: cursor, definednetworking, filezilla, harness, intra42, klingai, lark, mergify, naver, plaid, resend, retellai
 

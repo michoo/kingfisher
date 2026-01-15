@@ -1600,12 +1600,13 @@
         const ruleName = (rule.name || rule.id || "").toLowerCase();
         const path = (finding.path || "").toLowerCase();
         const snippet = (finding.snippet || "").toLowerCase();
+        const fingerprint = (finding.fingerprint || "").toLowerCase();
         const status = (finding.validation && finding.validation.status
           ? String(finding.validation.status)
           : "").toLowerCase();
 
         if (filterLower) {
-          if (!ruleName.includes(filterLower) && !path.includes(filterLower) && !snippet.includes(filterLower)) {
+          if (!ruleName.includes(filterLower) && !path.includes(filterLower) && !snippet.includes(filterLower) && !fingerprint.includes(filterLower)) {
             return false;
           }
         }
@@ -2191,7 +2192,33 @@
       panel.scrollIntoView({ behavior: "smooth", block: "start" });
 
       document.getElementById("fd-rule-id").textContent = rule.id || "";
-      document.getElementById("fd-fingerprint").textContent = finding.fingerprint || "";
+      const fpEl = document.getElementById("fd-fingerprint");
+      const fpVal = finding.fingerprint || "";
+      fpEl.textContent = fpVal;
+      fpEl.innerHTML = fpVal; // reset content
+
+      if (fpVal && Array.isArray(accessMap)) {
+          const hasEntry = accessMap.some(entry => entry.fingerprint === fpVal);
+          if (hasEntry) {
+              const btn = document.createElement("button");
+              btn.className = "badge";
+              btn.textContent = "Go to Access Map";
+              btn.style.marginLeft = "10px";
+              btn.style.cursor = "pointer";
+              btn.style.background = "var(--brand-soft)";
+              btn.style.borderColor = "var(--brand)";
+              btn.style.color = "var(--brand-dark)";
+              btn.onclick = () => {
+                  setActiveView("view-access");
+                  const treeSearch = document.getElementById("tree-search");
+                  if (treeSearch) {
+                      treeSearch.value = fpVal;
+                      treeSearch.dispatchEvent(new Event('input'));
+                  }
+              };
+              fpEl.appendChild(btn);
+          }
+      }
       document.getElementById("fd-entropy").textContent =
         finding.entropy != null ? String(finding.entropy) : "";
       const commit =
@@ -2332,7 +2359,8 @@
         const account = formatIdentityLabel(identity);
         const groups = Array.isArray(identity.groups) ? identity.groups : [];
 
-        const identityNameMatches = Boolean(filterLower) && account.toLowerCase().includes(filterLower);
+        const fingerprint = (identity.fingerprint || "").toLowerCase();
+        const identityNameMatches = Boolean(filterLower) && (account.toLowerCase().includes(filterLower) || fingerprint.includes(filterLower));
         let anyResourceMatches = false;
 
         const preparedGroups = groups.map((group) => {
@@ -2688,6 +2716,41 @@
         cloudField.textContent = provider;
         if (data.provider) {
           addBadge(meta, provider, providerBadgeClass(data.provider));
+        }
+        if (data.fingerprint) {
+          const fpDiv = document.createElement("div");
+          fpDiv.style.width = "100%";
+          fpDiv.style.marginTop = "6px";
+          fpDiv.style.fontSize = "11px";
+          fpDiv.style.color = "var(--text-muted)";
+          fpDiv.textContent = "Fingerprint: " + data.fingerprint;
+          meta.appendChild(fpDiv);
+
+          const btn = document.createElement("button");
+          btn.className = "badge";
+          btn.textContent = "Go to finding";
+          btn.style.marginTop = "6px";
+          btn.style.cursor = "pointer";
+          btn.style.background = "var(--brand-soft)";
+          btn.style.borderColor = "var(--brand)";
+          btn.style.color = "var(--brand-dark)";
+          btn.onclick = () => {
+             const searchInput = document.getElementById("search-input");
+             if (searchInput) {
+                 setActiveView("view-findings");
+                 searchInput.value = data.fingerprint;
+                 currentFilter = data.fingerprint;
+                 currentPage = 1;
+                 renderFindingsTable();
+                 setTimeout(() => {
+                     const tableContainer = document.querySelector('.table-container');
+                     if (tableContainer) {
+                         tableContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                     }
+                 }, 50);
+             }
+          };
+          meta.appendChild(btn);
         }
         if (data.token_details) {
           const details = data.token_details;

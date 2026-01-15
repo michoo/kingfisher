@@ -179,6 +179,7 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
         token_details,
         provider_metadata: metadata
             .map(|info| ProviderMetadata { version: info.version, enterprise: info.enterprise }),
+        fingerprint: None,
     })
 }
 

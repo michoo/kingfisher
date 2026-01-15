@@ -18,6 +18,7 @@ use tokio::net::TcpListener;
 use tracing::{info, warn};
 
 pub const DEFAULT_PORT: u16 = 7890;
+// Embedded viewer assets - force rebuild
 static VIEWER_ASSETS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/docs/access-map-viewer");
 
 /// View a Kingfisher access-map report locally.

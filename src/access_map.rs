@@ -11,6 +11,7 @@ mod gcp;
 mod github;
 mod gitlab;
 mod report;
+mod slack;
 
 /// Run the identity mapping workflow for the selected cloud provider.
 pub async fn run(args: AccessMapArgs) -> Result<()> {
@@ -20,6 +21,7 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
         AccessMapProvider::Azure => azure::map_access(&args).await?,
         AccessMapProvider::Github => github::map_access(&args).await?,
         AccessMapProvider::Gitlab => gitlab::map_access(&args).await?,
+        AccessMapProvider::Slack => slack::map_access(&args).await?,
     };
 
     let json = serde_json::to_string_pretty(&result)?;
@@ -40,17 +42,24 @@ pub async fn run(args: AccessMapArgs) -> Result<()> {
 #[derive(Clone, Debug)]
 pub enum AccessMapRequest {
     /// AWS access key credentials.
-    Aws { access_key: String, secret_key: String, session_token: Option<String> },
+    Aws {
+        access_key: String,
+        secret_key: String,
+        session_token: Option<String>,
+        fingerprint: String,
+    },
     /// A GCP service account JSON document.
-    Gcp { credential_json: String },
+    Gcp { credential_json: String, fingerprint: String },
     /// An Azure storage account JSON document.
-    Azure { credential_json: String, containers: Option<Vec<String>> },
+    Azure { credential_json: String, containers: Option<Vec<String>>, fingerprint: String },
     /// An Azure DevOps personal access token with organization.
-    AzureDevops { token: String, organization: String },
+    AzureDevops { token: String, organization: String, fingerprint: String },
     /// A GitHub token.
-    Github { token: String },
+    Github { token: String, fingerprint: String },
     /// A GitLab token.
-    Gitlab { token: String },
+    Gitlab { token: String, fingerprint: String },
+    /// A Slack token.
+    Slack { token: String, fingerprint: String },
 }
 
 /// Structured output describing the resolved identity and its risk profile.
@@ -58,6 +67,9 @@ pub enum AccessMapRequest {
 pub struct AccessMapResult {
     /// Cloud name such as "gcp", "aws", or "azure".
     pub cloud: String,
+
+    /// Unique fingerprint of the finding.
+    pub fingerprint: Option<String>,
 
     /// Summary of the resolved identity.
     pub identity: AccessSummary,
@@ -183,35 +195,56 @@ pub async fn map_requests(requests: Vec<AccessMapRequest>) -> Vec<AccessMapResul
     let mut results = Vec::new();
 
     for request in requests {
-        let mapped = match request {
-            AccessMapRequest::Aws { access_key, secret_key, session_token } => {
-                aws::map_access_with_credentials(&access_key, &secret_key, session_token.as_deref())
-                    .await
-                    .unwrap_or_else(|err| build_failed_result("aws", &access_key, err))
-            }
-            AccessMapRequest::Gcp { credential_json } => {
+        let (mut mapped, fp) = match request {
+            AccessMapRequest::Aws { access_key, secret_key, session_token, fingerprint } => (
+                aws::map_access_with_credentials(
+                    &access_key,
+                    &secret_key,
+                    session_token.as_deref(),
+                )
+                .await
+                .unwrap_or_else(|err| build_failed_result("aws", &access_key, err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Gcp { credential_json, fingerprint } => (
                 gcp::map_access_from_json(&credential_json)
                     .await
-                    .unwrap_or_else(|err| build_failed_result("gcp", "service_account", err))
-            }
-            AccessMapRequest::Azure { credential_json, containers } => {
+                    .unwrap_or_else(|err| build_failed_result("gcp", "service_account", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Azure { credential_json, containers, fingerprint } => (
                 azure::map_access_from_json_with_hints(&credential_json, containers.as_deref())
                     .await
-                    .unwrap_or_else(|err| build_failed_result("azure", "storage_account", err))
-            }
-            AccessMapRequest::AzureDevops { token, organization } => {
+                    .unwrap_or_else(|err| build_failed_result("azure", "storage_account", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::AzureDevops { token, organization, fingerprint } => (
                 azure_devops::map_access_from_token(&token, &organization)
                     .await
-                    .unwrap_or_else(|err| build_failed_result("azure_devops", "pat", err))
-            }
-            AccessMapRequest::Github { token } => github::map_access_from_token(&token)
-                .await
-                .unwrap_or_else(|err| build_failed_result("github", "token", err)),
-            AccessMapRequest::Gitlab { token } => gitlab::map_access_from_token(&token)
-                .await
-                .unwrap_or_else(|err| build_failed_result("gitlab", "token", err)),
+                    .unwrap_or_else(|err| build_failed_result("azure_devops", "pat", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Github { token, fingerprint } => (
+                github::map_access_from_token(&token)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("github", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Gitlab { token, fingerprint } => (
+                gitlab::map_access_from_token(&token)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("gitlab", "token", err)),
+                fingerprint,
+            ),
+            AccessMapRequest::Slack { token, fingerprint } => (
+                slack::map_access_from_token(&token)
+                    .await
+                    .unwrap_or_else(|err| build_failed_result("slack", "token", err)),
+                fingerprint,
+            ),
         };
 
+        mapped.fingerprint = Some(fp);
         results.push(mapped);
     }
 
@@ -251,6 +284,7 @@ fn build_failed_result(cloud: &str, identity_label: &str, err: anyhow::Error) ->
         risk_notes: vec![format!("Identity mapping failed: {err}")],
         token_details: None,
         provider_metadata: None,
+        fingerprint: None,
     }
 }
 
