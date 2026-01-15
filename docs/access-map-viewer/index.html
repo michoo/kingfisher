@@ -1123,6 +1123,10 @@
                     <label>Git Commit</label>
                     <div id="fd-commit"></div>
                   </div>
+                  <div class="detail-field" id="fd-committer-email-wrapper">
+                    <label>Committer Email</label>
+                    <div id="fd-committer-email"></div>
+                  </div>
                   <div class="detail-field">
                     <label>File Path</label>
                     <textarea id="fd-path" class="path-area" readonly></textarea>
@@ -2371,6 +2375,25 @@
           ? finding.git_metadata.commit.id.substring(0, 8)
           : "N/A";
       document.getElementById("fd-commit").textContent = commit;
+
+      const committerWrapper = document.getElementById("fd-committer-email-wrapper");
+      const committerEmailEl = document.getElementById("fd-committer-email");
+      const committerEmail =
+        finding.git_metadata &&
+        finding.git_metadata.commit &&
+        finding.git_metadata.commit.committer &&
+        finding.git_metadata.commit.committer.email
+          ? String(finding.git_metadata.commit.committer.email)
+          : "";
+      if (committerWrapper && committerEmailEl) {
+        if (committerEmail) {
+          committerWrapper.style.display = "";
+          committerEmailEl.textContent = committerEmail;
+        } else {
+          committerWrapper.style.display = "none";
+          committerEmailEl.textContent = "";
+        }
+      }
 
       const statusRaw =
         finding.validation && finding.validation.status ? String(finding.validation.status) : "Unknown";
