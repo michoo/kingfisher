@@ -28,7 +28,6 @@ rules:
     id: kingfisher.azurestorage.2
     pattern: |
       (?xi)
-      \b
       azure
       (?:.|[\n\r]){0,128}?
       (?:SECRET|PRIVATE|ACCESS|KEY|TOKEN)
