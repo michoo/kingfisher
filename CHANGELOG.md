@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - Added Slack Access Map support with granular permissions in the tree view.
 - Improved HTML report
 - Improved several rules
+- Added new rules
+- Skipped per-repository report writes when an output file is specified and emit a single aggregated report after multi-repository scans to preserve full output content in files.
 
 ## [v1.74.0]
 - Added new rules: cursor, definednetworking, filezilla, harness, intra42, klingai, lark, mergify, naver, plaid, resend, retellai
