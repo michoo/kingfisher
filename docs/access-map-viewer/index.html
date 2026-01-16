@@ -891,10 +891,6 @@
                   <div class="metric__label">Identities Mapped</div>
                   <div class="metric__value" id="stat-identities">0</div>
                 </div>
-                <div class="metric">
-                  <div class="metric__label">Scan Duration</div>
-                  <div class="metric__value" id="stat-duration" style="font-size:20px; margin-top:8px;">-</div>
-                </div>
               </div>
             </section>
 
@@ -1613,10 +1609,6 @@
 
       document.getElementById("stat-identities").textContent = (accessMap || []).length.toString();
 
-      const durEl = document.getElementById("stat-duration");
-      const scanSeconds = resolveScanDurationSeconds(rawData);
-      durEl.textContent = formatDurationText(scanSeconds);
-
       renderStatusChart(validationCounts);
     }
 
@@ -1755,50 +1747,6 @@
         counts[key] = (counts[key] || 0) + 1;
       });
       return counts;
-    }
-
-    function resolveScanDurationSeconds(data) {
-      if (!data) return null;
-      const candidates = [
-        data.scan_duration,
-        data.scanDuration,
-        data.duration_seconds,
-        data.duration,
-        data.stats && data.stats.scan_duration,
-        data.stats && data.stats.scanDuration,
-        data.summary && data.summary.scan_duration,
-      ];
-
-      for (const candidate of candidates) {
-        const parsed = parseDuration(candidate);
-        if (parsed != null) return parsed;
-      }
-      return null;
-    }
-
-    function parseDuration(value) {
-      if (value === undefined || value === null) return null;
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-
-      const numeric = Number(value);
-      if (Number.isFinite(numeric)) return numeric;
-
-      if (typeof value === "string") {
-        const match = value.match(/([\d.]+)\s*s/i);
-        if (match) {
-          const parsed = Number(match[1]);
-          if (Number.isFinite(parsed)) return parsed;
-        }
-      }
-      return null;
-    }
-
-    function formatDurationText(seconds) {
-      if (seconds === null || seconds === undefined) return "-";
-      const value = Number(seconds);
-      if (!Number.isFinite(value)) return "-";
-      if (value < 1) return value.toFixed(3) + "s";
-      return value.toFixed(2) + "s";
     }
 
     function renderStatusChart(counts) {
@@ -2074,8 +2022,6 @@
       });
 
       const counts = calculateValidationCounts(baseFindings);
-      const durationSeconds = resolveScanDurationSeconds(rawData);
-      const durationText = formatDurationText(durationSeconds);
       const hasAccess = Array.isArray(accessMap) && accessMap.length > 0;
       const statusImage = scope === "all" && statusChartCanvas ? statusChartCanvas.toDataURL("image/png") : "";
       const highConfidence = baseFindings.filter((f) => {
@@ -2158,7 +2104,6 @@
               <div class="stat"><div class="label">High Confidence</div><div class="value">${highConfidence}</div></div>
               <div class="stat"><div class="label">Active Credentials</div><div class="value">${counts.active || 0}</div></div>
               <div class="stat"><div class="label">Identities Mapped</div><div class="value">${accessMap.length}</div></div>
-              <div class="stat"><div class="label">Scan Duration</div><div class="value">${durationText}</div></div>
             </div>
             <div class="chart-wrapper">
               ${statusImage ? `<img src="${statusImage}" alt="Status chart" style="max-width:280px; border:1px solid #d1d5db; border-radius:10px;">` : ""}
