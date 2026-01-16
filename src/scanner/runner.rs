@@ -459,6 +459,7 @@ pub async fn run_async_scan(
 
     let ran_repo_scan = Arc::new(AtomicBool::new(false));
     let repo_errors: Arc<Mutex<Vec<anyhow::Error>>> = Arc::new(Mutex::new(Vec::new()));
+    let output_to_file = args.output_args.output.is_some();
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(repo_concurrency)
@@ -538,8 +539,10 @@ pub async fn run_async_scan(
                             global_stats.update(&repo_matcher_stats.lock().unwrap());
                         }
 
-                        crate::reporter::run(global_args, Arc::clone(&repo_datastore), &args)
-                            .context("Failed to run report command")?;
+                        if !output_to_file {
+                            crate::reporter::run(global_args, Arc::clone(&repo_datastore), &args)
+                                .context("Failed to run report command")?;
+                        }
 
                         {
                             let mut ds = datastore.lock().unwrap();
@@ -572,6 +575,11 @@ pub async fn run_async_scan(
 
     if let Some(err) = repo_errors.lock().unwrap().pop() {
         return Err(err);
+    }
+
+    if output_to_file && ran_repo_scan.load(Ordering::Relaxed) {
+        crate::reporter::run(global_args, Arc::clone(&datastore), args)
+            .context("Failed to run report command")?;
     }
 
     if !ran_repo_scan.load(Ordering::Relaxed) {
