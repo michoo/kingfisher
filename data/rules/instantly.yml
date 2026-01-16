@@ -11,7 +11,7 @@ rules:
       (?:.|[\n\r]){0,16}?
       \b
       (
-        [A-Za-z0-9+/]{66}==
+        [A-Z0-9+/]{66}==
       )
     pattern_requirements:
       min_digits: 4
