@@ -154,6 +154,7 @@ async fn map_access_with_config(config: SdkConfig) -> Result<AccessMapResult> {
             scopes: Vec::new(),
         }),
         provider_metadata: None,
+        fingerprint: None,
     })
 }
 

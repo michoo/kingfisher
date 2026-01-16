@@ -42,6 +42,5 @@ rules:
             - report_response: true
             - type: StatusMatch
               status: [200]
-            - type: JsonValid
             - type: WordMatch
               words: ['"answer"']

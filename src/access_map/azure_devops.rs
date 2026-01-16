@@ -262,6 +262,7 @@ pub async fn map_access_from_token(token: &str, organization: &str) -> Result<Ac
             scopes: token_scopes,
         }),
         provider_metadata: None,
+        fingerprint: None,
     })
 }
 

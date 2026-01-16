@@ -282,6 +282,7 @@ pub async fn map_access_from_token(token: &str) -> Result<AccessMapResult> {
             scopes: oauth_scopes.clone(),
         }),
         provider_metadata: None,
+        fingerprint: None,
     })
 }
 

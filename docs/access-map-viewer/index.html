@@ -718,6 +718,11 @@
       border-color: var(--border);
     }
 
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     #theme-toggle {
       background: #f9fafb;
       color: var(--brand);
@@ -853,8 +858,16 @@
               Findings
             </button>
           </div>
-          <div class="nav-group">
-            <button class="btn" id="download-pdf" type="button" style="width:100%;">Download PDF report</button>
+          <div class="nav-group" style="display:flex; flex-direction:column; gap:10px;">
+            <button class="btn" id="download-findings-report" type="button" style="width:100%;">Download Findings Report</button>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Findings scope</span>
+              <select id="report-scope" class="rows-select">
+                <option value="all" selected>All findings</option>
+                <option value="filtered">Filtered findings</option>
+              </select>
+            </div>
+            <button class="btn" id="download-access-report" type="button" style="width:100%;" disabled>Download Access Map Report</button>
           </div>
         </aside>
 
@@ -877,10 +890,6 @@
                 <div class="metric">
                   <div class="metric__label">Identities Mapped</div>
                   <div class="metric__value" id="stat-identities">0</div>
-                </div>
-                <div class="metric">
-                  <div class="metric__label">Scan Duration</div>
-                  <div class="metric__value" id="stat-duration" style="font-size:20px; margin-top:8px;">-</div>
                 </div>
               </div>
             </section>
@@ -1103,8 +1112,16 @@
                     <div id="fd-entropy"></div>
                   </div>
                   <div class="detail-field">
+                    <label>Validation Status</label>
+                    <div id="fd-validation-status"></div>
+                  </div>
+                  <div class="detail-field">
                     <label>Git Commit</label>
                     <div id="fd-commit"></div>
+                  </div>
+                  <div class="detail-field" id="fd-committer-email-wrapper">
+                    <label>Committer Email</label>
+                    <div id="fd-committer-email"></div>
                   </div>
                   <div class="detail-field">
                     <label>File Path</label>
@@ -1153,7 +1170,9 @@
     const errorMsg = document.getElementById("error-msg");
     const uploadSection = document.getElementById("upload-section");
     const dashboard = document.getElementById("dashboard");
-    const downloadPdfBtn = document.getElementById("download-pdf");
+    const downloadFindingsReportBtn = document.getElementById("download-findings-report");
+    const reportScopeSelect = document.getElementById("report-scope");
+    const downloadAccessReportBtn = document.getElementById("download-access-report");
 
     const searchInput = document.getElementById("search-input");
     const validationSelect = document.getElementById("validation-filter");
@@ -1273,8 +1292,14 @@
     downloadJsonBtn.addEventListener("click", downloadFindingsJson);
     downloadCsvBtn.addEventListener("click", downloadFindingsCsv);
     copyAccessMapButton.addEventListener("click", copyFilteredAccessMap);
-    if (downloadPdfBtn) {
-      downloadPdfBtn.addEventListener("click", generatePdfReport);
+    if (downloadFindingsReportBtn) {
+      downloadFindingsReportBtn.addEventListener("click", () => {
+        const scope = reportScopeSelect ? reportScopeSelect.value : "all";
+        generatePdfReport(scope);
+      });
+    }
+    if (downloadAccessReportBtn) {
+      downloadAccessReportBtn.addEventListener("click", generateAccessMapReport);
     }
     if (themeToggle) {
       themeToggle.addEventListener("click", () => {
@@ -1333,6 +1358,7 @@
     function syncAccessMapUi(hasAccess) {
       const previouslyAutoCollapsed = autoCollapsedAccessMap;
       if (amToggle) amToggle.disabled = !hasAccess;
+      if (downloadAccessReportBtn) downloadAccessReportBtn.disabled = !hasAccess;
       if (amEmptyNotice) {
         amEmptyNotice.classList.toggle("hidden", hasAccess);
       }
@@ -1583,10 +1609,6 @@
 
       document.getElementById("stat-identities").textContent = (accessMap || []).length.toString();
 
-      const durEl = document.getElementById("stat-duration");
-      const scanSeconds = resolveScanDurationSeconds(rawData);
-      durEl.textContent = formatDurationText(scanSeconds);
-
       renderStatusChart(validationCounts);
     }
 
@@ -1600,12 +1622,13 @@
         const ruleName = (rule.name || rule.id || "").toLowerCase();
         const path = (finding.path || "").toLowerCase();
         const snippet = (finding.snippet || "").toLowerCase();
+        const fingerprint = (finding.fingerprint || "").toLowerCase();
         const status = (finding.validation && finding.validation.status
           ? String(finding.validation.status)
           : "").toLowerCase();
 
         if (filterLower) {
-          if (!ruleName.includes(filterLower) && !path.includes(filterLower) && !snippet.includes(filterLower)) {
+          if (!ruleName.includes(filterLower) && !path.includes(filterLower) && !snippet.includes(filterLower) && !fingerprint.includes(filterLower)) {
             return false;
           }
         }
@@ -1713,9 +1736,9 @@
       return "unknown";
     }
 
-    function calculateValidationCounts() {
+    function calculateValidationCounts(list = findings) {
       const counts = { active: 0, inactive: 0, not_attempted: 0, unknown: 0 };
-      findings.forEach((f) => {
+      (list || []).forEach((f) => {
         const status =
           f.finding && f.finding.validation && f.finding.validation.status
             ? f.finding.validation.status
@@ -1724,50 +1747,6 @@
         counts[key] = (counts[key] || 0) + 1;
       });
       return counts;
-    }
-
-    function resolveScanDurationSeconds(data) {
-      if (!data) return null;
-      const candidates = [
-        data.scan_duration,
-        data.scanDuration,
-        data.duration_seconds,
-        data.duration,
-        data.stats && data.stats.scan_duration,
-        data.stats && data.stats.scanDuration,
-        data.summary && data.summary.scan_duration,
-      ];
-
-      for (const candidate of candidates) {
-        const parsed = parseDuration(candidate);
-        if (parsed != null) return parsed;
-      }
-      return null;
-    }
-
-    function parseDuration(value) {
-      if (value === undefined || value === null) return null;
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-
-      const numeric = Number(value);
-      if (Number.isFinite(numeric)) return numeric;
-
-      if (typeof value === "string") {
-        const match = value.match(/([\d.]+)\s*s/i);
-        if (match) {
-          const parsed = Number(match[1]);
-          if (Number.isFinite(parsed)) return parsed;
-        }
-      }
-      return null;
-    }
-
-    function formatDurationText(seconds) {
-      if (seconds === null || seconds === undefined) return "-";
-      const value = Number(seconds);
-      if (!Number.isFinite(value)) return "-";
-      if (value < 1) return value.toFixed(3) + "s";
-      return value.toFixed(2) + "s";
     }
 
     function renderStatusChart(counts) {
@@ -1929,14 +1908,105 @@
       triggerDownload("kingfisher-findings.csv", csv, "text/csv");
     }
 
-    function generatePdfReport() {
+    function getFindingIdFromFinding(finding) {
+      if (!finding) return "";
+      return (
+        finding.id ||
+        finding.finding_id ||
+        finding.findingId ||
+        finding.fingerprint ||
+        ""
+      );
+    }
+
+    function getFindingIdFromAccessEntry(entry) {
+      if (!entry) return "";
+      return (
+        entry.finding_id ||
+        entry.findingId ||
+        entry.finding ||
+        entry.fingerprint ||
+        ""
+      );
+    }
+
+    function getTokenNameFromAccessEntry(entry) {
+      if (!entry) return "";
+      return (
+        entry.token_name ||
+        entry.tokenName ||
+        (entry.token_details && entry.token_details.name) ||
+        (entry.token && entry.token.name) ||
+        ""
+      );
+    }
+
+    function getUserIdFromAccessEntry(entry) {
+      if (!entry) return "";
+      return (
+        entry.user_id ||
+        entry.userId ||
+        (entry.token_details && entry.token_details.user_id) ||
+        (entry.token && entry.token.user_id) ||
+        ""
+      );
+    }
+
+    function buildAccessMapListHtml({ includeMeta = false } = {}) {
+      if (!Array.isArray(accessMap) || accessMap.length === 0) {
+        return "";
+      }
+
+      return accessMap
+        .map((entry) => {
+          const groups = Array.isArray(entry.groups) ? entry.groups : [];
+          const findingId = getFindingIdFromAccessEntry(entry);
+          const tokenName = getTokenNameFromAccessEntry(entry);
+          const userId = getUserIdFromAccessEntry(entry);
+          const metaLine = includeMeta
+            ? `<div style="font-size:12px; color:#475569; margin-top:4px;">
+                <strong>Finding ID:</strong> ${escapeHtml(findingId || "-")} ·
+                <strong>Token Name:</strong> ${escapeHtml(tokenName || "-")} ·
+                <strong>User ID:</strong> ${escapeHtml(userId || "-")}
+              </div>`
+            : "";
+          const groupList = groups
+            .map((g) => {
+              const resList = Array.isArray(g.resources) && g.resources.length
+                ? g.resources.map((r) => escapeHtml(String(r))).join(", ")
+                : "No resources listed";
+              const permList = Array.isArray(g.permissions) && g.permissions.length
+                ? g.permissions.map((p) => escapeHtml(String(p))).join(", ")
+                : "No permissions listed";
+              return `<li><strong>Resources:</strong> ${resList}<br><strong>Permissions:</strong> ${permList}</li>`;
+            })
+            .join("");
+          return `
+            <li class="access-entry">
+              <div class="access-head">
+                ${escapeHtml(entry.account || "(identity)")}
+                <span class="tag">${escapeHtml((entry.provider || "Unknown").toUpperCase())}</span>
+              </div>
+              ${metaLine}
+              <ul class="access-groups">
+                ${groupList || "<li>No resources recorded.</li>"}
+              </ul>
+            </li>
+          `;
+        })
+        .join("");
+    }
+
+    function generatePdfReport(scope = "all") {
       if (!rawData) {
-        alert("Load a report before downloading a PDF report.");
+        alert("Load a report before downloading a Findings report.");
         return;
       }
 
       const statusOrder = { active: 0, inactive: 1, not_attempted: 2, unknown: 3 };
-      const findingsForReport = Array.isArray(findings) ? findings.slice() : [];
+      const baseFindings =
+        scope === "filtered" ? getFilteredSortedFindings().slice() : (Array.isArray(findings) ? findings.slice() : []);
+      const findingsForReport = baseFindings.slice();
       findingsForReport.sort((a, b) => {
         const fa = a.finding || {};
         const fb = b.finding || {};
@@ -1951,15 +2021,14 @@
         return ra.localeCompare(rb);
       });
 
-      const counts = calculateValidationCounts();
-      const durationSeconds = resolveScanDurationSeconds(rawData);
-      const durationText = formatDurationText(durationSeconds);
+      const counts = calculateValidationCounts(baseFindings);
       const hasAccess = Array.isArray(accessMap) && accessMap.length > 0;
-      const statusImage = statusChartCanvas ? statusChartCanvas.toDataURL("image/png") : "";
-      const highConfidence = findings.filter((f) => {
+      const statusImage = scope === "all" && statusChartCanvas ? statusChartCanvas.toDataURL("image/png") : "";
+      const highConfidence = baseFindings.filter((f) => {
         const conf = f.finding && f.finding.confidence ? String(f.finding.confidence) : "";
         return conf.toLowerCase() === "high";
       }).length;
+      const scopeLabel = scope === "filtered" ? "Filtered findings" : "All findings";
 
       const findingsHtml = findingsForReport.length
         ? findingsForReport
@@ -1968,49 +2037,26 @@
               const finding = entry.finding || {};
               const statusRaw = finding.validation && finding.validation.status ? finding.validation.status : "Unknown";
               const status = normalizeValidationStatus(statusRaw);
+              const findingId = getFindingIdFromFinding(finding);
+              const gitUrl = getFileUrlFromFinding(finding);
               const snippet = (finding.snippet || "").toString().replace(/\s+/g, " ").trim();
               return `
                 <tr>
                   <td>${escapeHtml(rule.name || rule.id || "")}</td>
+                  <td>${escapeHtml(findingId || "")}</td>
                   <td>${escapeHtml(finding.path || "")}</td>
                   <td>${escapeHtml(statusRaw)}</td>
-                  <td>${escapeHtml(finding.confidence || "")}</td>
                   <td>${finding.line != null ? escapeHtml(finding.line) : ""}</td>
+                  <td>${escapeHtml(gitUrl || "")}</td>
                   <td>${escapeHtml(snippet.slice(0, 200))}</td>
                 </tr>
               `;
             })
             .join("")
-        : '<tr><td colspan="6">No findings available.</td></tr>';
+        : '<tr><td colspan="7">No findings available.</td></tr>';
 
       const accessListHtml = hasAccess
-        ? accessMap
-            .map((entry) => {
-              const groups = Array.isArray(entry.groups) ? entry.groups : [];
-              const groupList = groups
-                .map((g) => {
-                  const resList = Array.isArray(g.resources) && g.resources.length
-                    ? g.resources.map((r) => escapeHtml(String(r))).join(", ")
-                    : "No resources listed";
-                  const permList = Array.isArray(g.permissions) && g.permissions.length
-                    ? g.permissions.map((p) => escapeHtml(String(p))).join(", ")
-                    : "No permissions listed";
-                  return `<li><strong>Resources:</strong> ${resList}<br><strong>Permissions:</strong> ${permList}</li>`;
-                })
-                .join("");
-              return `
-                <li class="access-entry">
-                  <div class="access-head">
-                    ${escapeHtml(entry.account || "(identity)")}
-                    <span class="tag">${escapeHtml((entry.provider || "Unknown").toUpperCase())}</span>
-                  </div>
-                  <ul class="access-groups">
-                    ${groupList || "<li>No resources recorded.</li>"}
-                  </ul>
-                </li>
-              `;
-            })
-            .join("")
+        ? buildAccessMapListHtml()
         : "";
 
       const accessSectionContent = hasAccess
@@ -2024,14 +2070,15 @@
           <meta charset="UTF-8">
           <title>Kingfisher Report</title>
           <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #0f172a; }
+            * { box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; color: #0f172a; }
             h1, h2, h3 { margin: 0 0 12px; }
             .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
             .stat { padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; background: #f8fafc; }
             .stat .label { font-size: 12px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.05em; }
             .stat .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-            th, td { border: 1px solid #d1d5db; padding: 8px 10px; font-size: 13px; text-align: left; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: fixed; }
+            th, td { border: 1px solid #d1d5db; padding: 6px 8px; font-size: 11px; text-align: left; word-break: break-word; overflow-wrap: anywhere; }
             th { background: #e5e7eb; }
             .section { margin-bottom: 28px; }
             .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-weight: 700; font-size: 12px; margin-left: 8px; }
@@ -2048,16 +2095,15 @@
         </head>
         <body>
           <h1>Kingfisher Report</h1>
-          <div class="meta">Generated ${escapeHtml(new Date().toLocaleString())}</div>
+          <div class="meta">Generated ${escapeHtml(new Date().toLocaleString())} · Scope: ${escapeHtml(scopeLabel)}</div>
 
           <div class="section">
             <h2>Dashboard</h2>
             <div class="grid">
-              <div class="stat"><div class="label">Total Findings</div><div class="value">${findings.length}</div></div>
+              <div class="stat"><div class="label">Total Findings</div><div class="value">${baseFindings.length}</div></div>
               <div class="stat"><div class="label">High Confidence</div><div class="value">${highConfidence}</div></div>
               <div class="stat"><div class="label">Active Credentials</div><div class="value">${counts.active || 0}</div></div>
               <div class="stat"><div class="label">Identities Mapped</div><div class="value">${accessMap.length}</div></div>
-              <div class="stat"><div class="label">Scan Duration</div><div class="value">${durationText}</div></div>
             </div>
             <div class="chart-wrapper">
               ${statusImage ? `<img src="${statusImage}" alt="Status chart" style="max-width:280px; border:1px solid #d1d5db; border-radius:10px;">` : ""}
@@ -2071,20 +2117,16 @@
           </div>
 
           <div class="section">
-            <h2>Access Map</h2>
-            ${accessSectionContent}
-          </div>
-
-          <div class="section">
-            <h2>Findings (Active first)</h2>
+            <h2>${escapeHtml(scope === "filtered" ? "Findings (Filtered, Active first)" : "Findings (Active first)")}</h2>
             <table>
               <thead>
                 <tr>
                   <th>Rule</th>
+                  <th>Finding ID</th>
                   <th>File Path</th>
                   <th>Status</th>
-                  <th>Confidence</th>
                   <th>Line</th>
+                  <th>Git URL</th>
                   <th>Snippet</th>
                 </tr>
               </thead>
@@ -2093,13 +2135,66 @@
               </tbody>
             </table>
           </div>
+
         </body>
         </html>
       `;
 
       const win = window.open("", "_blank", "width=1200,height=900");
       if (!win) {
-        alert("Please allow pop-ups to download the PDF report.");
+        alert("Please allow pop-ups to download the Findings report.");
+        return;
+      }
+      win.document.write(pdfHtml);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 400);
+    }
+
+    function generateAccessMapReport() {
+      if (!rawData) {
+        alert("Load a report before downloading an Access Map report.");
+        return;
+      }
+
+      const accessListHtml = buildAccessMapListHtml({ includeMeta: true });
+      if (!accessListHtml) {
+        alert("No Access Map entries are available for this report.");
+        return;
+      }
+
+      const pdfHtml = `
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Kingfisher Access Map Report</title>
+          <style>
+            * { box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 16px; color: #0f172a; }
+            h1, h2 { margin: 0 0 12px; }
+            .meta { color: #4b5563; font-size: 13px; margin-bottom: 14px; }
+            .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-weight: 700; font-size: 12px; margin-left: 8px; }
+            .access-list { list-style: none; padding-left: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+            .access-entry { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; background: #f8fafc; }
+            .access-head { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+            .access-groups { margin: 0; padding-left: 16px; color: #1f2937; }
+          </style>
+        </head>
+        <body>
+          <h1>Kingfisher Access Map Report</h1>
+          <div class="meta">Generated ${escapeHtml(new Date().toLocaleString())}</div>
+          <div class="section">
+            <h2>Access Map</h2>
+            <ul class="access-list">${accessListHtml}</ul>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const win = window.open("", "_blank", "width=1200,height=900");
+      if (!win) {
+        alert("Please allow pop-ups to download the Access Map report.");
         return;
       }
       win.document.write(pdfHtml);
@@ -2191,7 +2286,33 @@
       panel.scrollIntoView({ behavior: "smooth", block: "start" });
 
       document.getElementById("fd-rule-id").textContent = rule.id || "";
-      document.getElementById("fd-fingerprint").textContent = finding.fingerprint || "";
+      const fpEl = document.getElementById("fd-fingerprint");
+      const fpVal = finding.fingerprint || "";
+      fpEl.textContent = fpVal;
+      fpEl.innerHTML = fpVal; // reset content
+
+      if (fpVal && Array.isArray(accessMap)) {
+          const hasEntry = accessMap.some(entry => entry.fingerprint === fpVal);
+          if (hasEntry) {
+              const btn = document.createElement("button");
+              btn.className = "badge";
+              btn.textContent = "Go to Access Map";
+              btn.style.marginLeft = "10px";
+              btn.style.cursor = "pointer";
+              btn.style.background = "var(--brand-soft)";
+              btn.style.borderColor = "var(--brand)";
+              btn.style.color = "var(--brand-dark)";
+              btn.onclick = () => {
+                  setActiveView("view-access");
+                  const treeSearch = document.getElementById("tree-search");
+                  if (treeSearch) {
+                      treeSearch.value = fpVal;
+                      treeSearch.dispatchEvent(new Event('input'));
+                  }
+              };
+              fpEl.appendChild(btn);
+          }
+      }
       document.getElementById("fd-entropy").textContent =
         finding.entropy != null ? String(finding.entropy) : "";
       const commit =
@@ -2199,6 +2320,39 @@
           ? finding.git_metadata.commit.id.substring(0, 8)
           : "N/A";
       document.getElementById("fd-commit").textContent = commit;
+
+      const committerWrapper = document.getElementById("fd-committer-email-wrapper");
+      const committerEmailEl = document.getElementById("fd-committer-email");
+      const committerEmail =
+        finding.git_metadata &&
+        finding.git_metadata.commit &&
+        finding.git_metadata.commit.committer &&
+        finding.git_metadata.commit.committer.email
+          ? String(finding.git_metadata.commit.committer.email)
+          : "";
+      if (committerWrapper && committerEmailEl) {
+        if (committerEmail) {
+          committerWrapper.style.display = "";
+          committerEmailEl.textContent = committerEmail;
+        } else {
+          committerWrapper.style.display = "none";
+          committerEmailEl.textContent = "";
+        }
+      }
+
+      const statusRaw =
+        finding.validation && finding.validation.status ? String(finding.validation.status) : "Unknown";
+      const normalizedStatus = normalizeValidationStatus(statusRaw);
+      const badgeClass =
+        normalizedStatus === "active"
+          ? "active"
+          : normalizedStatus === "inactive"
+            ? "inactive"
+            : "unknown";
+      const statusEl = document.getElementById("fd-validation-status");
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="status-badge ${badgeClass}">${escapeHtml(statusRaw)}</span>`;
+      }
 
       const path = finding.path || "";
       if (fdPathInput) {
@@ -2332,7 +2486,8 @@
         const account = formatIdentityLabel(identity);
         const groups = Array.isArray(identity.groups) ? identity.groups : [];
 
-        const identityNameMatches = Boolean(filterLower) && account.toLowerCase().includes(filterLower);
+        const fingerprint = (identity.fingerprint || "").toLowerCase();
+        const identityNameMatches = Boolean(filterLower) && (account.toLowerCase().includes(filterLower) || fingerprint.includes(filterLower));
         let anyResourceMatches = false;
 
         const preparedGroups = groups.map((group) => {
@@ -2688,6 +2843,41 @@
         cloudField.textContent = provider;
         if (data.provider) {
           addBadge(meta, provider, providerBadgeClass(data.provider));
+        }
+        if (data.fingerprint) {
+          const fpDiv = document.createElement("div");
+          fpDiv.style.width = "100%";
+          fpDiv.style.marginTop = "6px";
+          fpDiv.style.fontSize = "11px";
+          fpDiv.style.color = "var(--text-muted)";
+          fpDiv.textContent = "Fingerprint: " + data.fingerprint;
+          meta.appendChild(fpDiv);
+
+          const btn = document.createElement("button");
+          btn.className = "badge";
+          btn.textContent = "Go to finding";
+          btn.style.marginTop = "6px";
+          btn.style.cursor = "pointer";
+          btn.style.background = "var(--brand-soft)";
+          btn.style.borderColor = "var(--brand)";
+          btn.style.color = "var(--brand-dark)";
+          btn.onclick = () => {
+             const searchInput = document.getElementById("search-input");
+             if (searchInput) {
+                 setActiveView("view-findings");
+                 searchInput.value = data.fingerprint;
+                 currentFilter = data.fingerprint;
+                 currentPage = 1;
+                 renderFindingsTable();
+                 setTimeout(() => {
+                     const tableContainer = document.querySelector('.table-container');
+                     if (tableContainer) {
+                         tableContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                     }
+                 }, 50);
+             }
+          };
+          meta.appendChild(btn);
         }
         if (data.token_details) {
           const details = data.token_details;

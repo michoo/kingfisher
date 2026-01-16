@@ -1,6 +1,15 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [v1.75.0]
+- Enhanced Access Map View: added fingerprint display, enabled searching by fingerprint, and implemented bidirectional navigation between Findings and Access Map nodes.
+- Added Slack Access Map support with granular permissions in the tree view.
+- Improved HTML report
+- Improved several rules
+- Added new rules for Apollo, Clay, CodeRabbit, Customer.io, Instantly, Vast.ai
+- Skipped per-repository report writes when an output file is specified and emit a single aggregated report after multi-repository scans to preserve full output content in files.
+
 ## [v1.74.0]
 - Added new rules: cursor, definednetworking, filezilla, harness, intra42, klingai, lark, mergify, naver, plaid, resend, retellai
 

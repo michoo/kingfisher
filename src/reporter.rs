@@ -659,6 +659,7 @@ impl DetailsReporter {
                 groups,
                 token_details: result.token_details.clone(),
                 provider_metadata: result.provider_metadata.clone(),
+                fingerprint: result.fingerprint.clone(),
             });
         }
 
@@ -820,6 +821,8 @@ pub struct AccessMapEntry {
     pub token_details: Option<AccessTokenDetails>,
     #[serde(default)]
     pub provider_metadata: Option<ProviderMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fingerprint: Option<String>,
 }
 
 #[derive(Serialize, JsonSchema, Clone, Debug)]

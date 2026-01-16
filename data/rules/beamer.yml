@@ -10,7 +10,6 @@ rules:
       (
         b_[A-Z0-9=_\\/\\\-+]{44}
       )
-      \b
     pattern_requirements:
       min_digits: 2
       min_uppercase: 1

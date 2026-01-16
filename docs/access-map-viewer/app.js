@@ -267,6 +267,7 @@ function normalizeAccessMap(entries = []) {
     return entries.map((entry) => ({
       provider: entry.provider,
       account: entry.account,
+      fingerprint: entry.fingerprint,
       groups: (entry.groups || []).map((group) => ({
         resources: Array.isArray(group.resources) ? group.resources : [],
         permissions: Array.isArray(group.permissions) ? group.permissions : [],
@@ -277,17 +278,18 @@ function normalizeAccessMap(entries = []) {
   return entries.map((entry) => ({
     provider: entry.provider,
     account: entry.account,
+    fingerprint: entry.fingerprint,
     groups: [
       {
         resources: entry.resource ? [entry.resource] : [],
         permissions: Array.isArray(entry.permissions)
           ? entry.permissions
           : entry.permission
-          ? String(entry.permission)
+            ? String(entry.permission)
               .split(",")
               .map((p) => p.trim())
               .filter(Boolean)
-          : [],
+            : [],
       },
     ],
   }));
@@ -301,6 +303,7 @@ function flattenAccessMap(entries = []) {
         rows.push({
           provider: entry.provider,
           account: entry.account,
+          fingerprint: entry.fingerprint,
           resource,
           permissions: group.permissions || [],
         });
@@ -364,7 +367,7 @@ function filteredFindings() {
       if (validationFilter === "not_attempted" && f.validationStatus.toLowerCase() !== "not attempted") return false;
 
       if (!currentFilter) return true;
-      const haystack = `${f.ruleId} ${f.ruleName} ${f.findingType} ${f.message} ${f.path} ${f.validationStatus}`.toLowerCase();
+      const haystack = `${f.ruleId} ${f.ruleName} ${f.findingType} ${f.message} ${f.path} ${f.validationStatus} ${f.fingerprint}`.toLowerCase();
       return haystack.includes(currentFilter);
     })
     .sort((a, b) => {
@@ -512,7 +515,7 @@ function downloadJson() {
 function copyAccessMap() {
   if (!accessMap.length) return;
   const text = JSON.stringify(accessMap, null, 2);
-  navigator.clipboard.writeText(text).catch(() => {});
+  navigator.clipboard.writeText(text).catch(() => { });
 }
 
 function exportCsv() {
