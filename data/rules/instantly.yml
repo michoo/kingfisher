@@ -17,12 +17,8 @@ rules:
       min_digits: 4
     min_entropy: 3.3
     confidence: medium
-    categories:
-      - api
-      - secret
     examples:
-      - 'INSTANTLY_API_KEY="ZGVhZGJlZWYtZGVhZC0xMTEtMjIyLTMzMzM0NDQ0NDQ0NDphYmNkZWZnaGlqaw=="'
-      - '"Authorization: Bearer ZGVhZGJlZWYtZGVhZC0xMTEtMjIyLTMzMzM0NDQ0NDQ0NDphYmNkZWZnaGlqaw=="'
+      - 'INSTANTLY_API_KEY="NmNlMCI1MWUtZDBmMC00NTc4LWE0MDItMDM0NGU0ZWI0MzliOmFzWWtCZUxUY3ZPRg=="'
     references:
       - https://developer.instantly.ai/api/v2/analytics/getdailyaccountanalytics
     validation:

@@ -19,11 +19,7 @@ rules:
       min_lowercase: 1
     min_entropy: 3.0
     confidence: medium
-    categories:
-      - api
-      - secret
     examples:
-      - "x-api-key: QyZ0oxTJblhYp3_o9gJFRA"
       - 'APOLLO_API_KEY="ZNh-14foqIiscbz24oKwww"'
       - apollo_key=8ku3EoDJxz8fOSCdxYozdA
       - apollo.io api_key oD8GCL8MNZIyg0tzeSDuhw

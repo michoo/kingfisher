@@ -1,33 +1,6 @@
 rules:
-  - name: Customer.io Site ID (helper)
-    id: kingfisher.customerio.1
-    visible: false
-    pattern: |
-      (?xi)
-      \b
-      (?:customer(?:\.?io)?|customerio|cio)?
-      (?:site[_-]?id|siteid)
-      \b
-      (?:\s*[:=]\s*|["']\s*:\s*["']|=\s*["'])
-      \s*
-      \b
-      (
-        [0-9a-f]{20,22}
-      )
-      \b
-    pattern_requirements:
-      min_digits: 4
-    min_entropy: 3.0
-    confidence: medium
-    examples:
-      - "site id: 683f668681041ec0963a"
-      - "site_id=4666cc67dc875420420d"
-      - "customerio_site_id: 7843e1010e52cda7bc8d"
-    references:
-      - https://docs.customer.io/integrations/api/#track-api
-
   - name: Customer.io Tracking API Key
-    id: kingfisher.customerio.2
+    id: kingfisher.customerio.1
     pattern: |
       (?xi)
       \b
@@ -52,7 +25,7 @@ rules:
       - https://docs.customer.io/integrations/api/#track-api
 
   - name: Customer.io App API Key
-    id: kingfisher.customerio.3
+    id: kingfisher.customerio.2
     pattern: |
       (?xi)
       \b
@@ -70,7 +43,6 @@ rules:
     min_entropy: 3.0
     confidence: medium
     examples:
-      - "app api key: 2500f16b129a6644df32a88ba106f627"
       - "customerio_app_key=6e86f5734527548b7477a8b627bf4855"
       - "customer.io api key 8363e3ca7e897cae7d76b8f46632e155"
       - "cio_app_key: 801b93d4c8627282bbd3524362f1ea9d"
