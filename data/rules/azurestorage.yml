@@ -16,7 +16,7 @@ rules:
         ([a-z0-9]{3,24})(?:\b|[^a-z0-9])
       |
         # D) Explicit KV labels near 'azure storage/account name' with tight separators
-        (?i:Account[_.-]?Name|Storage[_.-]?(?:Name))(?:.|\s){0,32}?\b([A-Z0-9]{3,32})\b|([A-A0-9]{3,32})(?i:\.blob\.core\.windows\.net)
+        (?i:Account[_.-]?Name|Storage[_.-]?(?:Name))(?:.|\s){0,32}?\b([A-Z0-9]{3,32})\b|([A-Z0-9]{3,32})(?i:\.blob\.core\.windows\.net)
       )
     min_entropy: 2.0
     visible: false

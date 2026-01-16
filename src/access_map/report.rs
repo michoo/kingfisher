@@ -915,7 +915,6 @@ fn build_html(json_str: &str, compressed_json_b64: &str) -> String {
 
         const sev = document.createElement('span');
         sev.textContent = `Severity: ${model.severity || 'unknown'}`;
-        sev.textContent = `Severity: ${model.severity || 'unknown'}`;
         meta.appendChild(sev);
 
         if (model.fingerprint) {
